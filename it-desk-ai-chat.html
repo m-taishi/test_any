@@ -1,0 +1,2816 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>IT Service Desk AI</title>
+<style>
+:root{
+  --ac:#2563a8; --ac-l:#eaf1f9; --ok:#15803d; --wa:#b45309; --ng:#b91c1c;
+  --tx:#1f2328; --tx2:#5b6672; --tx3:#8b95a1;
+  --bg:#f7f8fa; --pn:#fff; --ln:#e4e8ed; --ln2:#eef1f4;
+  --mono:"SFMono-Regular",Consolas,"Courier New",monospace;
+  --sans:system-ui,-apple-system,"Segoe UI","Yu Gothic UI","Hiragino Kaku Gothic ProN","Noto Sans JP",Meiryo,sans-serif;
+}
+*{box-sizing:border-box}
+html,body{height:100%;margin:0}
+body{font-family:var(--sans);background:var(--bg);color:var(--tx);font-size:13.5px;line-height:1.8;-webkit-font-smoothing:antialiased}
+button{font:inherit;cursor:pointer}
+
+/* header */
+.hd{height:52px;background:var(--pn);border-bottom:1px solid var(--ln);display:flex;align-items:center;gap:26px;padding:0 22px;position:sticky;top:0;z-index:30}
+.hd .nm{font-weight:700;font-size:14px;letter-spacing:.01em;display:flex;align-items:center;gap:9px;white-space:nowrap}
+.hd .nm i{width:22px;height:22px;border-radius:6px;background:var(--ac);color:#fff;display:grid;place-items:center;font-size:11px;font-style:normal}
+.hd .nm small{font-weight:400;color:var(--tx3);font-size:11px}
+.tabs{display:flex;gap:2px;height:100%}
+.tab{background:none;border:0;border-bottom:2px solid transparent;color:var(--tx2);padding:0 14px;height:100%;font-size:13px;white-space:nowrap}
+.tab:hover{color:var(--tx)}
+.tab.on{color:var(--ac);border-bottom-color:var(--ac);font-weight:600}
+.hd .rt{margin-left:auto;display:flex;align-items:center;gap:10px;font-size:11px;color:var(--tx3);white-space:nowrap}
+.hd .rt b{color:var(--tx2);font-weight:600}
+.hd .av{width:26px;height:26px;border-radius:50%;background:#dbe4ee;color:var(--ac);display:grid;place-items:center;font-size:10px;font-weight:700}
+
+/* chat area */
+.wrap{height:calc(100vh - 52px);overflow-y:auto;scroll-behavior:smooth}
+.wrap::-webkit-scrollbar{width:10px}
+.wrap::-webkit-scrollbar-thumb{background:#d3d9e0;border-radius:5px;border:3px solid var(--bg)}
+.chat{max-width:840px;margin:0 auto;padding:26px 24px 240px}
+.pane{display:none}.pane.on{display:block}
+
+.intro{text-align:center;padding:44px 0 30px;color:var(--tx2)}
+.intro h1{font-size:19px;margin:0 0 8px;color:var(--tx);font-weight:700}
+.intro p{margin:0;font-size:12.5px;line-height:1.9}
+
+/* messages */
+.u{display:flex;justify-content:flex-end;margin:26px 0 22px}
+.u .b{background:var(--ac-l);border:1px solid #d5e3f2;border-radius:12px 12px 3px 12px;padding:10px 14px;max-width:80%}
+.u .w{font-size:10.5px;color:var(--tx3);margin-bottom:2px}
+.a{display:flex;gap:11px;margin-bottom:24px}
+.a>.ic{width:26px;height:26px;border-radius:7px;background:var(--ac);color:#fff;display:grid;place-items:center;font-size:11px;flex:none;margin-top:2px}
+.a>.bd{flex:1;min-width:0}
+.a p{margin:0 0 10px}
+.a p:last-child{margin-bottom:0}
+
+.think{display:flex;align-items:center;gap:8px;color:var(--tx3);font-size:12.5px}
+.think i{width:12px;height:12px;border:2px solid #d8dee6;border-top-color:var(--ac);border-radius:50%;animation:sp .7s linear infinite;display:block}
+@keyframes sp{to{transform:rotate(360deg)}}
+.fade{animation:fi .35s ease both}
+@keyframes fi{from{opacity:0;transform:translateY(5px)}to{opacity:1;transform:none}}
+
+/* intent line */
+.intent{background:var(--pn);border:1px solid var(--ln);border-radius:9px;padding:11px 14px;margin-bottom:12px}
+.intent .lb{font-size:10.5px;color:var(--tx3);letter-spacing:.05em}
+.intent .th{font-size:14px;font-weight:700;margin:1px 0 6px}
+.intent .dm{font-size:13px;font-weight:700;color:#16395c;margin:1px 0 0}
+.intent hr{border:0;border-top:1px solid var(--ln2);margin:10px 0}
+.dmnote{background:#f4f7fb;border:1px solid #dde7f2;border-radius:7px;padding:8px 11px;font-size:11.5px;color:var(--tx2);margin-top:8px}
+.dmnote b{color:#16395c}
+.cp{display:inline-block;font-size:11px;padding:1px 8px;border-radius:11px;margin:2px 4px 0 0;background:#f2f5f8;border:1px solid var(--ln);color:var(--tx2)}
+.cp.m{background:#eef7f3;border-color:#cde5da;color:#146c4b}
+.cp.d{background:#f4f2fa;border-color:#ddd8ee;color:#5a4a8c}
+
+/* candidates */
+.cands{border:1px solid var(--ln);border-radius:10px;overflow:hidden;background:var(--pn);margin-bottom:12px}
+.cd{display:flex;gap:12px;padding:12px 14px;border-bottom:1px solid var(--ln2);cursor:pointer;transition:.12s;text-align:left;width:100%;background:none;border-left:0;border-right:0;border-top:0;align-items:flex-start}
+.cd:last-child{border-bottom:0}
+.cd:hover{background:#f8fafc}
+.cd .no{width:20px;height:20px;border-radius:5px;background:#eef2f6;color:var(--tx2);font-size:10.5px;font-weight:700;display:grid;place-items:center;flex:none;margin-top:2px}
+.cd.top .no{background:var(--ac);color:#fff}
+.cd .mid{flex:1;min-width:0}
+.cd .t1{font-size:13px;font-weight:600;display:flex;align-items:center;gap:7px;flex-wrap:wrap}
+.cd .pth{font-family:var(--mono);font-size:11px;color:var(--tx2);word-break:break-all;margin-top:1px}
+.cd .wy{font-size:11.5px;color:var(--tx2);margin-top:4px;line-height:1.7}
+.cd .tr{font-size:10.5px;color:var(--tx3);margin-top:5px;word-break:break-all}
+.cd .tr b{color:var(--tx2);font-weight:600}
+.cd .rt{flex:none;text-align:right;width:54px;align-self:center}
+.cd .go{font-size:11px;color:var(--ac);white-space:nowrap}
+.fl{font-size:10px;padding:0 6px;border-radius:4px;border:1px solid;line-height:1.6;font-weight:600}
+.fl.ok{color:var(--ok);border-color:#bfe0c9;background:#f1f9f3}
+.fl.wa{color:var(--wa);border-color:#ecd9b6;background:#fdf8ee}
+.fl.ng{color:var(--ng);border-color:#eecac6;background:#fdf3f2}
+.fl.n{color:var(--tx2);border-color:var(--ln);background:#f6f8fa}
+
+/* accordion */
+details.acc{border:1px solid var(--ln);border-radius:9px;background:var(--pn);margin-bottom:9px;overflow:hidden}
+details.acc>summary{list-style:none;cursor:pointer;padding:9px 13px;font-size:12.5px;color:var(--tx2);display:flex;align-items:center;gap:8px;user-select:none}
+details.acc>summary::-webkit-details-marker{display:none}
+details.acc>summary:hover{background:#f8fafc}
+details.acc>summary::before{content:"▸";color:var(--tx3);font-size:10px;transition:.15s}
+details.acc[open]>summary::before{transform:rotate(90deg)}
+details.acc[open]>summary{border-bottom:1px solid var(--ln2);color:var(--tx);font-weight:600}
+.accin{padding:13px 15px}
+.accin>:first-child{margin-top:0}.accin>:last-child{margin-bottom:0}
+.sm{font-size:11px;color:var(--tx3);margin-left:auto;font-weight:400}
+
+/* generic content */
+h5.sh{font-size:11px;color:var(--tx3);letter-spacing:.06em;margin:16px 0 6px;font-weight:600}
+h5.sh:first-child{margin-top:0}
+ul.t{margin:0;padding-left:18px}
+ul.t li{margin:5px 0;font-size:12.5px}
+dl.kv{display:grid;grid-template-columns:112px 1fr;gap:5px 12px;margin:0;font-size:12.5px}
+dl.kv dt{color:var(--tx3);font-size:11.5px}
+dl.kv dd{margin:0}
+.att{font-family:var(--mono);font-size:10.5px;background:#f4f6f9;border:1px solid var(--ln);padding:0 6px;border-radius:3px;color:var(--tx2);display:inline-block;margin:2px 3px 0 0}
+.att.k{background:#fdf8ee;border-color:#ecd9b6;color:var(--wa)}
+.note{background:#fdf9f0;border:1px solid #eee0c4;border-left:3px solid var(--wa);border-radius:0 6px 6px 0;padding:9px 12px;font-size:12px;margin:10px 0 0}
+pre.code{margin:0;background:#f6f8fa;border:1px solid var(--ln);border-radius:7px;font-family:var(--mono);font-size:11px;line-height:1.75;padding:12px 13px;overflow-x:auto;color:#2a3440}
+.k{color:#0550ae;font-weight:600}.k2{color:#7b3fa8}.s{color:#0a7d2f}.c{color:#7a8794;font-style:italic}
+.n{color:#0f766e}.r{color:#a1560a}.v{color:#4b5563}
+table.tb{width:100%;border-collapse:collapse;font-size:11.5px}
+table.tb th{text-align:left;font-weight:600;color:var(--tx3);border-bottom:1px solid var(--ln);padding:6px 7px;font-size:10.5px;white-space:nowrap}
+table.tb td{border-bottom:1px solid var(--ln2);padding:6px 7px;color:var(--tx2);vertical-align:top}
+table.tb td.m{font-family:var(--mono);font-size:10.5px}
+.mono{font-family:var(--mono)}
+
+/* chain / steps */
+ul.chain{list-style:none;margin:0;padding:0}
+ul.chain li{display:flex;gap:10px;padding:9px 0;border-bottom:1px solid var(--ln2)}
+ul.chain li:last-child{border-bottom:0;padding-bottom:0}
+.st{width:19px;height:19px;border-radius:50%;display:grid;place-items:center;font-size:11px;color:#fff;flex:none;font-weight:700;margin-top:2px}
+.st.ok{background:var(--ok)}.st.ng{background:var(--ng)}.st.wa{background:var(--wa)}
+ul.chain b{font-size:12.5px}
+ul.chain .lb{font-size:10px;color:var(--tx3);letter-spacing:.05em}
+ul.chain p{margin:2px 0 0;font-size:11.5px;color:var(--tx2);line-height:1.7}
+code.in{font-family:var(--mono);font-size:11px;background:#f2f5f8;border:1px solid var(--ln2);padding:0 4px;border-radius:3px}
+
+.stp{display:flex;gap:9px;padding:8px 0;border-bottom:1px dashed var(--ln2)}
+.stp:last-child{border-bottom:0;padding-bottom:0}
+.stp .n2{width:17px;height:17px;border-radius:50%;background:var(--ac);color:#fff;font-size:9.5px;font-weight:700;display:grid;place-items:center;flex:none;margin-top:2px}
+.stp b{font-size:12px;display:block}
+.stp p{margin:1px 0 0;font-size:11.5px;color:var(--tx2);line-height:1.65}
+.stp .sc2{font-family:var(--mono);font-size:10px;color:var(--tx3);flex:none;margin-top:2px}
+
+.act{display:flex;gap:10px;padding:10px 0;border-bottom:1px dashed var(--ln2)}
+.act:last-child{border-bottom:0;padding-bottom:0}
+.act .n3{width:19px;height:19px;border-radius:5px;background:var(--ac);color:#fff;font-size:10px;font-weight:700;display:grid;place-items:center;flex:none;margin-top:3px}
+.act b{font-size:12.5px}
+.act p{margin:2px 0 0;font-size:12px;color:var(--tx2)}
+.act .mt{font-size:10.5px;color:var(--tx3);margin-top:4px;display:flex;gap:14px;flex-wrap:wrap}
+.act .mt em{font-style:normal;color:var(--ng);font-weight:600}
+
+/* knowledge graph */
+svg.kg{display:block;width:100%;height:auto}
+.kg .cap{font-size:8.5px;fill:#9aa4b0}
+.kg g.nd{opacity:.15;transition:opacity .4s}
+.kg g.nd.on{opacity:1}
+.kg g.nd.off{opacity:.24}
+.kg g.nd.hit rect{stroke-width:2}
+.kg path.eg{fill:none;stroke:#cbd3dc;stroke-width:1.1;opacity:.08;transition:opacity .4s}
+.kg path.eg.on{opacity:1}
+.kg path.eg.off{opacity:.22}
+.kg path.eg.hot{stroke:var(--ac);stroke-width:2.2;opacity:1}
+.kg text.l1{font-weight:700}
+.kg text.l2{font-size:7.5px;fill:#8b95a1}
+.kglg{display:flex;gap:14px;align-items:center;font-size:10.5px;color:var(--tx3);margin-top:6px}
+.kglg i{display:inline-block;width:16px;height:0;border-top:2px solid var(--ac);vertical-align:middle;margin-right:4px}
+.kglg s{display:inline-block;width:16px;height:0;border-top:1.5px solid #cbd3dc;vertical-align:middle;margin-right:4px}
+
+/* breadcrumb */
+.bc{display:flex;flex-wrap:wrap;align-items:center;gap:5px;margin:0 0 4px}
+.bc span{background:var(--ac-l);border:1px solid #cddeef;color:#1b4d7e;font-size:11px;padding:2px 9px;border-radius:12px}
+.bc span.last{background:#fdf8ee;border-color:#ecd9b6;color:#8a5a06;font-family:var(--mono);font-size:10.5px}
+.bc em{font-style:normal;color:var(--tx3);font-size:10px}
+
+/* drawer */
+.ov{position:fixed;inset:0;background:rgba(18,28,42,.3);opacity:0;pointer-events:none;transition:.22s;z-index:55}
+.ov.on{opacity:1;pointer-events:auto}
+.dw{position:fixed;top:0;right:0;height:100vh;width:min(660px,94vw);background:var(--pn);border-left:1px solid var(--ln);
+    box-shadow:-8px 0 28px rgba(20,40,70,.13);transform:translateX(102%);transition:transform .26s cubic-bezier(.4,0,.2,1);
+    z-index:60;display:flex;flex-direction:column}
+.dw.on{transform:none}
+.dwh{padding:14px 18px 12px;border-bottom:1px solid var(--ln);display:flex;gap:12px;align-items:flex-start;flex:none;background:#fbfcfd}
+.dwh .t{font-size:15px;font-weight:700;line-height:1.5;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.dwh .s{font-family:var(--mono);font-size:11px;color:var(--tx2);margin-top:2px;word-break:break-all}
+.dwh .k{font-size:10.5px;color:var(--tx3);letter-spacing:.05em;margin-bottom:2px}
+.dwx{margin-left:auto;width:28px;height:28px;border-radius:7px;border:1px solid var(--ln);background:#fff;color:var(--tx2);flex:none;font-size:13px;line-height:1}
+.dwx:hover{background:#f1f4f8}
+.dwb{flex:1;overflow-y:auto;padding:16px 18px 28px}
+.dwb::-webkit-scrollbar{width:9px}
+.dwb::-webkit-scrollbar-thumb{background:#d8dee6;border-radius:5px;border:3px solid #fff}
+.dwf{flex:none;border-top:1px solid var(--ln);padding:11px 18px;display:flex;gap:8px;background:#fbfcfd}
+.dwsc{display:flex;align-items:center;gap:8px;background:#fff;border:1px solid var(--ln);border-radius:8px;padding:8px 12px;margin-bottom:13px}
+.dwsc .v2{font-size:19px;font-weight:700;color:var(--ac);font-variant-numeric:tabular-nums;line-height:1}
+.dwsc .l3{font-size:10.5px;color:var(--tx3)}
+.dwsc .bar{flex:1;margin-top:0}
+
+/* follow-ups + composer */
+.fu{display:flex;flex-wrap:wrap;gap:7px;margin-top:12px}
+.fub{background:var(--pn);border:1px solid var(--ln);color:var(--ac);padding:5px 12px;border-radius:15px;font-size:12px;transition:.12s}
+.fub:hover{background:var(--ac-l);border-color:#c3d8ec}
+.btn-p{background:var(--ac);color:#fff;border:1px solid var(--ac);padding:7px 15px;border-radius:7px;font-size:12.5px;font-weight:600}
+.btn-p:hover{background:#1d5490}
+.btn-s{background:#fff;color:var(--tx2);border:1px solid var(--ln);padding:7px 15px;border-radius:7px;font-size:12.5px}
+.btn-s:hover{background:#f2f5f8}
+.cmp{position:fixed;bottom:0;left:0;right:0;background:linear-gradient(180deg,rgba(247,248,250,0) 0%,var(--bg) 26%);padding:24px 24px 16px;z-index:20}
+.cmpin{max-width:840px;margin:0 auto}
+.chips{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:9px}
+.chip{background:var(--pn);border:1px solid var(--ln);color:var(--tx2);padding:5px 11px;border-radius:15px;font-size:11.5px;transition:.12s;text-align:left}
+.chip:hover{border-color:var(--ac);color:var(--ac)}
+.chip b{color:var(--tx3);font-weight:600;font-size:10.5px;margin-right:5px}
+.box{background:var(--pn);border:1px solid var(--ln);border-radius:12px;padding:8px 10px 8px 14px;display:flex;gap:10px;align-items:flex-end;box-shadow:0 2px 10px rgba(20,40,70,.06)}
+.box:focus-within{border-color:var(--ac);box-shadow:0 0 0 3px rgba(37,99,168,.1)}
+.box textarea{flex:1;border:0;outline:0;resize:none;font:inherit;font-size:13.5px;line-height:1.7;max-height:120px;background:none;color:var(--tx);padding:4px 0}
+.box .snd{width:32px;height:32px;border-radius:8px;background:var(--ac);color:#fff;border:0;display:grid;place-items:center;font-size:14px;flex:none}
+.box .snd:disabled{background:#cfd6de;cursor:default}
+.hint{font-size:10.5px;color:var(--tx3);text-align:center;margin-top:7px}
+
+
+/* ============ RAG（過去問い合わせ・Tips）検索結果 ============ */
+.ragwrap{border:1px solid var(--ln);border-radius:10px;background:var(--pn);margin-bottom:12px;overflow:hidden}
+.raghd{display:flex;align-items:center;gap:8px;padding:8px 13px;background:#f6f8fb;border-bottom:1px solid var(--ln2);font-size:11.5px;color:var(--tx2);font-weight:600}
+.raghd .n4{font-size:10px;font-weight:700;color:#fff;background:var(--ac);border-radius:4px;padding:1px 7px}
+.raghd .cnt{margin-left:auto;font-size:10.5px;color:var(--tx3);font-weight:400}
+.hit{padding:11px 13px;border-bottom:1px solid var(--ln2)}
+.hit:last-child{border-bottom:0}
+.hitm{display:flex;align-items:center;gap:7px;flex-wrap:wrap;margin-bottom:4px}
+.hitm .tid{font-family:var(--mono);font-size:10.5px;color:var(--tx3)}
+.hitm .who{font-size:10.5px;color:var(--tx3)}
+.rel{font-size:10px;font-weight:600;padding:1px 7px;border-radius:10px;border:1px solid}
+.rel.a{background:#eaf4ee;border-color:#bcdcc8;color:#136b3c}
+.rel.b{background:#eef3fa;border-color:#c8daee;color:#1b4d7e}
+.rel.c{background:#f5f6f8;border-color:#dfe4ea;color:var(--tx2)}
+.hitq{font-size:12.5px;line-height:1.7}
+.hitq b{background:#fff6d9;font-weight:600;padding:0 2px}
+.hita{font-size:11.5px;color:var(--tx2);line-height:1.75;margin-top:6px;padding-top:7px;border-top:1px dashed var(--ln2)}
+.hita .lb2{font-size:10px;color:var(--tx3);display:block;margin-bottom:2px}
+.hitt{display:flex;flex-wrap:wrap;gap:4px;margin-top:6px}
+.hitt span{font-family:var(--mono);font-size:10px;background:#eef6fa;border:1px solid #cbe0ea;color:#0f5f7a;padding:0 6px;border-radius:3px}
+
+.tip{padding:11px 13px;border-bottom:1px solid var(--ln2);background:#fffdf7}
+.tip:last-child{border-bottom:0}
+.tipm{display:flex;align-items:center;gap:7px;flex-wrap:wrap;margin-bottom:3px}
+.tipm .tid{font-family:var(--mono);font-size:10.5px;color:#8a5f14}
+.tipm .pin{font-size:10px;font-weight:700;color:#8a5f14;background:#fbf0d8;border:1px solid #e6d3a4;border-radius:4px;padding:1px 7px}
+.tip .tt{font-size:12.5px;font-weight:600}
+.tip .tb3{font-size:11.5px;color:var(--tx2);line-height:1.75;margin-top:3px}
+.tip .tf{font-size:10.5px;color:var(--tx3);margin-top:5px}
+
+/* 候補の出典バッジ */
+.prov{display:flex;flex-wrap:wrap;gap:4px;margin-top:5px}
+.pv{font-size:10px;padding:1px 7px;border-radius:10px;border:1px solid}
+.pv.h{background:#eef3fa;border-color:#c8daee;color:#1b4d7e}
+.pv.t{background:#fbf5e6;border-color:#e6d3a4;color:#8a5f14}
+.pv.o{background:#f0edf9;border-color:#d0c6e8;color:#5a4a8c}
+.pv.w{background:#fdf3f2;border-color:#eecac6;color:#b91c1c}
+.prole{font-size:11px;color:var(--tx2);background:#f7f9fc;border:1px solid var(--ln2);border-radius:7px;padding:7px 10px;margin:8px 0 0}
+.prole b{color:var(--tx)}
+/* ============ ナレッジグラフ タブ ============ */
+.kgpane{display:none;height:calc(100vh - 52px);grid-template-columns:262px minmax(520px,1fr) 312px}
+.kgpane.on{display:grid}
+body.kgmode .wrap,body.kgmode .cmp{display:none}
+.kgside{background:#fafbfc;border-right:1px solid var(--ln);overflow-y:auto;padding:0 0 30px}
+.kgins{background:#fafbfc;border-left:1px solid var(--ln);border-right:0;overflow-y:auto;padding:0 0 30px}
+.kgside::-webkit-scrollbar,.kgins::-webkit-scrollbar{width:8px}
+.kgside::-webkit-scrollbar-thumb,.kgins::-webkit-scrollbar-thumb{background:#d8dee6;border-radius:4px;border:2px solid #fafbfc}
+.kgh{font-size:10px;font-weight:700;color:var(--tx3);letter-spacing:.11em;padding:15px 14px 6px}
+.kgsec{padding:0 12px}
+.kgsearch{width:100%;border:1px solid var(--ln);border-radius:7px;padding:6px 10px;font:inherit;font-size:12px;background:#fff;outline:0}
+.kgsearch:focus{border-color:var(--ac);box-shadow:0 0 0 3px rgba(37,99,168,.1)}
+.kgres{margin-top:6px;max-height:210px;overflow-y:auto}
+.kgrow{display:flex;gap:7px;align-items:center;padding:5px 8px;border-radius:6px;cursor:pointer;font-size:11.5px;width:100%;border:0;background:none;text-align:left}
+.kgrow:hover{background:#eef3f9}
+.kgrow.on{background:var(--ac-l);font-weight:600}
+.kgdot{width:9px;height:9px;border-radius:3px;flex:none}
+.kgrow .nm2{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.kgrow .ct{font-size:10px;color:var(--tx3);font-variant-numeric:tabular-nums}
+.kgtog{display:flex;flex-wrap:wrap;gap:5px;padding:0 12px}
+.kgtb{border:1px solid var(--ln);background:#fff;border-radius:14px;padding:3px 10px;font-size:11px;color:var(--tx2);display:flex;align-items:center;gap:6px}
+.kgtb.off{opacity:.42;text-decoration:line-through}
+.kgtb i{width:16px;height:3px;border-radius:2px;display:block}
+
+.kgmain{display:flex;flex-direction:column;min-width:0;background:
+  radial-gradient(circle at 50% 0%,rgba(37,99,168,.05),transparent 46%),#fff}
+.kgbar{display:flex;align-items:center;gap:14px;padding:11px 18px;border-bottom:1px solid var(--ln);flex:none}
+.kgbar .kick{font-size:9.5px;letter-spacing:.14em;color:var(--tx3);font-weight:700}
+.kgbar h2{margin:1px 0 0;font-size:15px;font-weight:700}
+.kgbar .path{font-size:11px;color:var(--tx2);margin-top:1px}
+.kgbar .path b{color:var(--ac)}
+.kgacts{margin-left:auto;display:flex;gap:6px;align-items:center}
+.kgf{display:flex;border:1px solid var(--ln);border-radius:7px;overflow:hidden}
+.kgf button{border:0;background:#fff;color:var(--tx2);font-size:11.5px;padding:5px 11px;border-right:1px solid var(--ln)}
+.kgf button:last-child{border-right:0}
+.kgf button.on{background:var(--ac);color:#fff;font-weight:600}
+.kgbtn{border:1px solid var(--ln);background:#fff;color:var(--tx2);border-radius:7px;padding:5px 11px;font-size:11.5px}
+.kgbtn:hover{background:#f2f5f8}
+.kgcanvas{flex:1;min-height:0;position:relative;overflow:hidden;cursor:grab}
+.kgcanvas.drag{cursor:grabbing}
+.kgcanvas svg{width:100%;height:100%;display:block;touch-action:none}
+.kgfoot{flex:none;border-top:1px solid var(--ln);padding:6px 18px;font-size:10.5px;color:var(--tx3);display:flex;gap:16px}
+.gedge{fill:none;stroke:#c3ccd6;stroke-width:1.1}
+.gedge.map{stroke:#c9a86a;stroke-dasharray:4 3}
+.gedge.dat{stroke:#9fc4d6}
+.gedge.evi{stroke:#dcc59a;stroke-dasharray:2 3}
+.gedge.hl{stroke:var(--ac);stroke-width:2}
+.gedge.dim{opacity:.16}
+.gnode{cursor:pointer}
+.gnode rect{stroke-width:1.2}
+.gnode text{pointer-events:none;font-size:9.5px;font-weight:600}
+.gnode .sub{font-size:7.5px;font-weight:400;opacity:.72}
+.gnode.dim{opacity:.2}
+.gnode.sel rect{stroke-width:2.4;filter:drop-shadow(0 2px 5px rgba(20,50,90,.28))}
+.gelab{font-size:7.5px;fill:#93a0ad;pointer-events:none}
+
+.kgd{padding:14px}
+.kgd .tb2{display:inline-block;font-size:10px;font-weight:700;padding:2px 8px;border-radius:4px;color:#fff;letter-spacing:.03em}
+.kgd h3{margin:8px 0 3px;font-size:15px;line-height:1.5;word-break:break-all}
+.kgd .desc{font-size:11.5px;color:var(--tx2);margin:0 0 10px}
+.kgd dl{display:grid;grid-template-columns:82px 1fr;gap:4px 9px;font-size:11.5px;margin:0 0 12px}
+.kgd dt{color:var(--tx3);font-size:11px}
+.kgd dd{margin:0;word-break:break-all}
+.kgrel{border-top:1px solid var(--ln2);padding-top:9px;margin-top:9px}
+.kgrel .rl{font-size:10px;color:var(--tx3);letter-spacing:.04em;margin-bottom:3px}
+.kgrel .rl b{color:var(--ac);font-family:var(--mono);font-weight:600;font-size:10px}
+.kgqa{background:#fff;border:1px solid var(--ln);border-radius:7px;padding:9px 11px;margin-bottom:7px;font-size:11.5px}
+.kgqa .q{font-weight:600;margin-bottom:4px}
+.kgqa .a{color:var(--tx2);font-size:11px;line-height:1.7}
+.kgqa .id{font-family:var(--mono);font-size:9.5px;color:var(--tx3)}
+.kgempty{padding:40px 20px;text-align:center;color:var(--tx3);font-size:12px;line-height:1.9}
+.kgempty .o{width:44px;height:44px;border-radius:50%;border:2px dashed #cfd8e2;margin:0 auto 12px}
+</style>
+</head>
+<body>
+
+<div class="hd">
+  <div class="nm"><i>◈</i>IT Service Desk AI <small>／ 問い合わせ対応アシスタント</small></div>
+  <div class="tabs">
+    <button class="tab on" data-p="p1">データ照会</button>
+    <button class="tab" data-p="p2">権限照会</button>
+    <button class="tab" data-p="p3">ナレッジグラフ</button>
+  </div>
+  <div class="rt"><span>ナレッジグラフ <b>v4.2</b>（2026-08-20 更新）</span><span class="av">IT</span></div>
+</div>
+
+<div class="wrap" id="wrap">
+  <div class="chat">
+    <div class="pane on" id="p1"></div>
+    <div class="pane" id="p2"></div>
+  </div>
+</div>
+
+<div class="ov" id="ov"></div>
+<aside class="dw" id="dw" aria-hidden="true">
+  <div class="dwh">
+    <div style="min-width:0">
+      <div class="k" id="dwk">候補の詳細</div>
+      <div class="t" id="dwt"></div>
+      <div class="s" id="dws"></div>
+    </div>
+    <button class="dwx" id="dwx" title="閉じる（Esc）">✕</button>
+  </div>
+  <div class="dwb" id="dwb"></div>
+  <div class="dwf">
+    <button class="btn-p" id="dwsend">この候補で回答案を作る</button>
+    <button class="btn-s" id="dwclose">閉じる</button>
+  </div>
+</aside>
+
+<div class="cmp">
+  <div class="cmpin">
+    <div class="chips" id="chips"></div>
+    <div class="box">
+      <textarea id="ta" rows="1" placeholder="業務部門からの問い合わせ内容を入力してください…"></textarea>
+      <button class="snd" id="snd" disabled>↑</button>
+    </div>
+    <div class="hint">デモ用モックです。上のサンプル質問をクリックするか、自由に入力してください（内容に近いサンプルへ回答します）。</div>
+  </div>
+</div>
+
+
+<!-- ============ ナレッジグラフ タブ ============ -->
+<section class="kgpane" id="p3">
+  <aside class="kgside">
+    <div class="kgh">検索</div>
+    <div class="kgsec"><input class="kgsearch" id="kgq" placeholder="ノード名で検索（例：住宅ローン）"><div class="kgres" id="kgres"></div></div>
+    <div class="kgh">レイヤ</div>
+    <div class="kgtog" id="kglayer">
+      <button class="kgtb" data-layer="business"><i style="background:#1b4d7e"></i>業務モデル</button>
+      <button class="kgtb" data-layer="mapping"><i style="background:#c9a86a"></i>接続オントロジー</button>
+      <button class="kgtb" data-layer="data"><i style="background:#0f6d8a"></i>データモデル</button>
+      <button class="kgtb" data-layer="evidence"><i style="background:#a06a20"></i>根拠QA・Tips</button>
+    </div>
+    <div class="kgh">業務領域（ドメイン）</div>
+    <div class="kgsec" id="kgdoms"></div>
+    <div class="kgh">ノード種別</div>
+    <div class="kgsec" id="kgtypes"></div>
+  </aside>
+
+  <div class="kgmain">
+    <div class="kgbar">
+      <div style="min-width:0">
+        <div class="kick" id="kgkick">ENTERPRISE VIEW</div>
+        <h2 id="kgtitle">8業務領域の俯瞰</h2>
+        <div class="path" id="kgpath">全社業務俯瞰</div>
+      </div>
+      <div class="kgacts">
+        <div class="kgf" id="kgmodel">
+          <button class="on" data-m="all">すべて</button>
+          <button data-m="business">業務モデル</button>
+          <button data-m="data">データモデル</button>
+        </div>
+        <button class="kgbtn" id="kghop">2ホップ</button>
+        <button class="kgbtn" id="kgfit">全体表示</button>
+        <button class="kgbtn" id="kgroot">俯瞰に戻る</button>
+      </div>
+    </div>
+    <div class="kgcanvas" id="kgcanvas"></div>
+    <div class="kgfoot">
+      <span id="kgcount">—</span>
+      <span>矢印のラベルがOWLプロパティの意味を示します</span>
+      <span style="margin-left:auto">ドラッグで移動／ホイールで拡大縮小／ノードをクリックで詳細</span>
+    </div>
+  </div>
+
+  <aside class="kgins" id="kgins"></aside>
+</section>
+<script>
+/* ===================== データ定義 ===================== */
+const DATA_Q = [
+{
+ tkt:"INC-0248172", dept:"融資企画部", user:"佐藤",
+ sample:"住宅ローンの延滞状況を支店別・年代別に見たい",
+ question:"最近、住宅ローンの延滞が増えている感覚があります。支店別と、お客さまの年代別に、直近1年くらいの延滞の状況を見て、来期の与信方針の材料にしたいのですが、どのデータを使えばよいでしょうか。テーブル名などは分かりません。",
+ kw:["住宅ローン","延滞","支店別","年代別","与信"],
+ intent:{theme:"住宅ローン ポートフォリオ健全性モニタリング",
+  oneline:"与信方針策定のため、延滞動向を部店軸・顧客属性軸で要因分解したい、という依頼と解釈しました。",
+  metrics:["延滞率","延滞債権残高","新規延滞発生率"],
+  dims:["部店","顧客年代","商品","月次"]},
+ dom:{node:"リテール", full:"リテール ＞ 住宅ローン（業務プロセス）", alt:"リスク（信用リスク）／全社共通（参照データ）",
+  note:"<b>リテール</b>領域では、延滞率を「31日以上延滞債権のEAD ÷ 総EAD」と定義し、条件変更申請中の債権を分母・分子の双方から除外します。業務指標の定義は業務領域ごとに保持されているため、まず領域を確定させています。",
+  why:"業務概念「延滞」は複数の業務領域に登場します。どの領域の業務プロセスに紐づく概念かによって、指標の計算式も、参照すべき物理テーブルも変わります。"},
+ defs:[
+  ["リテール ＞ 住宅ローン","延滞率","31日以上延滞債権のEAD ÷ 総EAD。条件変更申請中は分母・分子とも除外"],
+  ["ホールセール ＞ 法人融資","延滞率","延滞先数 ÷ 与信先数。債務者区分（要管理先以下）と併せて評価するため母数の取り方が異なる"],
+  ["リスク ＞ 信用リスク","予想損失","PD×LGD×EAD。バーゼル規制の定義に準拠し、延滞率とは別系統の指標として管理"]
+ ],
+ cands:[
+  {name:"住宅ローン 日次スナップショット",path:"VDB_RETAIL_ANALYTICS.mart.S_HOUSING_LOAN_DAILY",sys:"リテール分析基盤（mart層）",
+   fl:["ok","最推奨"],
+   why:"業務指標「延滞率」が computedFrom で直接ひも付く集計層です。metric_code で指標を切り替えられ、部店・商品・顧客が同一行に揃っています。",
+   trace:["延滞","リテール","住宅ローン","住宅ローン契約","延滞率","S_HOUSING_LOAN_DAILY"],
+   grain:"契約 × 指標 × 営業日",fresh:"日次 05:30（月末確定は第3営業日）",acc:"要申請（機密Ⅱ）",
+   evid:[["接続オントロジー","業務指標:延滞率 －computedFrom→ 本表"],
+         ["業務オントロジー","業務プロセス:住宅ローン －usesData→ 本表"],
+         ["根拠QA","過去の問い合わせで同種の依頼に本表を案内"]],
+   detail:{
+    desc:"住宅ローンの日次スナップショットです。metric_code ごとに1行を持つ縦持ち構造で、延滞率・延滞残高・実行額などを同じ表から取得できます。指標の計算はリテール領域の定義で実装済みのため、部門ごとに数値がぶれません。",
+    attrs:[["business_date","k"],["housing_loan_id","k"],["metric_code","k"],["customer_id",""],["organization_id",""],["product_id",""],["metric_value",""],["risk_flag",""],["quality_status_code",""],["snapshot_timestamp",""]],
+    joins:[["VDB_ENTERPRISE_REFERENCE.reference.T_ORGANIZATION","organization_id","部店名・ブロック。有効期間で時点結合"],
+           ["VDB_ENTERPRISE_REFERENCE.reference.T_CUSTOMER_GOLDEN","customer_id","年代区分（age_band_code）"],
+           ["VDB_ENTERPRISE_REFERENCE.reference.T_PRODUCT","product_id","商品名・商品カテゴリ"],
+           ["VDB_ENTERPRISE_REFERENCE.reference.T_CALENDAR","business_date","月末フラグ・年度"]],
+    cautions:["<b>metric_code の指定を必ず入れてください。</b>指定しないと複数指標が縦に混ざり、metric_value を単純合計すると意味のない値になります。",
+      "<b>延滞日数の起算</b>は「約定返済日の翌日」です。リテール領域の定義であり、ホールセール領域の法人融資とは異なります。",
+      "<b>risk_flag='R'（条件変更申請中）</b>は行内標準では延滞率の分母・分子の双方から除外します。",
+      "<b>quality_status_code</b> が 'OK' 以外の行は品質チェック未通過です。月次確定前の速報値を見る場合はこの列で除外してください。"],
+    sql:'<span class="c">-- 部店別 × 年代別 延滞率（31日以上）／ 直近13ヶ月</span>\n<span class="k">SELECT</span> <span class="k2">TO_CHAR</span>(d.business_date,<span class="s">\'YYYYMM\'</span>) <span class="k">AS</span> ym,\n       o.organization_name,\n       c.age_band_code,\n       <span class="k2">ROUND</span>(<span class="k2">AVG</span>(d.metric_value)*100, 2) <span class="k">AS</span> delinq_rate_pct,\n       <span class="k2">COUNT</span>(<span class="k">DISTINCT</span> d.housing_loan_id) <span class="k">AS</span> loan_cnt\n<span class="k">FROM</span>      VDB_RETAIL_ANALYTICS.mart.S_HOUSING_LOAN_DAILY d\n<span class="k">JOIN</span>      VDB_ENTERPRISE_REFERENCE.reference.T_ORGANIZATION o\n            <span class="k">ON</span> o.organization_id = d.organization_id\n           <span class="k">AND</span> d.business_date <span class="k">BETWEEN</span> o.effective_from <span class="k">AND</span> o.effective_to\n<span class="k">JOIN</span>      VDB_ENTERPRISE_REFERENCE.reference.T_CUSTOMER_GOLDEN c\n            <span class="k">ON</span> c.customer_id = d.customer_id\n           <span class="k">AND</span> d.business_date <span class="k">BETWEEN</span> c.effective_from <span class="k">AND</span> c.effective_to\n<span class="k">JOIN</span>      VDB_ENTERPRISE_REFERENCE.reference.T_CALENDAR cal\n            <span class="k">ON</span> cal.calendar_date = d.business_date <span class="k">AND</span> cal.month_end_flag = <span class="s">\'Y\'</span>\n<span class="k">WHERE</span>     d.metric_code = <span class="s">\'DELINQ_RATE_31D\'</span>      <span class="c">-- 指標の指定は必須</span>\n  <span class="k">AND</span>     d.quality_status_code = <span class="s">\'OK\'</span>\n  <span class="k">AND</span>     d.risk_flag &lt;&gt; <span class="s">\'R\'</span>                   <span class="c">-- 条件変更申請中を除外</span>\n  <span class="k">AND</span>     d.business_date &gt;= <span class="k2">ADD_MONTHS</span>(<span class="k2">TRUNC</span>(<span class="k2">CURRENT_DATE</span>,<span class="s">\'MM\'</span>), -13)\n<span class="k">GROUP BY</span>  <span class="k2">TO_CHAR</span>(d.business_date,<span class="s">\'YYYYMM\'</span>), o.organization_name, c.age_band_code\n<span class="k">ORDER BY</span>  1, 2, 3;',
+    gov:[["業務領域","リテール"],["データオーナー","リテールデータオフィス"],["データ分類","機密Ⅱ（個人情報を含む）"],["申請手続","IDM ＞ VDB_RETAIL_ANALYTICS 参照権限"],["リードタイム","3営業日"]],
+    note:"照会者（佐藤さま）は<b>本表のSELECT権限が未付与</b>です。詳細は「権限照会」タブをご覧ください。"}},
+
+  {name:"住宅ローン イベント明細",path:"VDB_RETAIL_ANALYTICS.event.F_HOUSING_LOAN_EVENT",sys:"リテール分析基盤（event層）",
+   fl:["ok","併用推奨"],
+   why:"業務イベント「実行・返済・延滞」が backedBy でひも付く明細層です。延滞の発生・解消のタイミングを1件単位で追えます。",
+   trace:["延滞","リテール","住宅ローン","住宅ローン契約","実行・返済・延滞","F_HOUSING_LOAN_EVENT"],
+   grain:"イベント1件",fresh:"準リアルタイム",acc:"要申請（機密Ⅱ）",
+   evid:[["接続オントロジー","業務イベント:実行・返済・延滞 －backedBy→ 本表"],
+         ["業務オントロジー","業務プロセス:住宅ローン －usesData→ 本表"]],
+   detail:{desc:"住宅ローンに発生したイベントの明細です。event_type_code で実行・約定返済・繰上返済・延滞発生・延滞解消を区別します。「月末だけ延滞が消える」といった期末要因の検証に向きます。",
+    attrs:[["housing_loan_event_id","k"],["housing_loan_id",""],["customer_id",""],["organization_id",""],["product_id",""],["event_timestamp",""],["event_type_code",""],["amount",""],["channel_code",""],["processing_status_code",""]],
+    joins:[["VDB_RETAIL_ANALYTICS.master.M_HOUSING_LOAN","housing_loan_id","契約属性の付与"],
+           ["VDB_ENTERPRISE_REFERENCE.reference.T_ORGANIZATION","organization_id","部店名"]],
+    cautions:["月末時点で切ると、月中に発生・解消した延滞が捕捉できません。日次の推移を見るときのみご利用ください。",
+      "processing_status_code='CANCELLED' の取消イベントが含まれます。集計時は除外してください。",
+      "行数が多いため、business_date ではなく event_timestamp でのパーティション条件を必ず付けてください。"],
+    sql:"",gov:[["業務領域","リテール"],["データオーナー","リテールデータオフィス"],["データ分類","機密Ⅱ"],["申請手続","IDM ＞ VDB_RETAIL_ANALYTICS 参照権限"],["リードタイム","3営業日"]],
+    note:""}},
+
+  {name:"住宅ローン マスター",path:"VDB_RETAIL_ANALYTICS.master.M_HOUSING_LOAN",sys:"リテール分析基盤（master層）",
+   fl:["n","補完"],
+   why:"業務対象「住宅ローン契約」の属性と有効期間を保持します。実行年度・金利タイプ別の切り口を足すために結合します。",
+   trace:["住宅ローン","リテール","住宅ローン","住宅ローン契約","住宅ローン契約を識別・管理する仮想項目","M_HOUSING_LOAN"],
+   grain:"契約 × 有効期間",fresh:"日次 04:00",acc:"要申請（機密Ⅱ）",
+   evid:[["接続オントロジー","業務属性:契約識別項目 －mappedToColumn→ housing_loan_id"],
+         ["データオントロジー","master層。有効期間による履歴管理"]],
+   detail:{desc:"住宅ローン契約の属性マスターです。effective_from／effective_to による履歴管理のため、過去時点の属性を正確に再現できます。",
+    attrs:[["housing_loan_id","k"],["customer_id",""],["organization_id",""],["product_id",""],["status_code",""],["effective_from",""],["effective_to",""],["source_system_code",""],["record_updated_at",""]],
+    joins:[["VDB_RETAIL_ANALYTICS.mart.S_HOUSING_LOAN_DAILY","housing_loan_id","日次値への属性付与"]],
+    cautions:["<b>必ず有効期間で時点結合してください。</b>最新行だけを結合すると、期中に条件変更した契約の過去の数値が変わってしまいます。",
+      "source_system_code は連携元の勘定系サブシステムを示します。統合前の旧商品は別コードになっています。"],
+    sql:"",gov:[["業務領域","リテール"],["データオーナー","リテールデータオフィス"],["データ分類","機密Ⅱ"],["申請手続","IDM ＞ VDB_RETAIL_ANALYTICS 参照権限"],["リードタイム","3営業日"]],
+    note:""}},
+
+  {name:"統合顧客マスター",path:"VDB_ENTERPRISE_REFERENCE.reference.T_CUSTOMER_GOLDEN",sys:"全社共通 参照基盤（reference層）",
+   fl:["ok","名寄せの要"],
+   why:"ご要望の「年代別」を実現する唯一の共通マスターです。age_band_code を持つため、生年月日そのものを参照せずに年代集計ができます。",
+   trace:["顧客属性","全社共通","参照データ管理","顧客","顧客を識別する仮想項目","T_CUSTOMER_GOLDEN"],
+   grain:"顧客 × 有効期間",fresh:"日次 03:00",acc:"参照可（現在の権限のまま）",
+   evid:[["業務オントロジー","全ドメインの業務プロセスから usesData で参照される共通資産"],
+         ["接続オントロジー","業務属性:顧客識別項目 －mappedToColumn→ customer_id"]],
+   detail:{desc:"全社で名寄せ済の顧客マスターです。リテール・ホールセール・グローバルの各領域から共通に参照され、customer_id が全社横断の結合キーになります。",
+    attrs:[["customer_id","k"],["party_id",""],["customer_type_code",""],["age_band_code",""],["organization_id",""],["status_code",""],["effective_from",""],["effective_to",""]],
+    joins:[["VDB_RETAIL_ANALYTICS.mart.S_HOUSING_LOAN_DAILY","customer_id","年代区分の付与"]],
+    cautions:["<b>age_band_code は基準日時点の年代</b>です。契約時年齢ではありません。時点結合を忘れると年代がずれます。",
+      "生年月日そのものは本表に含まれません（年代区分に丸めた状態で保持）。個社の年齢が必要な場合は別途申請が必要です。",
+      "organization_id は主取引店です。ローンの実行店とは異なる場合があります。部店別集計にはローン側の organization_id をご利用ください。"],
+    sql:"",gov:[["業務領域","全社共通"],["データオーナー","データ管理部"],["データ分類","機密Ⅲ（年代区分に丸め済）"],["申請手続","不要（全分析利用者に付与済）"],["リードタイム","―"]],
+    note:"本表は<b>現在の権限で参照可能</b>です。"}},
+
+  {name:"勘定系 ローン元帳（カタログ外）",path:"HOST_ACCT.LNMST",sys:"勘定系メインフレーム",
+   fl:["ng","除外"],
+   why:"原本ですが分析基盤のカタログ対象外で、オントロジー上も物理データとして接続されていません。分析目的の直接照会は行内標準で禁止です。",
+   trace:["住宅ローン","リテール","住宅ローン","住宅ローン契約","実行・返済・延滞","HOST_ACCT.LNMST"],
+   grain:"契約（現在値のみ）",fresh:"リアルタイム",acc:"不可（分析目的での付与対象外）",
+   evid:[["制約","カタログ未登録。オントロジー上に接続経路が存在しない"],
+         ["業務オントロジー","同内容は日次連携により event 層・master 層でカバー済"]],
+   detail:{desc:"勘定系の原本です。履歴を保持しないため時系列分析ができず、オンライン処理への性能影響から分析目的の参照は認められていません。",
+    attrs:[["LOAN_NO","k"],["DELINQ_CD",""],["BAL",""]],joins:null,
+    cautions:["過去時点の再現ができません（現在値のみ保持）。","項目名がCOBOLの短縮名で、業務名称との対応表が別管理です。"],
+    sql:"",gov:[["業務領域","―（カタログ外）"],["データオーナー","事務統括部 勘定系グループ"],["データ分類","機密Ⅰ"],["申請手続","分析目的では受付不可"],["リードタイム","―"]],
+    note:""}}
+ ],
+ kg:[
+  {cap:"① 発話から抽出した業務概念（BusinessConcept）",nodes:[{l:"延滞",s:"Concept",k:"cc"},{l:"住宅ローン",s:"Concept",k:"cc"},{l:"顧客属性",s:"Concept",k:"cc"},{l:"支店",s:"Concept",k:"cc"}]},
+  {cap:"② mentionedInProcess ＋ belongsToDomain → 業務領域（BusinessDomain）",nodes:[{l:"リテール",s:"Domain",k:"dm"},{l:"ホールセール",s:"対象外",k:"dm"},{l:"リスク",s:"隣接",k:"dm"},{l:"全社共通",s:"参照",k:"dm"}]},
+  {cap:"③ 業務領域配下の業務プロセス（BusinessProcess）",nodes:[{l:"住宅ローン",s:"Process",k:"pr"},{l:"消費性ローン",s:"隣接",k:"pr"},{l:"参照データ管理",s:"共通",k:"pr"}]},
+  {cap:"④ handlesEntity → 業務対象（BusinessEntity）",nodes:[{l:"住宅ローン契約",s:"Entity",k:"en"},{l:"顧客",s:"Entity",k:"en"}]},
+  {cap:"⑤ measuredBy／hasEvent／hasAttribute → 指標・イベント・属性",nodes:[{l:"延滞率",s:"Metric",k:"me"},{l:"実行・返済・延滞",s:"Event",k:"ev"},{l:"住宅ローン契約を識別・管理する仮想項目",s:"Attribute",k:"at",m:"住宅ローン契約を識別・管理する仮想項目"},{l:"顧客を識別する仮想項目",s:"Attribute",k:"at"}]},
+  {cap:"⑥ computedFrom／backedBy／mappedToColumn → 物理データ（Table）",nodes:[{l:"S_HOUSING_LOAN_DAILY",s:"mart",k:"tb"},{l:"F_HOUSING_LOAN_EVENT",s:"event",k:"tb"},{l:"M_HOUSING_LOAN",s:"master",k:"tb"},{l:"T_CUSTOMER_GOLDEN",s:"reference",k:"tb"},{l:"HOST_ACCT.LNMST",s:"カタログ外",k:"ng"}]}
+ ],
+ gql:'<span class="r">MATCH</span> (c:<span class="n">BusinessConcept</span> {name:<span class="v">"延滞"</span>})\n      -[:<span class="r">mentionedInProcess</span>]-&gt;(p:<span class="n">BusinessProcess</span>)\n      -[:<span class="r">belongsToDomain</span>]-&gt;(d:<span class="n">BusinessDomain</span> {name:<span class="v">"リテール"</span>})\n<span class="r">MATCH</span> (p)-[:<span class="r">handlesEntity</span>]-&gt;(e:<span class="n">BusinessEntity</span>)\n<span class="r">MATCH</span> (e)-[:<span class="r">measuredBy</span>]-&gt;(m:<span class="n">BusinessMetric</span>)-[:<span class="r">computedFrom</span>]-&gt;(t:<span class="n">Table</span>)\n<span class="r">OPTIONAL MATCH</span> (e)-[:<span class="r">hasEvent</span>]-&gt;(v:<span class="n">BusinessEvent</span>)-[:<span class="r">backedBy</span>]-&gt;(t2:<span class="n">Table</span>)\n<span class="r">RETURN</span> d.name, p.name, m.name, t.full, t2.full\n<span class="v">// 指標の定義は業務領域ごとに保持されるため、領域を先に確定させる</span>',
+ steps:[
+  {t:"発話から業務概念を抽出",d:"「住宅ローン」「延滞」「支店」「年代」を業務概念（BusinessConcept）として抽出しました。これらは過去の問い合わせから帰納された検索語です。"},
+  {t:"業務領域を確定（belongsToDomain）",d:"業務概念「延滞」は mentionedInProcess でリテール領域の住宅ローンと、ホールセール領域の法人融資の両方に接続します。照会元が融資企画部であることから、リテール領域を選択しました。"},
+  {t:"業務プロセスを特定",d:"リテール領域配下の業務プロセス14件のうち「住宅ローン」を採用。関連の深い「消費性ローン」は今回の依頼範囲外として保留しました。"},
+  {t:"業務対象と指標をたどる（handlesEntity → measuredBy）",d:"業務プロセスが扱う業務対象「住宅ローン契約」から、業務指標「延滞率」と業務イベント「実行・返済・延滞」に到達しました。指標の計算式はリテール領域のものが適用されます。"},
+  {t:"接続オントロジーで物理データへ解決",d:"業務指標は computedFrom で mart 層へ、業務イベントは backedBy で event 層へ接続します。「年代別」は業務属性を経由し、共通参照層の統合顧客マスターへ解決しました。"},
+  {t:"権限グラフと突合",d:"照会者のロールで参照できるかを判定しました。共通参照層は付与済、リテール領域の3表は申請が必要です。"}
+ ],
+ compare:"①が回答の本体です。②は日次の発生・解消を追う場合、③は契約属性を足す場合に併用します。④は「年代別」というご要望に対応する共通マスターで、申請なしで使えます。⑤はオントロジー上に接続経路がなく、分析利用の対象外です。",
+ permNote:"<b>④ 統合顧客マスターのみ現在の権限で参照可能</b>です。①②③（VDB_RETAIL_ANALYTICS）は機密Ⅱのため申請（3営業日）が必要です。",
+ reply:"【ご依頼】住宅ローンの延滞状況（支店別・年代別／直近1年）\n\n■ 使用するデータ\n1) VDB_RETAIL_ANALYTICS.mart.S_HOUSING_LOAN_DAILY（住宅ローン日次スナップショット）\n   metric_code='DELINQ_RATE_31D' で延滞率を取得できます。指標の計算はリテール領域の定義で実装済みです。\n2) VDB_ENTERPRISE_REFERENCE.reference.T_ORGANIZATION（組織マスター）… 部店名。有効期間で時点結合してください。\n3) VDB_ENTERPRISE_REFERENCE.reference.T_CUSTOMER_GOLDEN（統合顧客マスター）… age_band_code で年代別集計ができます。\n\n■ 集計時のご注意\n・metric_code の指定は必須です。指定しないと複数指標が縦に混ざります。\n・risk_flag='R'（条件変更申請中）は分母・分子の双方から除外してください。\n・quality_status_code='OK' 以外は品質チェック未通過です。\n・延滞率の定義はリテール領域のものです。法人融資の延滞率は債務者数ベースで別定義のため、合算はできません。\n\n■ 権限について\n統合顧客マスターは現在の権限で参照可能です。VDB_RETAIL_ANALYTICS は機密Ⅱのため、IDMからの申請（3営業日）をお願いします。\n\nサンプルSQLを添付します。"
+},
+{
+ tkt:"INC-0248206", dept:"リテール推進部", user:"高橋",
+ sample:"投信を解約したお客さまの傾向と、その前の提案履歴を見たい",
+ question:"投資信託を解約されるお客さまが増えている印象です。どういうお客さまが解約されているのか、また、その前に窓口や渉外でどんな提案をしていたのかを合わせて見たいのですが、そういうデータはありますか。",
+ kw:["投資信託","投信","解約","提案","窓口","渉外"],
+ intent:{theme:"資産運用 顧客離反（解約）分析",
+  oneline:"解約の予兆把握と、提案・アフターフォロー品質の改善が目的と解釈しました。業務プロセスをまたぐ結合が必要な依頼です。",
+  metrics:["解約率","平均保有期間","反応率"],
+  dims:["顧客セグメント","年代","チャネル","部店"]},
+ dom:{node:"リテール", full:"リテール ＞ 資産運用（業務プロセス）", alt:"リテール ＞ キャンペーン（提案活動）／店頭・コンタクト",
+  note:"<b>リテール</b>領域では、解約率を「全部解約の件数 ÷ 期首保有顧客数」と定義し、スイッチング（乗換）を除外します。提案の記録は同じリテール領域でも<b>別の業務プロセス（キャンペーン・店頭コンタクト）</b>に属するため、プロセスをまたぐ結合になります。",
+  why:"「解約」と「提案」は同じ業務領域でも別の業務プロセスに属し、扱う業務対象も物理テーブルも異なります。プロセス間を結ぶ結合キー（customer_id）を先に確認しています。"},
+ defs:[
+  ["リテール ＞ 資産運用","解約率","全部解約の件数 ÷ 期首保有顧客数。スイッチングは資金流出ではないため除外"],
+  ["リテール ＞ 個人預金","解約率","口座解約件数 ÷ 期首口座数。休眠口座は解約に含めない"],
+  ["リテール ＞ カード・Olive","解約率","カード契約の中途解約件数 ÷ 有効会員数。年会費更新月の影響を受ける"]
+ ],
+ cands:[
+  {name:"資産運用 日次スナップショット",path:"VDB_RETAIL_ANALYTICS.mart.S_WEALTH_DAILY",sys:"リテール分析基盤（mart層）",
+   fl:["ok","最推奨"],
+   why:"業務指標「解約率」が computedFrom でひも付く集計層です。保有期間や含み損益も同じ metric_code 体系で取得できます。",
+   trace:["解約","リテール","資産運用","投資信託保有","解約率","S_WEALTH_DAILY"],
+   grain:"保有 × 指標 × 営業日",fresh:"日次 05:30",acc:"参照可（担当部店内）",
+   evid:[["接続オントロジー","業務指標:解約率 －computedFrom→ 本表"],
+         ["業務オントロジー","業務プロセス:資産運用 －usesData→ 本表"],
+         ["根拠QA","解約分析の依頼で繰り返し案内されている"]],
+   detail:{desc:"投資信託保有の日次スナップショットです。metric_code で解約率・保有期間・評価損益率を切り替えられます。解約に至る前の残高推移も同じ表で追えます。",
+    attrs:[["business_date","k"],["wealth_id","k"],["metric_code","k"],["customer_id",""],["organization_id",""],["product_id",""],["metric_value",""],["risk_flag",""],["quality_status_code",""]],
+    joins:[["VDB_RETAIL_ANALYTICS.event.F_WEALTH_EVENT","wealth_id","解約イベントの明細"],
+           ["VDB_RETAIL_ANALYTICS.mart.S_CAMPAIGN_DAILY","customer_id","提案接触の有無"],
+           ["VDB_ENTERPRISE_REFERENCE.reference.T_CUSTOMER_GOLDEN","customer_id","年代・顧客区分"],
+           ["VDB_ENTERPRISE_REFERENCE.reference.T_PRODUCT","product_id","ファンド分類"]],
+    cautions:["<b>metric_code='CANCEL_RATE' はスイッチングを除外済</b>です。乗換を含めた解約を見たい場合は 'CANCEL_RATE_INCL_SWITCH' を使ってください。",
+      "<b>NISA口座の解約</b>は非課税枠の復活と関係するため、product_id 経由で口座区分を分けて解釈することを推奨します。",
+      "分配金再投資は購入イベントとして計上されます。新規資金流入と混同しないようご注意ください。"],
+    sql:'<span class="c">-- 解約前90日以内の提案接触の有無 × 解約の特徴</span>\n<span class="k">WITH</span> cancel <span class="k">AS</span> (\n  <span class="k">SELECT</span> w.customer_id, w.product_id, w.business_date, w.metric_value <span class="k">AS</span> cancel_rate\n  <span class="k">FROM</span>   VDB_RETAIL_ANALYTICS.mart.S_WEALTH_DAILY w\n  <span class="k">WHERE</span>  w.metric_code = <span class="s">\'CANCEL_RATE\'</span>\n    <span class="k">AND</span>  w.quality_status_code = <span class="s">\'OK\'</span>\n    <span class="k">AND</span>  w.business_date &gt;= <span class="k2">ADD_MONTHS</span>(<span class="k2">TRUNC</span>(<span class="k2">CURRENT_DATE</span>,<span class="s">\'MM\'</span>), -12))\n<span class="k">SELECT</span> pr.product_category,\n       c.age_band_code,\n       <span class="k">CASE WHEN</span> cp.customer_id <span class="k">IS NULL</span> <span class="k">THEN</span> <span class="s">\'提案接触なし\'</span> <span class="k">ELSE</span> <span class="s">\'提案接触あり\'</span> <span class="k">END</span> <span class="k">AS</span> contact,\n       <span class="k2">ROUND</span>(<span class="k2">AVG</span>(cn.cancel_rate)*100, 2) <span class="k">AS</span> cancel_rate_pct\n<span class="k">FROM</span>   cancel cn\n<span class="k">JOIN</span>   VDB_ENTERPRISE_REFERENCE.reference.T_PRODUCT        pr <span class="k">ON</span> pr.product_id  = cn.product_id\n<span class="k">JOIN</span>   VDB_ENTERPRISE_REFERENCE.reference.T_CUSTOMER_GOLDEN c  <span class="k">ON</span> c.customer_id = cn.customer_id\n<span class="k">LEFT JOIN</span> VDB_RETAIL_ANALYTICS.mart.S_CAMPAIGN_DAILY        cp\n       <span class="k">ON</span> cp.customer_id = cn.customer_id\n      <span class="k">AND</span> cp.business_date <span class="k">BETWEEN</span> cn.business_date - 90 <span class="k">AND</span> cn.business_date\n<span class="k">GROUP BY</span> pr.product_category, c.age_band_code,\n         <span class="k">CASE WHEN</span> cp.customer_id <span class="k">IS NULL</span> <span class="k">THEN</span> <span class="s">\'提案接触なし\'</span> <span class="k">ELSE</span> <span class="s">\'提案接触あり\'</span> <span class="k">END</span>;',
+    gov:[["業務領域","リテール"],["データオーナー","リテールデータオフィス"],["データ分類","機密Ⅱ（個人情報・取引情報）"],["申請手続","IDM ＞ VDB_RETAIL_ANALYTICS 参照権限"],["リードタイム","2営業日"]],
+    note:"顧客名・顧客番号にはマスキングが適用されます（ハッシュは決定論的なため結合は可能です）。"}},
+
+  {name:"キャンペーン 日次スナップショット",path:"VDB_RETAIL_ANALYTICS.mart.S_CAMPAIGN_DAILY",sys:"リテール分析基盤（mart層）",
+   fl:["ok","併用推奨"],
+   why:"「解約前にどんな提案をしていたか」を追える集計層です。業務プロセス「キャンペーン」に属し、資産運用とは別プロセスの資産です。",
+   trace:["提案","リテール","キャンペーン","キャンペーン対象","反応率","S_CAMPAIGN_DAILY"],
+   grain:"対象顧客 × 指標 × 営業日",fresh:"日次 05:30",acc:"参照可（担当部店内）",
+   evid:[["業務オントロジー","業務プロセス:キャンペーン －handlesEntity→ キャンペーン対象"],
+         ["接続オントロジー","業務指標:反応率 －computedFrom→ 本表"]],
+   detail:{desc:"提案・キャンペーンの接触記録を集計した層です。customer_id と business_date で資産運用側と結合することで、提案から解約までの時間差を評価できます。",
+    attrs:[["business_date","k"],["campaign_id","k"],["metric_code","k"],["customer_id",""],["organization_id",""],["product_id",""],["metric_value",""],["quality_status_code",""]],
+    joins:[["VDB_RETAIL_ANALYTICS.mart.S_WEALTH_DAILY","customer_id + business_date","提案 → 解約の追跡"],
+           ["VDB_RETAIL_ANALYTICS.event.F_CAMPAIGN_EVENT","campaign_id","提案1件ごとの明細"]],
+    cautions:["電話・訪問の記録は担当者の任意入力です。記録率が部店によって異なるため、部店間比較にはご注意ください。",
+      "デジタルチャネル経由の提案は業務プロセス「デジタルチャネル」側に計上されます。全チャネルを見る場合は S_DIGITAL_CHANNEL_DAILY も併用してください。",
+      "保持期間は24ヶ月です。それ以前の提案は本表には存在しません。"],
+    sql:"",gov:[["業務領域","リテール"],["データオーナー","リテールデータオフィス"],["データ分類","機密Ⅱ"],["申請手続","IDM ＞ VDB_RETAIL_ANALYTICS 参照権限"],["リードタイム","2営業日"]],
+    note:""}},
+
+  {name:"資産運用 イベント明細",path:"VDB_RETAIL_ANALYTICS.event.F_WEALTH_EVENT",sys:"リテール分析基盤（event層）",
+   fl:["n","参考"],
+   why:"業務イベント「購入・解約」の明細です。個々の解約約定を1件単位で確認したい場合に使います。",
+   trace:["解約","リテール","資産運用","投資信託保有","購入・解約","F_WEALTH_EVENT"],
+   grain:"イベント1件",fresh:"準リアルタイム",acc:"参照可（担当部店内）",
+   evid:[["接続オントロジー","業務イベント:購入・解約 －backedBy→ 本表"]],
+   detail:{desc:"投資信託の購入・解約・分配金の約定明細です。event_type_code で全部解約・一部解約・スイッチングを区別します。",
+    attrs:[["wealth_event_id","k"],["wealth_id",""],["customer_id",""],["organization_id",""],["product_id",""],["event_timestamp",""],["event_type_code",""],["amount",""],["channel_code",""]],
+    joins:[["VDB_RETAIL_ANALYTICS.master.M_WEALTH","wealth_id","保有属性の付与"]],
+    cautions:["event_type_code='SWITCH' は乗換であり、資金流出ではありません。純粋な解約を見る場合は除外してください。",
+      "行数が多いため、期間と部店を絞ってご利用ください。"],
+    sql:"",gov:[["業務領域","リテール"],["データオーナー","リテールデータオフィス"],["データ分類","機密Ⅱ"],["申請手続","IDM ＞ VDB_RETAIL_ANALYTICS 参照権限"],["リードタイム","2営業日"]],
+    note:""}},
+
+  {name:"統合顧客マスター",path:"VDB_ENTERPRISE_REFERENCE.reference.T_CUSTOMER_GOLDEN",sys:"全社共通 参照基盤（reference層）",
+   fl:["ok","名寄せの要"],
+   why:"「どういうお客さまか」を記述する共通マスターです。年代・顧客区分の付与に必要で、複数プロセスをまたぐ結合の基点になります。",
+   trace:["顧客属性","全社共通","参照データ管理","顧客","顧客を識別する仮想項目","T_CUSTOMER_GOLDEN"],
+   grain:"顧客 × 有効期間",fresh:"日次 03:00",acc:"参照可（現在の権限のまま）",
+   evid:[["業務オントロジー","全プロセスから usesData で参照される共通資産"],
+         ["接続オントロジー","業務属性:顧客識別項目 －mappedToColumn→ customer_id"]],
+   detail:{desc:"全社で名寄せ済の顧客マスターです。資産運用とキャンペーンという別プロセスの資産を突き合わせる際の共通キーになります。",
+    attrs:[["customer_id","k"],["party_id",""],["customer_type_code",""],["age_band_code",""],["organization_id",""],["effective_from",""],["effective_to",""]],
+    joins:[["VDB_RETAIL_ANALYTICS.mart.S_WEALTH_DAILY","customer_id","年代・顧客区分の付与"]],
+    cautions:["age_band_code は基準日時点の年代です。解約月の値を使う場合は前月値の利用を推奨します。"],
+    sql:"",gov:[["業務領域","全社共通"],["データオーナー","データ管理部"],["データ分類","機密Ⅲ"],["申請手続","不要"],["リードタイム","―"]],
+    note:""}},
+
+  {name:"CRM 活動ログ（カタログ外）",path:"CRM_PRD.PUBLIC.T_ACTIVITY_LOG",sys:"CRM（SaaS基盤）",
+   fl:["ng","除外"],
+   why:"提案履歴の原本ですが、分析基盤のカタログ対象外です。ライセンス・性能の両面から分析目的の直接接続は認められていません。",
+   trace:["提案","リテール","キャンペーン","キャンペーン対象","反応率","CRM_PRD.T_ACTIVITY_LOG"],
+   grain:"活動明細",fresh:"リアルタイム",acc:"不可（分析目的での付与対象外）",
+   evid:[["制約","カタログ未登録。オントロジー上に接続経路が存在しない"],
+         ["業務オントロジー","分析に必要な範囲は S_CAMPAIGN_DAILY へ日次連携済"]],
+   detail:{desc:"CRMの原本です。24ヶ月より前の提案履歴が必要な場合のみ、CRM所管部署への抽出代行依頼という手段があります。",
+    attrs:[["ACT_ID","k"],["CUST_ID",""],["ACT_TYPE",""],["MEMO",""]],joins:null,
+    cautions:["自由記述メモに個人情報・機微情報が含まれるため、抽出には別途の審査が必要です。"],
+    sql:"",gov:[["業務領域","―（カタログ外）"],["データオーナー","営業企画部（CRM所管）"],["データ分類","機密Ⅱ"],["申請手続","抽出代行依頼"],["リードタイム","10営業日"]],
+    note:""}}
+ ],
+ kg:[
+  {cap:"① 発話から抽出した業務概念（BusinessConcept）",nodes:[{l:"解約",s:"Concept",k:"cc"},{l:"投資信託",s:"Concept",k:"cc"},{l:"提案",s:"Concept",k:"cc"},{l:"顧客属性",s:"Concept",k:"cc"}]},
+  {cap:"② mentionedInProcess ＋ belongsToDomain → 業務領域（BusinessDomain）",nodes:[{l:"リテール",s:"Domain",k:"dm"},{l:"全社共通",s:"参照",k:"dm"},{l:"ホールセール",s:"対象外",k:"dm"}]},
+  {cap:"③ 業務領域配下の業務プロセス（BusinessProcess）",nodes:[{l:"資産運用",s:"Process",k:"pr"},{l:"キャンペーン",s:"Process",k:"pr"},{l:"参照データ管理",s:"共通",k:"pr"},{l:"NISA",s:"隣接",k:"pr"}]},
+  {cap:"④ handlesEntity → 業務対象（BusinessEntity）",nodes:[{l:"投資信託保有",s:"Entity",k:"en"},{l:"キャンペーン対象",s:"Entity",k:"en"},{l:"顧客",s:"Entity",k:"en"}]},
+  {cap:"⑤ measuredBy／hasEvent／hasAttribute → 指標・イベント・属性",nodes:[{l:"解約率",s:"Metric",k:"me"},{l:"反応率",s:"Metric",k:"me"},{l:"購入・解約",s:"Event",k:"ev"},{l:"顧客を識別する仮想項目",s:"Attribute",k:"at"}]},
+  {cap:"⑥ computedFrom／backedBy／mappedToColumn → 物理データ（Table）",nodes:[{l:"S_WEALTH_DAILY",s:"mart",k:"tb"},{l:"S_CAMPAIGN_DAILY",s:"mart",k:"tb"},{l:"F_WEALTH_EVENT",s:"event",k:"tb"},{l:"T_CUSTOMER_GOLDEN",s:"reference",k:"tb"},{l:"CRM_PRD.T_ACTIVITY_LOG",s:"カタログ外",k:"ng"}]}
+ ],
+ gql:'<span class="r">MATCH</span> (c:<span class="n">BusinessConcept</span>)-[:<span class="r">mentionedInProcess</span>]-&gt;(p:<span class="n">BusinessProcess</span>)\n      -[:<span class="r">belongsToDomain</span>]-&gt;(:<span class="n">BusinessDomain</span> {name:<span class="v">"リテール"</span>})\n<span class="r">WHERE</span> c.name <span class="r">IN</span> [<span class="v">"解約"</span>,<span class="v">"提案"</span>]\n<span class="r">MATCH</span> (p)-[:<span class="r">handlesEntity</span>]-&gt;(e)-[:<span class="r">measuredBy</span>]-&gt;(m)-[:<span class="r">computedFrom</span>]-&gt;(t:<span class="n">Table</span>)\n<span class="r">MATCH</span> (t)-[:<span class="r">joinsWith</span>*1..2]-&gt;(:<span class="n">Table</span> {name:<span class="v">"T_CUSTOMER_GOLDEN"</span>})\n<span class="r">RETURN</span> <span class="r">DISTINCT</span> p.name, m.name, t.full\n<span class="v">// 別プロセスの資産どうしは共通参照層を介して結合する</span>',
+ steps:[
+  {t:"発話から業務概念を抽出",d:"「投資信託」「解約」「提案」「お客さま像」を業務概念として抽出しました。"},
+  {t:"業務領域を確定（belongsToDomain）",d:"いずれの概念もリテール領域の業務プロセスに接続します。単一領域ではありますが、扱う業務プロセスが分かれる点を検知しました。"},
+  {t:"複数の業務プロセスにまたがると判定",d:"「解約」は業務プロセス:資産運用、「提案」は業務プロセス:キャンペーンに属します。プロセスが違えば業務対象も物理テーブルも異なります。"},
+  {t:"業務対象と指標をたどる",d:"資産運用は業務対象「投資信託保有」から業務指標「解約率」へ、キャンペーンは「キャンペーン対象」から「反応率」へ到達しました。リテール領域の解約率はスイッチングを除外する定義です。"},
+  {t:"プロセス間の結合経路を確認",d:"両プロセスの mart 層はいずれも共通参照層の統合顧客マスターと joinsWith で接続しています。customer_id を介して結合可能と判断しました。"},
+  {t:"権限グラフと突合",d:"リテール領域の資産は参照可能ですが、行レベルポリシーにより担当部店内に限定されます。"}
+ ],
+ compare:"①②の2表の結合が今回の肝です。③は個々の約定を確認したい場合、④は顧客像を記述するために足してください。⑤はオントロジー上に接続経路がなく、分析利用の対象外です。",
+ permNote:"①〜④は<b>現在の権限のまま参照可能</b>です。ただし行レベルポリシーにより<b>担当部店内の顧客のみ</b>が返ります。全店分析にはスコープ拡大申請（2営業日）が必要です。",
+ reply:"【ご依頼】投信解約者の傾向と、解約前の提案履歴\n\n■ 使用するデータ（別プロセスの2表を結合します）\n1) VDB_RETAIL_ANALYTICS.mart.S_WEALTH_DAILY（資産運用／解約率）\n   metric_code='CANCEL_RATE' はスイッチングを除外した定義です。\n2) VDB_RETAIL_ANALYTICS.mart.S_CAMPAIGN_DAILY（キャンペーン／提案接触）\n   customer_id と business_date で結合し、「解約前90日の提案接触有無」を評価できます。\n3) VDB_ENTERPRISE_REFERENCE.reference.T_CUSTOMER_GOLDEN … 年代・顧客区分の付与\n\n■ ご注意\n・解約と提案は同じリテール領域でも別の業務プロセスに属します。両者は共通参照層の顧客マスターを介して結合してください。\n・乗換を含めた解約を見る場合は metric_code='CANCEL_RATE_INCL_SWITCH' を使ってください。\n・提案記録の保持は24ヶ月です。デジタル経由の提案は S_DIGITAL_CHANNEL_DAILY 側に計上されます。\n・現在の権限では担当部店内の顧客のみが対象です。全店で見る場合はスコープ拡大申請をお願いします。\n\nサンプルSQLを添付します。"
+},
+{
+ tkt:"INC-0248233", dept:"法人営業部", user:"井上",
+ sample:"法人の預金残高の推移を業種別に見たい。系列企業はまとめたい",
+ question:"法人のお客さまの預金残高が業種によってどう動いているかを見たいです。あと、親会社と子会社は別々でなく企業グループでまとめて見たいのですが、そういう見方はできますか。",
+ kw:["法人","預金","業種","グループ","親会社","子会社","残高"],
+ intent:{theme:"法人預金ポートフォリオ分析（業種別・グループ名寄せ）",
+  oneline:"業種別の資金動向把握と、グループ単位での取引深耕の方針検討が目的と解釈しました。顧客階層による集約の要求を含みます。",
+  metrics:["月中平残","月末残高","取引先数"],
+  dims:["業種","企業グループ","部店","月次"]},
+ dom:{node:"ホールセール", full:"ホールセール ＞ 法人預金（業務プロセス）", alt:"ホールセール ＞ 法人顧客管理／全社共通（参照データ）",
+  note:"<b>ホールセール</b>領域では、平残を「日々残の月中平均（外貨は円換算後）」と定義します。リテール領域の個人預金では総合口座の貸越を控除するなど計算式が異なるため、両者の数値をそのまま足し合わせることはできません。",
+  why:"同じ「預金」でも、法人と個人では所属する業務領域が異なり、分析用データベースも指標の計算式も分かれます。まずホールセール領域に限定してから探索しています。"},
+ defs:[
+  ["ホールセール ＞ 法人預金","月中平残","日々残の月中平均。外貨預金は月末TTMで円換算した後に平均"],
+  ["リテール ＞ 個人預金","月中平残","日々残の月中平均だが、総合口座の当座貸越（マイナス残）を控除して算出"],
+  ["市場 ＞ ポジション・損益","残高","時価評価ベース（約定日基準）。取得原価ではなく評価額を用いる"]
+ ],
+ cands:[
+  {name:"法人預金 日次スナップショット",path:"VDB_WHOLESALE_ANALYTICS.mart.S_CORP_DEPOSIT_DAILY",sys:"ホールセール分析基盤（mart層）",
+   fl:["ok","最推奨"],
+   why:"業務指標「月中平残」が computedFrom でひも付く集計層です。日々残の平均が計算済みで、経営計画資料と同一定義です。",
+   trace:["法人預金","ホールセール","法人預金","法人預金口座","月中平残","S_CORP_DEPOSIT_DAILY"],
+   grain:"口座 × 指標 × 営業日",fresh:"日次 05:00（月次確定は第2営業日）",acc:"参照可",
+   evid:[["接続オントロジー","業務指標:月中平残 －computedFrom→ 本表"],
+         ["業務オントロジー","業務プロセス:法人預金 －usesData→ 本表"],
+         ["根拠QA","経営計画・実績管理の依頼で標準的に案内されている"]],
+   detail:{desc:"法人預金の日次スナップショットです。metric_code='AVG_BAL_MTD' で月中平残を取得できます。期末の一時的な資金移動に左右されない業種比較ができます。",
+    attrs:[["business_date","k"],["corp_deposit_id","k"],["metric_code","k"],["customer_id",""],["organization_id",""],["product_id",""],["metric_value",""],["currency_code",""],["quality_status_code",""]],
+    joins:[["VDB_WHOLESALE_ANALYTICS.master.M_CORP_CUSTOMER","customer_id","業種コード・売上規模・企業グループ"],
+           ["VDB_ENTERPRISE_REFERENCE.reference.T_CUSTOMER_GOLDEN","customer_id","全社名寄せ済の顧客識別"],
+           ["VDB_ENTERPRISE_REFERENCE.reference.T_ORGANIZATION","organization_id","主取引店"],
+           ["VDB_ENTERPRISE_REFERENCE.reference.T_CALENDAR","business_date","月末フラグ"]],
+    cautions:["<b>業種比較には月末残高ではなく月中平残</b>（metric_code='AVG_BAL_MTD'）を推奨します。決済性預金の月末残高は賞与・納税期の季節性が大きいためです。",
+      "<b>外貨預金は円換算後の値</b>です。換算レートは月末TTMのため、残高増減に為替変動の影響が含まれます。currency_code で内訳を確認できます。",
+      "口座単位のため、顧客単位・グループ単位に集約してからご利用ください。"],
+    sql:'<span class="c">-- 業種別 × 企業グループ名寄せ 月中平残の推移</span>\n<span class="k">SELECT</span> <span class="k2">TO_CHAR</span>(d.business_date,<span class="s">\'YYYYMM\'</span>) <span class="k">AS</span> ym,\n       m.industry_name,\n       <span class="k2">NVL</span>(m.group_id, m.customer_id)   <span class="k">AS</span> group_key,\n       <span class="k2">NVL</span>(m.group_name, m.corp_name)  <span class="k">AS</span> group_name,\n       <span class="k2">SUM</span>(d.metric_value)             <span class="k">AS</span> avg_bal_total\n<span class="k">FROM</span>   VDB_WHOLESALE_ANALYTICS.mart.S_CORP_DEPOSIT_DAILY d\n<span class="k">JOIN</span>   VDB_WHOLESALE_ANALYTICS.master.M_CORP_CUSTOMER   m\n       <span class="k">ON</span> m.customer_id = d.customer_id\n      <span class="k">AND</span> d.business_date <span class="k">BETWEEN</span> m.effective_from <span class="k">AND</span> m.effective_to\n<span class="k">JOIN</span>   VDB_ENTERPRISE_REFERENCE.reference.T_CALENDAR cal\n       <span class="k">ON</span> cal.calendar_date = d.business_date <span class="k">AND</span> cal.month_end_flag = <span class="s">\'Y\'</span>\n<span class="k">WHERE</span>  d.metric_code = <span class="s">\'AVG_BAL_MTD\'</span>\n  <span class="k">AND</span>  d.quality_status_code = <span class="s">\'OK\'</span>\n  <span class="k">AND</span>  m.group_priority = 1                <span class="c">-- 主グループのみ（二重計上防止）</span>\n  <span class="k">AND</span>  d.business_date &gt;= <span class="k2">ADD_MONTHS</span>(<span class="k2">TRUNC</span>(<span class="k2">CURRENT_DATE</span>,<span class="s">\'MM\'</span>), -36)\n<span class="k">GROUP BY</span> <span class="k2">TO_CHAR</span>(d.business_date,<span class="s">\'YYYYMM\'</span>), m.industry_name,\n         <span class="k2">NVL</span>(m.group_id,m.customer_id), <span class="k2">NVL</span>(m.group_name,m.corp_name)\n<span class="k">ORDER BY</span> 1, avg_bal_total <span class="k">DESC</span>;',
+    gov:[["業務領域","ホールセール"],["データオーナー","法人データオフィス"],["データ分類","機密Ⅱ（取引先情報）"],["申請手続","IDM ＞ VDB_WHOLESALE_ANALYTICS 参照権限"],["リードタイム","2営業日"]],
+    note:"照会者（井上さま）は<b>本件のデータをすべて参照可能</b>です。追加申請は不要です。"}},
+
+  {name:"法人顧客マスター",path:"VDB_WHOLESALE_ANALYTICS.master.M_CORP_CUSTOMER",sys:"ホールセール分析基盤（master層）",
+   fl:["ok","名寄せの要"],
+   why:"ご要望の「親子をまとめて見たい」を実現する中心データです。業種コードと企業グループコードの双方を保持します。",
+   trace:["企業グループ","ホールセール","法人顧客管理","法人顧客","法人顧客を識別・管理する仮想項目","M_CORP_CUSTOMER"],
+   grain:"法人顧客 × 有効期間",fresh:"日次 04:00",acc:"参照可",
+   evid:[["業務オントロジー","業務プロセス:法人顧客管理 －handlesEntity→ 法人顧客"],
+         ["接続オントロジー","業務属性:法人顧客識別項目 －mappedToColumn→ customer_id"]],
+   detail:{desc:"法人顧客の属性マスターです。業種（JSIC／自行）、売上規模、資本関係に基づく企業グループコードを保持します。group_priority により主グループが識別でき、合弁会社の二重計上を防げます。",
+    attrs:[["customer_id","k"],["corp_name",""],["industry_code",""],["industry_name",""],["group_id",""],["group_name",""],["group_priority",""],["sales_tier",""],["effective_from",""],["effective_to",""]],
+    joins:[["VDB_WHOLESALE_ANALYTICS.mart.S_CORP_DEPOSIT_DAILY","customer_id","残高への属性付与"],
+           ["VDB_ENTERPRISE_REFERENCE.reference.T_CUSTOMER_GOLDEN","customer_id","全社名寄せ"]],
+    cautions:["<b>グループ集計時の二重計上</b>にご注意ください。合弁会社は複数グループに所属し得ます（group_priority=1 で主グループのみ採用を推奨）。",
+      "<b>業種はグループ単位では定義されません。</b>グループ代表企業の業種を採るか、構成企業の業種で按分するかを先に決めてください。",
+      "業種コードはJSICと自行業種の2系統があります。業種動向の把握であればJSIC中分類を推奨します。",
+      "資本異動の反映は月次です。期中の異動は翌月の集計から反映されます。"],
+    sql:"",gov:[["業務領域","ホールセール"],["データオーナー","法人データオフィス"],["データ分類","機密Ⅱ"],["申請手続","IDM ＞ VDB_WHOLESALE_ANALYTICS 参照権限"],["リードタイム","2営業日"]],
+    note:""}},
+
+  {name:"法人預金 イベント明細",path:"VDB_WHOLESALE_ANALYTICS.event.F_CORP_DEPOSIT_EVENT",sys:"ホールセール分析基盤（event層）",
+   fl:["n","参考"],
+   why:"業務イベント「入出金」の明細です。特定先の資金移動を追う調査用途に向きますが、業種別の趨勢把握には粒度が細かすぎます。",
+   trace:["法人預金","ホールセール","法人預金","法人預金口座","入出金","F_CORP_DEPOSIT_EVENT"],
+   grain:"イベント1件",fresh:"準リアルタイム",acc:"参照可",
+   evid:[["接続オントロジー","業務イベント:入出金 －backedBy→ 本表"]],
+   detail:{desc:"法人預金口座の入出金明細です。大口の資金移動の把握や、特定先の資金繰り把握に使います。",
+    attrs:[["corp_deposit_event_id","k"],["corp_deposit_id",""],["customer_id",""],["organization_id",""],["event_timestamp",""],["event_type_code",""],["amount",""],["currency_code",""]],
+    joins:[["VDB_WHOLESALE_ANALYTICS.master.M_CORP_CUSTOMER","customer_id","顧客属性の付与"]],
+    cautions:["行数が非常に多いため、必ず期間と顧客を絞ってください。","振替の内部取引が含まれます。純増減を見る場合は event_type_code で除外してください。"],
+    sql:"",gov:[["業務領域","ホールセール"],["データオーナー","法人データオフィス"],["データ分類","機密Ⅱ"],["申請手続","IDM ＞ VDB_WHOLESALE_ANALYTICS 参照権限"],["リードタイム","2営業日"]],
+    note:""}},
+
+  {name:"組織マスター（部店）",path:"VDB_ENTERPRISE_REFERENCE.reference.T_ORGANIZATION",sys:"全社共通 参照基盤（reference層）",
+   fl:["n","補完"],
+   why:"部店別の切り口や、営業ブロック単位での集約を足す場合に使います。統廃合を有効期間で管理しています。",
+   trace:["部店","全社共通","参照データ管理","組織","部店階層を識別する仮想項目","T_ORGANIZATION"],
+   grain:"組織 × 有効期間",fresh:"日次 03:00",acc:"参照可（現在の権限のまま）",
+   evid:[["業務オントロジー","全プロセスから usesData で参照される共通資産"],
+         ["データオントロジー","parent_organization_id による階層構造"]],
+   detail:{desc:"部店・ブロック・本部の階層を保持する共通マスターです。parent_organization_id をたどることで営業ブロック単位の集約ができます。",
+    attrs:[["organization_id","k"],["organization_name",""],["organization_type",""],["parent_organization_id",""],["effective_from",""],["effective_to",""]],
+    joins:[["VDB_WHOLESALE_ANALYTICS.mart.S_CORP_DEPOSIT_DAILY","organization_id","部店名の付与"]],
+    cautions:["店舗統廃合により organization_id が変わります。時系列分析では必ず有効期間で時点結合してください。"],
+    sql:"",gov:[["業務領域","全社共通"],["データオーナー","データ管理部"],["データ分類","公開区分（行内）"],["申請手続","不要"],["リードタイム","―"]],
+    note:""}},
+
+  {name:"勘定系 預金元帳（カタログ外）",path:"HOST_ACCT.DEPMST",sys:"勘定系メインフレーム",
+   fl:["ng","除外"],
+   why:"原本ですが分析基盤のカタログ対象外です。同内容は日次連携により event 層・mart 層でカバーされています。",
+   trace:["法人預金","ホールセール","法人預金","法人預金口座","入出金","HOST_ACCT.DEPMST"],
+   grain:"口座（現在値のみ）",fresh:"リアルタイム",acc:"不可",
+   evid:[["制約","カタログ未登録。オントロジー上に接続経路が存在しない"]],
+   detail:{desc:"勘定系の原本です。履歴を保持しないため時系列分析ができません。",
+    attrs:[["ACCT_NO","k"],["BAL",""]],joins:null,
+    cautions:["分析目的での参照は認められていません。"],
+    sql:"",gov:[["業務領域","―（カタログ外）"],["データオーナー","事務統括部 勘定系グループ"],["データ分類","機密Ⅰ"],["申請手続","分析目的では受付不可"],["リードタイム","―"]],
+    note:""}}
+ ],
+ kg:[
+  {cap:"① 発話から抽出した業務概念（BusinessConcept）",nodes:[{l:"法人預金",s:"Concept",k:"cc"},{l:"業種",s:"Concept",k:"cc"},{l:"企業グループ",s:"Concept",k:"cc"},{l:"部店",s:"Concept",k:"cc"}]},
+  {cap:"② mentionedInProcess ＋ belongsToDomain → 業務領域（BusinessDomain）",nodes:[{l:"ホールセール",s:"Domain",k:"dm"},{l:"リテール",s:"対象外",k:"dm"},{l:"全社共通",s:"参照",k:"dm"}]},
+  {cap:"③ 業務領域配下の業務プロセス（BusinessProcess）",nodes:[{l:"法人預金",s:"Process",k:"pr"},{l:"法人顧客管理",s:"Process",k:"pr"},{l:"参照データ管理",s:"共通",k:"pr"},{l:"法人融資",s:"隣接",k:"pr"}]},
+  {cap:"④ handlesEntity → 業務対象（BusinessEntity）",nodes:[{l:"法人預金口座",s:"Entity",k:"en"},{l:"法人顧客",s:"Entity",k:"en"},{l:"組織",s:"Entity",k:"en"}]},
+  {cap:"⑤ measuredBy／hasEvent／hasAttribute → 指標・イベント・属性",nodes:[{l:"月中平残",s:"Metric",k:"me"},{l:"入出金",s:"Event",k:"ev"},{l:"法人顧客を識別・管理する仮想項目",s:"Attribute",k:"at"},{l:"部店階層を識別する仮想項目",s:"Attribute",k:"at"}]},
+  {cap:"⑥ computedFrom／backedBy／mappedToColumn → 物理データ（Table）",nodes:[{l:"S_CORP_DEPOSIT_DAILY",s:"mart",k:"tb"},{l:"M_CORP_CUSTOMER",s:"master",k:"tb"},{l:"F_CORP_DEPOSIT_EVENT",s:"event",k:"tb"},{l:"T_ORGANIZATION",s:"reference",k:"tb"},{l:"HOST_ACCT.DEPMST",s:"カタログ外",k:"ng"}]}
+ ],
+ gql:'<span class="r">MATCH</span> (c:<span class="n">BusinessConcept</span> {name:<span class="v">"法人預金"</span>})\n      -[:<span class="r">mentionedInProcess</span>]-&gt;(p:<span class="n">BusinessProcess</span>)\n      -[:<span class="r">belongsToDomain</span>]-&gt;(d:<span class="n">BusinessDomain</span> {name:<span class="v">"ホールセール"</span>})\n<span class="r">MATCH</span> (p)-[:<span class="r">handlesEntity</span>]-&gt;(e)-[:<span class="r">measuredBy</span>]-&gt;(m)-[:<span class="r">computedFrom</span>]-&gt;(t:<span class="n">Table</span>)\n<span class="r">MATCH</span> (:<span class="n">BusinessProcess</span> {name:<span class="v">"法人顧客管理"</span>})-[:<span class="r">usesData</span>]-&gt;(g:<span class="n">Table</span>)\n<span class="r">WHERE</span> g.schema = <span class="v">"master"</span>\n<span class="r">RETURN</span> t.full, g.full   <span class="v">// 名寄せキーは master 層が保持する</span>',
+ steps:[
+  {t:"発話から業務概念を抽出",d:"「法人」「預金残高」「業種」「親会社・子会社」を業務概念として抽出し、「まとめて見たい」を顧客階層による集約要求と解釈しました。"},
+  {t:"業務領域を確定（belongsToDomain）",d:"「法人のお客さま」からホールセール領域に限定しました。リテール領域の個人預金は平残の計算式が異なるため、探索対象から外しています。"},
+  {t:"業務プロセスを特定",d:"ホールセール領域の「法人預金」を主プロセスとし、業種・企業グループの属性を保持する「法人顧客管理」を併用プロセスとして追加しました。"},
+  {t:"業務対象と指標をたどる",d:"業務対象「法人預金口座」から業務指標「月中平残」に到達。ホールセール領域での定義（日々残の月中平均・外貨は円換算後）が適用されます。"},
+  {t:"顧客階層の保持先を確認",d:"企業グループの階層は業務プロセス「法人顧客管理」の master 層が保持しています。名寄せキー group_id と、二重計上を防ぐ group_priority の提示が必要と判断しました。"},
+  {t:"権限グラフと突合",d:"照会者のロールで4件すべて参照可能です。追加申請は不要です。"}
+ ],
+ compare:"①＋②の結合が回答の本体です。②が「グループでまとめる」というご要望に直接対応します。③は特定先の資金移動を追う場合、④は部店・ブロック軸を足す場合に併用してください。",
+ permNote:"<b>すべて現在の権限のまま参照可能</b>です。追加の申請は必要ありません。",
+ reply:"【ご依頼】法人預金の業種別推移（企業グループ名寄せ）\n\n■ 使用するデータ\n1) VDB_WHOLESALE_ANALYTICS.mart.S_CORP_DEPOSIT_DAILY（法人預金日次スナップショット）\n   metric_code='AVG_BAL_MTD' で月中平残を取得できます。\n2) VDB_WHOLESALE_ANALYTICS.master.M_CORP_CUSTOMER（法人顧客マスター）\n   業種コードと企業グループコードの双方を保持しています。\n3) VDB_ENTERPRISE_REFERENCE.reference.T_ORGANIZATION（組織マスター）… 部店・ブロック軸\n\n■ 「親子をまとめて見たい」について\n可能です。M_CORP_CUSTOMER の group_id で名寄せしてください。\nただし合弁会社は複数グループに所属し得るため、group_priority=1（主グループ）に限定すると二重計上を防げます。\n\n■ ご注意\n・業種比較は月末残高ではなく月中平残を推奨します（賞与・納税期の季節性を排除できます）。\n・外貨預金は月末TTMで円換算済のため、残高増減に為替の影響が含まれます。\n・平残の定義はホールセール領域のものです。リテールの個人預金は貸越を控除する別定義のため、単純合算はできません。\n・マスターとの結合は必ず有効期間で時点結合してください。\n\n井上さまの現在の権限で、上記すべて参照可能です。サンプルSQLを添付します。"
+},
+{
+ tkt:"INC-0248251", dept:"コンプライアンス統括部", user:"渡辺",
+ sample:"マネロンのアラート件数を部店別・月別に集計したい",
+ question:"取引モニタリングのアラートについて、部店別・月別の発生件数と、そのうち届出に至った割合、クローズまでの日数を見たいです。当局対応の資料に使いたいのですが可能でしょうか。",
+ kw:["マネロン","AML","アラート","モニタリング","届出","部店別","当局"],
+ intent:{theme:"AML/CFT 取引モニタリング 運用状況モニタリング",
+  oneline:"当局対応資料の作成と、検知シナリオの有効性評価が目的と解釈しました。顧客個別の調査ではないため、集計データで充足します。",
+  metrics:["アラート件数","真陽性率","平均クローズ日数"],
+  dims:["部店","月次","検知シナリオ"]},
+ dom:{node:"コンプライアンス・AML", full:"コンプライアンス・AML ＞ AML取引モニタリング（業務プロセス）", alt:"全社共通（参照データ）",
+  note:"<b>コンプライアンス・AML</b>領域では、真陽性率を「届出件数 ÷ 当月クローズ件数」と定義します（調査に数ヶ月かかるため発生月基準では実態を表しません）。またこの領域には漏えい禁止の規制が紐づくため、参照できるデータが集計粒度に限定されます。",
+  why:"AML/CFT領域は、指標定義に加えて<b>規制上の制約が業務領域の単位で紐づく</b>点が他と異なります。領域を確定させた時点で、個票を含むイベント層が候補から自動的に外れます。"},
+ defs:[
+  ["コンプライアンス・AML ＞ AML取引モニタリング","真陽性率","届出件数 ÷ 当月クローズ件数。調査完了ベースで評価する"],
+  ["リテール ＞ カード・Olive","不正検知率","不正確定件数 ÷ アラート件数。即時判定のため発生月ベースで評価する"],
+  ["リスク ＞ 信用リスク","的中率","スコアモデルの予測精度を指す別系統の指標。上記2つとは体系が異なる"]
+ ],
+ cands:[
+  {name:"AML取引モニタリング 日次スナップショット",path:"VDB_COMPLIANCE_AML.mart.S_AML_MONITORING_DAILY",sys:"コンプライアンス分析基盤（mart層）",
+   fl:["ok","最推奨"],
+   why:"業務指標「アラート件数」が computedFrom でひも付く集計層です。個票の識別情報を含まないため、規制上の制約なく部門内で利用できます。",
+   trace:["アラート","コンプライアンス・AML","AML取引モニタリング","モニタリング対象取引","アラート件数","S_AML_MONITORING_DAILY"],
+   grain:"部店 × シナリオ × 指標 × 営業日",fresh:"日次 05:00（月次確定は第5営業日）",acc:"参照可",
+   evid:[["接続オントロジー","業務指標:アラート件数 －computedFrom→ 本表"],
+         ["規制制約","集計粒度のため漏えい禁止の制約に適合"],
+         ["根拠QA","当局報告・第2線モニタリングで標準的に案内されている"]],
+   detail:{desc:"AML取引モニタリングの日次スナップショットです。metric_code でアラート件数・真陽性率・平均クローズ日数を切り替えられます。顧客・取引の識別情報を含まないため、当局提出資料の作成に必要な粒度を満たしつつ漏えいリスクを回避できます。",
+    attrs:[["business_date","k"],["aml_monitoring_id","k"],["metric_code","k"],["organization_id",""],["metric_value",""],["risk_flag",""],["quality_status_code",""],["snapshot_timestamp",""]],
+    joins:[["VDB_ENTERPRISE_REFERENCE.reference.T_ORGANIZATION","organization_id","部店名"],
+           ["VDB_ENTERPRISE_REFERENCE.reference.T_CALENDAR","business_date","月末フラグ・年度"],
+           ["VDB_COMPLIANCE_AML.master.M_AML_MONITORING","aml_monitoring_id","検知シナリオの名称・閾値・改定履歴"]],
+    cautions:["<b>真陽性率の分母は当月クローズ件数</b>です（metric_code='TRUE_POSITIVE_RATE'）。発生月基準では調査中の案件が分母に入らず、直近月が過小に見えます。",
+      "<b>シナリオ改定の影響</b>にご注意ください。閾値を変更した前後で件数の水準が不連続になります。master 層の有効期間で確認できます。",
+      "<b>当局提出資料に使用する場合</b>は、金融犯罪対策室の管理職承認と数値の二者チェックが必要です（内部規程 AML-014）。",
+      "customer_id を持たない構造です。顧客単位の分析はこの層ではできません（規制上の制約による意図的な設計です）。"],
+    sql:'<span class="c">-- 部店別・月別 アラート件数 / 真陽性率 / 平均クローズ日数</span>\n<span class="k">SELECT</span> <span class="k2">TO_CHAR</span>(d.business_date,<span class="s">\'YYYYMM\'</span>) <span class="k">AS</span> ym,\n       o.organization_name,\n       <span class="k2">SUM</span>(<span class="k">CASE WHEN</span> d.metric_code = <span class="s">\'ALERT_CNT\'</span>           <span class="k">THEN</span> d.metric_value <span class="k">END</span>) <span class="k">AS</span> alert_cnt,\n       <span class="k2">AVG</span>(<span class="k">CASE WHEN</span> d.metric_code = <span class="s">\'TRUE_POSITIVE_RATE\'</span>  <span class="k">THEN</span> d.metric_value <span class="k">END</span>) <span class="k">AS</span> true_pos_rate,\n       <span class="k2">AVG</span>(<span class="k">CASE WHEN</span> d.metric_code = <span class="s">\'CLOSE_DAYS_MEDIAN\'</span>   <span class="k">THEN</span> d.metric_value <span class="k">END</span>) <span class="k">AS</span> close_days_median\n<span class="k">FROM</span>   VDB_COMPLIANCE_AML.mart.S_AML_MONITORING_DAILY d\n<span class="k">JOIN</span>   VDB_ENTERPRISE_REFERENCE.reference.T_ORGANIZATION o\n       <span class="k">ON</span> o.organization_id = d.organization_id\n      <span class="k">AND</span> d.business_date <span class="k">BETWEEN</span> o.effective_from <span class="k">AND</span> o.effective_to\n<span class="k">WHERE</span>  d.quality_status_code = <span class="s">\'OK\'</span>\n  <span class="k">AND</span>  d.business_date &gt;= <span class="k2">ADD_MONTHS</span>(<span class="k2">TRUNC</span>(<span class="k2">CURRENT_DATE</span>,<span class="s">\'MM\'</span>), -24)\n<span class="k">GROUP BY</span> <span class="k2">TO_CHAR</span>(d.business_date,<span class="s">\'YYYYMM\'</span>), o.organization_name\n<span class="k">ORDER BY</span> 1, alert_cnt <span class="k">DESC</span>;',
+    gov:[["業務領域","コンプライアンス・AML"],["データオーナー","コンプライアンス統括部"],["データ分類","機密Ⅰ（規制情報）"],["申請手続","IDM ＞ VDB_COMPLIANCE_AML 参照権限（集計）"],["リードタイム","5営業日"]],
+    note:"照会者（渡辺さま）は<b>本表を参照可能</b>です。追加申請は不要です。"}},
+
+  {name:"AML検知シナリオ マスター",path:"VDB_COMPLIANCE_AML.master.M_AML_MONITORING",sys:"コンプライアンス分析基盤（master層）",
+   fl:["ok","併用推奨"],
+   why:"シナリオ名称と閾値の改定履歴を保持します。件数の不連続を説明するために必須です。",
+   trace:["取引モニタリング","コンプライアンス・AML","AML取引モニタリング","モニタリング対象取引","モニタリング対象取引を識別・管理する仮想項目","M_AML_MONITORING"],
+   grain:"シナリオ × 有効期間",fresh:"随時（改定時）",acc:"参照可",
+   evid:[["接続オントロジー","業務属性:モニタリング対象識別項目 －mappedToColumn→ aml_monitoring_id"],
+         ["データオントロジー","master層。有効期間による改定履歴管理"]],
+   detail:{desc:"検知シナリオの名称・閾値・適用開始日・想定リスク類型を保持します。effective_from を見ることで、件数変動が実態か閾値変更かを切り分けられます。",
+    attrs:[["aml_monitoring_id","k"],["scenario_name",""],["threshold_value",""],["risk_type_code",""],["status_code",""],["effective_from",""],["effective_to",""]],
+    joins:[["VDB_COMPLIANCE_AML.mart.S_AML_MONITORING_DAILY","aml_monitoring_id","シナリオ名称の付与"]],
+    cautions:["同一シナリオで閾値のみ改定されるケースがあります。時点比較では必ず有効期間で結合してください。",
+      "<b>閾値情報は行外への持ち出し厳禁</b>です。当局資料には閾値そのものを記載しないでください。"],
+    sql:"",gov:[["業務領域","コンプライアンス・AML"],["データオーナー","コンプライアンス統括部"],["データ分類","機密Ⅰ（検知ロジック）"],["申請手続","IDM ＞ VDB_COMPLIANCE_AML 参照権限（集計）"],["リードタイム","5営業日"]],
+    note:""}},
+
+  {name:"組織マスター（部店）",path:"VDB_ENTERPRISE_REFERENCE.reference.T_ORGANIZATION",sys:"全社共通 参照基盤（reference層）",
+   fl:["ok","併用推奨"],
+   why:"ご要望の「部店別」に必要な共通マスターです。部店の統廃合を有効期間で管理しています。",
+   trace:["部店","全社共通","参照データ管理","組織","部店階層を識別する仮想項目","T_ORGANIZATION"],
+   grain:"組織 × 有効期間",fresh:"日次 03:00",acc:"参照可（現在の権限のまま）",
+   evid:[["業務オントロジー","全プロセスから usesData で参照される共通資産"]],
+   detail:{desc:"部店・ブロック・本部の階層を保持する共通マスターです。当局資料では統廃合前後の部店名の扱いを揃える必要があります。",
+    attrs:[["organization_id","k"],["organization_name",""],["organization_type",""],["parent_organization_id",""],["effective_from",""],["effective_to",""]],
+    joins:[["VDB_COMPLIANCE_AML.mart.S_AML_MONITORING_DAILY","organization_id","部店名の付与"]],
+    cautions:["24ヶ月分を並べる場合、期間中に統廃合された部店があると系列が途切れます。当局資料では注記をお願いします。"],
+    sql:"",gov:[["業務領域","全社共通"],["データオーナー","データ管理部"],["データ分類","公開区分（行内）"],["申請手続","不要"],["リードタイム","―"]],
+    note:""}},
+
+  {name:"KYC/CDD 日次スナップショット",path:"VDB_COMPLIANCE_AML.mart.S_KYC_CDD_DAILY",sys:"コンプライアンス分析基盤（mart層）",
+   fl:["n","参考"],
+   why:"「顧客確認の状況とアラート発生に関係があるか」を検証したい場合に併用します。今回の3指標だけであれば不要です。",
+   trace:["KYC","コンプライアンス・AML","KYC/CDD","顧客確認記録","確認完了率","S_KYC_CDD_DAILY"],
+   grain:"部店 × 指標 × 営業日",fresh:"日次 05:00",acc:"参照可",
+   evid:[["業務オントロジー","同一領域内の隣接プロセス:KYC/CDD"],
+         ["接続オントロジー","業務指標:確認完了率 －computedFrom→ 本表"]],
+   detail:{desc:"顧客確認（KYC/CDD）の進捗を集計した層です。確認未了先の比率とアラート発生の関係を見る場合に使います。",
+    attrs:[["business_date","k"],["kyc_cdd_id","k"],["metric_code","k"],["organization_id",""],["metric_value",""],["quality_status_code",""]],
+    joins:[["VDB_COMPLIANCE_AML.mart.S_AML_MONITORING_DAILY","organization_id + business_date","部店単位での突合"]],
+    cautions:["部店単位まで落としてから利用してください。顧客単位の突合は規制上の制約により行えません。"],
+    sql:"",gov:[["業務領域","コンプライアンス・AML"],["データオーナー","コンプライアンス統括部"],["データ分類","機密Ⅰ"],["申請手続","IDM ＞ VDB_COMPLIANCE_AML 参照権限（集計）"],["リードタイム","5営業日"]],
+    note:""}},
+
+  {name:"AML アラート イベント明細",path:"VDB_COMPLIANCE_AML.event.F_AML_MONITORING_EVENT",sys:"コンプライアンス分析基盤（event層）",
+   fl:["ng","規制により除外"],
+   why:"顧客・取引の個票を含むため、犯収法の漏えい禁止および内部規程により、調査担当ロール以外は参照できません。",
+   trace:["アラート","コンプライアンス・AML","AML取引モニタリング","モニタリング対象取引","アラート検知・調査","F_AML_MONITORING_EVENT"],
+   grain:"イベント1件",fresh:"準リアルタイム",acc:"不可（金融犯罪対策室 調査担当ロールのみ）",
+   evid:[["接続オントロジー","業務イベント:アラート検知・調査 －backedBy→ 本表"],
+         ["規制制約","業務領域に紐づく漏えい禁止の制約により候補から除外"]],
+   detail:{desc:"アラートの明細です。運用状況のモニタリングという今回の目的であれば集計層で充足するため、個票の権限申請は不要と判断しました。",
+    attrs:[["aml_monitoring_event_id","k"],["aml_monitoring_id",""],["customer_id",""],["organization_id",""],["event_timestamp",""],["event_type_code",""],["processing_status_code",""]],
+    joins:null,
+    cautions:["個別の顧客が疑わしい取引の対象であることは、行内であっても知る必要のある者に限定されます。",
+      "調査目的で必要な場合は、金融犯罪対策室 調査担当ロールの申請が必要です（部長承認・10営業日）。"],
+    sql:"",gov:[["業務領域","コンプライアンス・AML"],["データオーナー","コンプライアンス統括部 金融犯罪対策室"],["データ分類","機密Ⅰ（漏えい禁止）"],["申請手続","調査担当ロール申請（部長承認）"],["リードタイム","10営業日"]],
+    note:"<b>今回の目的では申請不要です。</b>集計層で要件を満たします。"}}
+ ],
+ kg:[
+  {cap:"① 発話から抽出した業務概念（BusinessConcept）",nodes:[{l:"アラート",s:"Concept",k:"cc"},{l:"取引モニタリング",s:"Concept",k:"cc"},{l:"KYC",s:"Concept",k:"cc"},{l:"部店",s:"Concept",k:"cc"}]},
+  {cap:"② mentionedInProcess ＋ belongsToDomain → 業務領域（規制が紐づく）",nodes:[{l:"コンプライアンス・AML",s:"漏えい禁止あり",k:"dm"},{l:"リテール",s:"対象外",k:"dm"},{l:"全社共通",s:"参照",k:"dm"}]},
+  {cap:"③ 業務領域配下の業務プロセス（BusinessProcess）",nodes:[{l:"AML取引モニタリング",s:"Process",k:"pr"},{l:"KYC/CDD",s:"隣接",k:"pr"},{l:"参照データ管理",s:"共通",k:"pr"}]},
+  {cap:"④ handlesEntity → 業務対象（BusinessEntity）",nodes:[{l:"モニタリング対象取引",s:"Entity",k:"en"},{l:"顧客確認記録",s:"Entity",k:"en"},{l:"組織",s:"Entity",k:"en"}]},
+  {cap:"⑤ measuredBy／hasEvent／hasAttribute → 指標・イベント・属性",nodes:[{l:"アラート件数",s:"Metric",k:"me"},{l:"確認完了率",s:"Metric",k:"me"},{l:"アラート検知・調査",s:"Event",k:"ev"},{l:"モニタリング対象取引を識別・管理する仮想項目",s:"Attribute",k:"at"},{l:"部店階層を識別する仮想項目",s:"Attribute",k:"at"}]},
+  {cap:"⑥ computedFrom／backedBy／mappedToColumn → 物理データ（規制制約を適用）",nodes:[{l:"S_AML_MONITORING_DAILY",s:"mart",k:"tb"},{l:"M_AML_MONITORING",s:"master",k:"tb"},{l:"T_ORGANIZATION",s:"reference",k:"tb"},{l:"S_KYC_CDD_DAILY",s:"mart",k:"tb"},{l:"F_AML_MONITORING_EVENT",s:"規制除外",k:"ng"}]}
+ ],
+ gql:'<span class="r">MATCH</span> (c:<span class="n">BusinessConcept</span> {name:<span class="v">"アラート"</span>})\n      -[:<span class="r">mentionedInProcess</span>]-&gt;(p:<span class="n">BusinessProcess</span>)\n      -[:<span class="r">belongsToDomain</span>]-&gt;(d:<span class="n">BusinessDomain</span> {name:<span class="v">"コンプライアンス・AML"</span>})\n<span class="r">MATCH</span> (p)-[:<span class="r">handlesEntity</span>]-&gt;(e)-[:<span class="r">measuredBy</span>]-&gt;(m)-[:<span class="r">computedFrom</span>]-&gt;(t:<span class="n">Table</span>)\n<span class="r">WHERE</span> t.schema &lt;&gt; <span class="v">"event"</span>   <span class="v">// 領域に紐づく漏えい禁止の制約により個票層を除外</span>\n<span class="r">RETURN</span> d.regulation, m.name, t.full',
+ steps:[
+  {t:"発話から業務概念を抽出",d:"「取引モニタリング」「アラート」「届出」「クローズ」を業務概念として抽出しました。"},
+  {t:"業務領域を確定（規制が紐づく領域）",d:"コンプライアンス・AML領域と確定しました。この領域には犯収法の漏えい禁止が紐づいており、リテール領域のカード不正検知とは指標定義も制約も異なります。"},
+  {t:"業務プロセスを特定",d:"「AML取引モニタリング」を主プロセスに設定。顧客個別の調査ではなく第2線モニタリングであるため、必要な粒度は集計レベルと結論づけました。"},
+  {t:"業務対象と指標をたどる",d:"業務対象「モニタリング対象取引」から業務指標「アラート件数」に到達。真陽性率の分母は当月クローズ件数という領域固有の定義が適用されます。"},
+  {t:"業務領域の規制制約を適用",d:"漏えい禁止の制約により、顧客・取引の個票を含む event 層を候補から自動的に除外しました。mart 層と master 層のみを提示対象としています。"},
+  {t:"権限グラフと突合",d:"照会者のロールで集計層は参照可能です。event 層は対象外ですが、本件の目的では申請不要と判断しました。"}
+ ],
+ compare:"①②③でご要望は完結します。特に②は「件数が減った理由」を説明するために必ず併用してください。④は追加の切り口が必要な場合のみ、⑤は規制上の制約で除外しています。",
+ permNote:"<b>集計層（①②③④）は現在の権限で参照可能</b>です。個票（⑤）は現ロールでは参照できませんが、今回の目的では申請不要です。",
+ reply:"【ご依頼】取引モニタリングのアラート件数・真陽性率・クローズ日数（部店別／月別）\n\n■ 使用するデータ\n1) VDB_COMPLIANCE_AML.mart.S_AML_MONITORING_DAILY（AML日次スナップショット）\n   metric_code で ALERT_CNT / TRUE_POSITIVE_RATE / CLOSE_DAYS_MEDIAN を切り替えられます。\n2) VDB_COMPLIANCE_AML.master.M_AML_MONITORING（検知シナリオマスター）… 閾値改定履歴\n3) VDB_ENTERPRISE_REFERENCE.reference.T_ORGANIZATION（組織マスター）… 部店名\n\n■ ご注意（数値の解釈）\n・真陽性率の分母は当月クローズ件数です。発生月基準では直近月が過小に見えます。\n・シナリオの閾値改定前後で件数の水準が不連続になります。時系列で示す際は注記をお願いします。\n・閾値そのものは行外持ち出し厳禁です。当局資料には記載しないでください。\n\n■ 個票について\nアラートの個票（VDB_COMPLIANCE_AML.event.F_AML_MONITORING_EVENT）は、業務領域に紐づく漏えい禁止の制約により、金融犯罪対策室 調査担当ロールに限定されています。今回の運用状況モニタリングは集計層で充足するため、追加申請は不要です。\n\n■ 当局提出時\n内部規程 AML-014 により、管理職承認と数値の二者チェックをお願いします。"
+},
+{
+ tkt:"INC-0248288", dept:"チャネル戦略部", user:"森",
+ sample:"窓口の待ち時間が長いという声がある。時間帯別・店舗別に見たい",
+ question:"お客さまアンケートで「窓口の待ち時間が長い」という声が増えています。どの店舗の、どの時間帯が混んでいるのか、どんな手続きに時間がかかっているのかを見たいのですが、そもそもそういうデータは取れているのでしょうか。",
+ kw:["窓口","待ち時間","時間帯","店舗","来店","混雑","手続き"],
+ intent:{theme:"店頭チャネル 業務量・待ち時間分析",
+  oneline:"店頭の混雑実態を時間帯・店舗・手続種類で把握し、要員配置や事務改善につなげる目的と解釈しました。",
+  metrics:["平均待ち時間","来店件数","開設完了率"],
+  dims:["部店","時間帯","手続種類","曜日"]},
+ dom:{node:"リテール", full:"リテール ＞ 店頭・コンタクト（業務プロセス）", alt:"リテール ＞ 口座開設（事務手続）／デジタルチャネル",
+  note:"<b>リテール ＞ 店頭・コンタクト</b>では、待ち時間を「発券から呼出までの経過時間」と定義します。手続そのものにかかる時間は<b>業務プロセス「口座開設」など事務側のプロセス</b>が持つ別指標で、両者を足したものがお客さまの体感時間になります。",
+  why:"「待ち時間が長い」という声には、待たされている時間（店頭・コンタクトのプロセス）と手続に時間がかかっている（事務手続のプロセス）の2つの原因があり得ます。指標の所管プロセスが違うため、両方を辿って回答を組み立てています。"},
+ defs:[
+  ["リテール ＞ 店頭・コンタクト","平均待ち時間","発券（受付番号の発行）から呼出までの経過時間。手続時間は含まない"],
+  ["リテール ＞ 口座開設","所要時間","呼出から手続完了までの時間。待ち時間は含まない。標準時間との比較で事務改善に用いる"],
+  ["リテール ＞ デジタルチャネル","応答時間","アプリの操作からレスポンス完了まで。有人チャネルとは体系が異なる"]
+ ],
+ cands:[
+  {name:"店頭・コンタクト 日次スナップショット",path:"VDB_RETAIL_ANALYTICS.mart.S_BRANCH_CONTACT_DAILY",sys:"リテール分析基盤（mart層）",
+   fl:["ok","最推奨"],
+   why:"業務指標「平均待ち時間」が computedFrom でひも付く集計層です。発券機システムから連携され、部店×時間帯の粒度で保持しています。",
+   trace:["待ち時間","リテール","店頭・コンタクト","来店・受付","平均待ち時間","S_BRANCH_CONTACT_DAILY"],
+   grain:"部店 × 時間帯 × 指標 × 営業日",fresh:"日次 04:00",acc:"要申請（機密Ⅲ）",
+   evid:[["接続オントロジー","業務指標:平均待ち時間 －computedFrom→ 本表"],
+         ["業務オントロジー","業務プロセス:店頭・コンタクト －usesData→ 本表"],
+         ["根拠QA","要員配置の検討依頼で案内されている"]],
+   detail:{desc:"発券から呼出までの待ち時間を、部店×時間帯で集計した層です。metric_code で平均待ち時間・最大待ち時間・来店件数・放棄件数・開設窓口数を切り替えられます。",
+    attrs:[["business_date","k"],["branch_contact_id","k"],["metric_code","k"],["organization_id",""],["product_id",""],["metric_value",""],["quality_status_code",""],["snapshot_timestamp",""]],
+    joins:[["VDB_ENTERPRISE_REFERENCE.reference.T_ORGANIZATION","organization_id","部店名・ブロック"],
+           ["VDB_ENTERPRISE_REFERENCE.reference.T_CALENDAR","business_date","曜日・営業日フラグ"],
+           ["VDB_RETAIL_ANALYTICS.mart.S_ONBOARDING_DAILY","organization_id + business_date","手続種類別の所要時間"]],
+    cautions:["<b>発券機を通さない来店は捕捉できません。</b>相談予約（専用ブース）、ATMのみの利用、テレビ窓口は対象外です。実来店数はこれより多くなります。",
+      "<b>昼休み時間帯は窓口数が縮小</b>します。待ち時間は metric_code='OPEN_WINDOW_CNT'（開設窓口数）と併せて解釈してください。",
+      "<b>来店予約の導入以降、発券の構成が変わっています。</b>前年同期比では予約分の扱いを揃えてください。",
+      "月初・5十日は法人のお客さまの来店が集中します。曜日平均だけで見ると実態を捉え損ねます。"],
+    sql:'<span class="c">-- 部店 × 時間帯 の平均待ち時間・来店件数（直近3ヶ月の平日）</span>\n<span class="k">SELECT</span> o.organization_name,\n       d.branch_contact_id <span class="k">AS</span> time_slot,\n       <span class="k2">ROUND</span>(<span class="k2">AVG</span>(<span class="k">CASE WHEN</span> d.metric_code = <span class="s">\'WAIT_MIN_AVG\'</span>    <span class="k">THEN</span> d.metric_value <span class="k">END</span>),1) <span class="k">AS</span> wait_min_avg,\n       <span class="k2">ROUND</span>(<span class="k2">AVG</span>(<span class="k">CASE WHEN</span> d.metric_code = <span class="s">\'TICKET_CNT\'</span>      <span class="k">THEN</span> d.metric_value <span class="k">END</span>),1) <span class="k">AS</span> ticket_avg,\n       <span class="k2">ROUND</span>(<span class="k2">AVG</span>(<span class="k">CASE WHEN</span> d.metric_code = <span class="s">\'OPEN_WINDOW_CNT\'</span> <span class="k">THEN</span> d.metric_value <span class="k">END</span>),1) <span class="k">AS</span> window_avg\n<span class="k">FROM</span>   VDB_RETAIL_ANALYTICS.mart.S_BRANCH_CONTACT_DAILY d\n<span class="k">JOIN</span>   VDB_ENTERPRISE_REFERENCE.reference.T_ORGANIZATION o\n       <span class="k">ON</span> o.organization_id = d.organization_id\n      <span class="k">AND</span> d.business_date <span class="k">BETWEEN</span> o.effective_from <span class="k">AND</span> o.effective_to\n<span class="k">JOIN</span>   VDB_ENTERPRISE_REFERENCE.reference.T_CALENDAR cal\n       <span class="k">ON</span> cal.calendar_date = d.business_date <span class="k">AND</span> cal.business_day_flag = <span class="s">\'Y\'</span>\n<span class="k">WHERE</span>  d.business_date &gt;= <span class="k2">ADD_MONTHS</span>(<span class="k2">TRUNC</span>(<span class="k2">CURRENT_DATE</span>), -3)\n  <span class="k">AND</span>  d.quality_status_code = <span class="s">\'OK\'</span>\n<span class="k">GROUP BY</span> o.organization_name, d.branch_contact_id\n<span class="k">HAVING</span> <span class="k2">AVG</span>(<span class="k">CASE WHEN</span> d.metric_code = <span class="s">\'WAIT_MIN_AVG\'</span> <span class="k">THEN</span> d.metric_value <span class="k">END</span>) &gt;= 15\n<span class="k">ORDER BY</span> wait_min_avg <span class="k">DESC</span>;',
+    gov:[["業務領域","リテール"],["データオーナー","リテールデータオフィス"],["データ分類","機密Ⅲ（個人情報なし）"],["申請手続","IDM ＞ VDB_RETAIL_ANALYTICS 参照権限"],["リードタイム","1営業日"]],
+    note:"個人情報を含まないため申請のハードルは低く、翌営業日にはご利用いただけます。"}},
+
+  {name:"口座開設 日次スナップショット",path:"VDB_RETAIL_ANALYTICS.mart.S_ONBOARDING_DAILY",sys:"リテール分析基盤（mart層）",
+   fl:["ok","併用推奨"],
+   why:"「どんな手続きに時間がかかっているか」という3つ目のご要望に対応します。事務手続のプロセスに属し、待ち時間とは別の指標です。",
+   trace:["手続き","リテール","口座開設","開設申込","開設完了率","S_ONBOARDING_DAILY"],
+   grain:"部店 × 指標 × 営業日",fresh:"日次 04:00",acc:"要申請（機密Ⅲ）",
+   evid:[["業務オントロジー","業務プロセス:口座開設 －handlesEntity→ 開設申込"],
+         ["接続オントロジー","業務指標:開設完了率 －computedFrom→ 本表"]],
+   detail:{desc:"手続の所要時間と完了率を集計した層です。metric_code で所要時間の中央値・90パーセンタイル・不備による再来店件数を切り替えられます。",
+    attrs:[["business_date","k"],["onboarding_id","k"],["metric_code","k"],["organization_id",""],["product_id",""],["metric_value",""],["quality_status_code",""]],
+    joins:[["VDB_RETAIL_ANALYTICS.mart.S_BRANCH_CONTACT_DAILY","organization_id + business_date","待ち時間との突合"],
+           ["VDB_ENTERPRISE_REFERENCE.reference.T_PRODUCT","product_id","手続種類の名称"]],
+    cautions:["相続関連は所要時間が突出します（平均を大きく引き上げます）。metric_code='TAT_P90' または手続種類を分けての評価を推奨します。",
+      "不備による再来店（metric_code='REWORK_CNT'）は待ち時間の体感悪化に効くため、併せてご確認ください。",
+      "手続種類は端末での事務コード入力に依存します。複数手続を1回で処理した場合、代表コードのみが記録されます。"],
+    sql:"",gov:[["業務領域","リテール"],["データオーナー","リテールデータオフィス"],["データ分類","機密Ⅲ"],["申請手続","IDM ＞ VDB_RETAIL_ANALYTICS 参照権限"],["リードタイム","1営業日"]],
+    note:""}},
+
+  {name:"店頭・コンタクト イベント明細",path:"VDB_RETAIL_ANALYTICS.event.F_BRANCH_CONTACT_EVENT",sys:"リテール分析基盤（event層）",
+   fl:["n","参考"],
+   why:"業務イベント「発券・呼出」の明細です。任意の時間区分で切り直したい場合に使いますが、集計は自作となります。",
+   trace:["待ち時間","リテール","店頭・コンタクト","来店・受付","発券・呼出","F_BRANCH_CONTACT_EVENT"],
+   grain:"イベント1件",fresh:"準リアルタイム",acc:"要申請（機密Ⅲ）",
+   evid:[["接続オントロジー","業務イベント:発券・呼出 －backedBy→ 本表"]],
+   detail:{desc:"発券機の明細です。30分区分ではなく「10分刻みで見たい」「ピークの立ち上がりを分単位で見たい」といった場合に使用します。",
+    attrs:[["branch_contact_event_id","k"],["branch_contact_id",""],["customer_id",""],["organization_id",""],["product_id",""],["event_timestamp",""],["event_type_code",""],["channel_code",""]],
+    joins:[["VDB_ENTERPRISE_REFERENCE.reference.T_ORGANIZATION","organization_id","部店名"]],
+    cautions:["呼出後にお客さまが不在で再呼出された場合、最終呼出のイベントで上書きされます。","年間で相当な行数になります。部店・期間を絞ってご利用ください。"],
+    sql:"",gov:[["業務領域","リテール"],["データオーナー","リテールデータオフィス"],["データ分類","機密Ⅲ"],["申請手続","IDM ＞ VDB_RETAIL_ANALYTICS 参照権限"],["リードタイム","1営業日"]],
+    note:""}},
+
+  {name:"組織マスター（部店）",path:"VDB_ENTERPRISE_REFERENCE.reference.T_ORGANIZATION",sys:"全社共通 参照基盤（reference層）",
+   fl:["n","補完"],
+   why:"部店の窓口数や体制が分からないと、待ち時間の長さが「来店が多い」のか「窓口が少ない」のか判別できません。",
+   trace:["部店","全社共通","参照データ管理","組織","部店階層を識別する仮想項目","T_ORGANIZATION"],
+   grain:"組織 × 有効期間",fresh:"日次 03:00",acc:"参照可（現在の権限のまま）",
+   evid:[["業務オントロジー","全プロセスから usesData で参照される共通資産"]],
+   detail:{desc:"部店・ブロック・本部の階層を保持します。organization_type で店格を判別でき、同規模店舗どうしの比較ができます。",
+    attrs:[["organization_id","k"],["organization_name",""],["organization_type",""],["parent_organization_id",""],["effective_from",""],["effective_to",""]],
+    joins:[["VDB_RETAIL_ANALYTICS.mart.S_BRANCH_CONTACT_DAILY","organization_id","部店名・店格の付与"]],
+    cautions:["改装・店舗統合で値が変わります。時系列分析では有効期間で時点結合してください。"],
+    sql:"",gov:[["業務領域","全社共通"],["データオーナー","データ管理部"],["データ分類","公開区分（行内）"],["申請手続","不要"],["リードタイム","―"]],
+    note:""}},
+
+  {name:"営業店端末 操作ログ（カタログ外）",path:"BRANCH_TERM.LOG.T_TERM_OPLOG",sys:"営業店端末システム",
+   fl:["ng","除外"],
+   why:"端末の生ログです。分析基盤のカタログ対象外で、保持期間も短く、職員個人の操作が特定できるため分析利用は認められていません。",
+   trace:["手続き","リテール","口座開設","開設申込","申込・審査","BRANCH_TERM.T_TERM_OPLOG"],
+   grain:"端末操作1件",fresh:"準リアルタイム",acc:"不可（運用・監査担当のみ）",
+   evid:[["制約","カタログ未登録。オントロジー上に接続経路が存在しない"],
+         ["業務オントロジー","分析に必要な範囲は S_ONBOARDING_DAILY へ日次集計連携済"]],
+   detail:{desc:"端末の操作単位ログです。分析に必要な内容は口座開設プロセスの mart 層に集計連携されています。",
+    attrs:[["OP_TS","k"],["TERM_ID",""],["OP_CD",""],["STAFF_CD",""]],joins:null,
+    cautions:["職員個人の操作が特定できるため、労務上の観点から分析利用は制限されています。","保持期間は14日です。"],
+    sql:"",gov:[["業務領域","―（カタログ外）"],["データオーナー","ITシステム部 チャネル基盤グループ"],["データ分類","機密Ⅱ（職員情報）"],["申請手続","分析目的では受付不可"],["リードタイム","―"]],
+    note:""}}
+ ],
+ kg:[
+  {cap:"① 発話から抽出した業務概念（BusinessConcept）",nodes:[{l:"待ち時間",s:"Concept",k:"cc"},{l:"窓口",s:"Concept",k:"cc"},{l:"手続き",s:"Concept",k:"cc"},{l:"部店",s:"Concept",k:"cc"}]},
+  {cap:"② mentionedInProcess ＋ belongsToDomain → 業務領域（BusinessDomain）",nodes:[{l:"リテール",s:"Domain",k:"dm"},{l:"全社共通",s:"参照",k:"dm"},{l:"データマネジメント",s:"対象外",k:"dm"}]},
+  {cap:"③ 業務領域配下の業務プロセス（2プロセスにまたがる）",nodes:[{l:"店頭・コンタクト",s:"Process",k:"pr"},{l:"口座開設",s:"Process",k:"pr"},{l:"参照データ管理",s:"共通",k:"pr"},{l:"デジタルチャネル",s:"隣接",k:"pr"}]},
+  {cap:"④ handlesEntity → 業務対象（BusinessEntity）",nodes:[{l:"来店・受付",s:"Entity",k:"en"},{l:"開設申込",s:"Entity",k:"en"},{l:"組織",s:"Entity",k:"en"}]},
+  {cap:"⑤ measuredBy／hasEvent／hasAttribute → 指標・イベント・属性",nodes:[{l:"平均待ち時間",s:"Metric",k:"me"},{l:"開設完了率",s:"Metric",k:"me"},{l:"発券・呼出",s:"Event",k:"ev"},{l:"申込・審査",s:"Event",k:"ev"},{l:"部店階層を識別する仮想項目",s:"Attribute",k:"at"}]},
+  {cap:"⑥ computedFrom／backedBy／mappedToColumn → 物理データ（Table）",nodes:[{l:"S_BRANCH_CONTACT_DAILY",s:"mart",k:"tb"},{l:"S_ONBOARDING_DAILY",s:"mart",k:"tb"},{l:"F_BRANCH_CONTACT_EVENT",s:"event",k:"tb"},{l:"T_ORGANIZATION",s:"reference",k:"tb"},{l:"BRANCH_TERM.T_TERM_OPLOG",s:"カタログ外",k:"ng"}]}
+ ],
+ gql:'<span class="r">MATCH</span> (c:<span class="n">BusinessConcept</span>)-[:<span class="r">mentionedInProcess</span>]-&gt;(p:<span class="n">BusinessProcess</span>)\n      -[:<span class="r">belongsToDomain</span>]-&gt;(:<span class="n">BusinessDomain</span> {name:<span class="v">"リテール"</span>})\n<span class="r">WHERE</span> c.name <span class="r">IN</span> [<span class="v">"待ち時間"</span>,<span class="v">"窓口"</span>,<span class="v">"手続き"</span>]\n<span class="r">MATCH</span> (p)-[:<span class="r">handlesEntity</span>]-&gt;(e)-[:<span class="r">measuredBy</span>]-&gt;(m)-[:<span class="r">computedFrom</span>]-&gt;(t:<span class="n">Table</span>)\n<span class="r">RETURN</span> p.name, m.name, m.definition, t.full\n<span class="v">// 待ち時間と所要時間は別プロセスの別指標。合算がお客さまの体感時間</span>',
+ steps:[
+  {t:"発話から業務概念を抽出",d:"「窓口」「待ち時間」「時間帯」「手続き」を業務概念として抽出しました。「そもそも取れているか」というデータ存在確認の意図も検知しています。"},
+  {t:"業務領域を確定（belongsToDomain）",d:"いずれの概念もリテール領域の業務プロセスに接続します。勘定系ではなくリテール分析基盤が対象です。"},
+  {t:"複数の業務プロセスにまたがると判定",d:"「窓口・待ち時間」は業務プロセス:店頭・コンタクト、「手続きの所要時間」は業務プロセス:口座開設に属します。部店の体制情報は共通参照層を併用します。"},
+  {t:"業務対象と指標をたどる",d:"店頭・コンタクトの「平均待ち時間（発券→呼出）」と、口座開設の「所要時間（呼出→完了）」は別指標です。お客さまの体感は両者の合計であるため、双方を回答に含めています。"},
+  {t:"接続オントロジーで物理データへ解決",d:"両プロセスの指標はいずれも mart 層へ computedFrom で接続します。organization_id と business_date で突合できることを確認しました。"},
+  {t:"権限グラフと突合",d:"上位4件は個人情報を含まない区分のため、申請すれば翌営業日に参照可能と判定しました。"}
+ ],
+ compare:"「どの店舗・どの時間帯」は①、「どの手続き」は②が答えます。両者を部店×営業日で結合すると、混雑と手続構成の関係が見えます。④は待ち時間の要因（来店増か窓口不足か）を切り分けるために添えてください。",
+ permNote:"上位4件は機密Ⅲ以下のため、<b>申請すれば翌営業日に参照可能</b>です（現時点では VDB_RETAIL_ANALYTICS の権限が未付与です）。⑤はオントロジー上に接続経路がなく、分析利用の対象外です。",
+ reply:"【ご依頼】窓口の待ち時間（店舗別・時間帯別・手続種類別）\n\n■ データは取得できています\n発券機システムの記録がリテール分析基盤に日次で連携されており、以下でご要望を満たせます。\n1) VDB_RETAIL_ANALYTICS.mart.S_BRANCH_CONTACT_DAILY … 部店×時間帯の待ち時間・来店件数・放棄件数・開設窓口数\n2) VDB_RETAIL_ANALYTICS.mart.S_ONBOARDING_DAILY … 手続種類別の所要時間（中央値・P90・不備再来店）\n3) VDB_ENTERPRISE_REFERENCE.reference.T_ORGANIZATION … 部店名・店格（要因の切り分けに必要）\n\n■ 解釈にあたってのご注意\n・「待ち時間（発券→呼出）」と「所要時間（呼出→完了）」は別の業務プロセスが持つ別指標です。お客さまの体感は両者の合計になります。\n・発券機を通さない来店（相談予約、ATMのみ、テレビ窓口）は捕捉されません。実来店数はこれより多くなります。\n・昼休み時間帯は窓口数が縮小するため、待ち時間は開設窓口数と併せてご覧ください。\n・相続関連は所要時間が突出するため、平均ではなくP90または手続別での評価を推奨します。\n\n■ 権限について\n個人情報を含まないデータのため、IDMからの申請で翌営業日にご利用いただけます。"
+}
+/*__MORE_D__*/];
+/* ==== 各問い合わせのRAG検索結果（過去履歴＋Tips）を DATA_Q に付与 ==== */
+(function attachRagD(){
+const R={
+"INC-0248172":{
+ pool:"4,180",
+ hits:[
+  {id:"INC-0231884",rel:"a",dept:"融資企画部",date:"2025-11-12",by:"ITデスク 佐々木",
+   q:"住宅ローンの<b>延滞</b>の状況を<b>店別</b>に見たい。どのデータを見ればよいか。",
+   a:"S_HOUSING_LOAN_DAILY を metric_code='DELINQ_RATE_31D' で抽出し、T_ORGANIZATION を有効期間で結合すれば店別に出せます。risk_flag='R'（条件変更申請中）は分母・分子とも除外してください、と回答。",
+   tables:["VDB_RETAIL_ANALYTICS.mart.S_HOUSING_LOAN_DAILY","VDB_ENTERPRISE_REFERENCE.reference.T_ORGANIZATION"]},
+  {id:"INC-0219730",rel:"a",dept:"リスク統括部",date:"2025-07-03",by:"ITデスク 岡田",
+   q:"<b>住宅ローンの延滞率</b>の月次推移が、リスク部の資料と数字が合わない。",
+   a:"リスク部はバーゼル定義の予想損失を見ており、指標が別物であることを説明。融資企画部側の延滞率は S_HOUSING_LOAN_DAILY の DELINQ_RATE_31D が行内標準、と回答。",
+   tables:["VDB_RETAIL_ANALYTICS.mart.S_HOUSING_LOAN_DAILY"]},
+  {id:"INC-0208455",rel:"b",dept:"融資企画部",date:"2025-03-19",by:"ITデスク 佐々木",
+   q:"延滞の<b>発生と解消のタイミング</b>を日次で追いたい。月末だけ延滞が消えているように見える。",
+   a:"月末スナップショットでは月中の発生・解消が見えないため、F_HOUSING_LOAN_EVENT の event_type_code で追うよう案内。processing_status_code='CANCELLED' の取消は除外が必要。",
+   tables:["VDB_RETAIL_ANALYTICS.event.F_HOUSING_LOAN_EVENT"]},
+  {id:"INC-0225012",rel:"c",dept:"個人業務部",date:"2025-09-08",by:"ITデスク 岡田",
+   q:"勘定系のローン元帳を直接見たい。分析用の接続をもらえないか。",
+   a:"分析目的での勘定系直接照会は行内標準で不可。同内容は日次でリテール分析基盤へ連携済のため、そちらを利用いただくよう回答。",
+   tables:["HOST_ACCT.LNMST"]}],
+ tips:[
+  {id:"TIP-014",by:"ITデスク 佐々木",date:"2025-11-13",
+   title:"S_*_DAILY 系は metric_code を指定しないと値が二重・三重になる",
+   body:"mart層は指標を縦持ちしています。metric_code を WHERE に入れずに metric_value を SUM すると、延滞率と延滞残高が合算されて意味のない数値になります。件数が想定の2〜3倍になったらまずここを疑ってください。",
+   tables:["VDB_RETAIL_ANALYTICS.mart.S_HOUSING_LOAN_DAILY"],from:"INC-0231884"},
+  {id:"TIP-022",by:"ITデスク 岡田",date:"2025-05-22",
+   title:"T_ORGANIZATION は必ず有効期間で時点結合する",
+   body:"店舗統廃合で organization_id が変わります。最新行だけで結合すると、統廃合前の期間のデータが落ちて件数が合わなくなります。「先月と件数が違う」の問い合わせの大半がこれです。",
+   tables:["VDB_ENTERPRISE_REFERENCE.reference.T_ORGANIZATION"],from:"INC-0212903"}],
+ role:"過去4件のうち<b>2件がほぼ同じご依頼</b>で、いずれも <span class='mono'>S_HOUSING_LOAN_DAILY</span> を第一候補として案内しています。ただし今回は「<b>年代別</b>」という切り口が過去事例にありません。この部分はオントロジーで補完します。",
+ gap:"<b>過去事例で確定できたのは①②⑤です。</b>「年代別」に対応する④と、実行年度別の切り口に必要な③は、過去の問い合わせ履歴に該当がなく、オントロジー（業務対象:顧客 → 業務属性 → 物理カラム）を辿って補完しました。RAGだけでは落ちていた候補です。",
+ src:[
+  [["h","INC-0231884 ほか2件"],["t","TIP-014"]],
+  [["h","INC-0208455"]],
+  [["o","過去事例に該当なし"]],
+  [["o","「年代別」は過去事例になし"],["t","TIP-022"]],
+  [["w","INC-0225012"]]],
+ quote:[
+  [["hist","INC-0231884","S_HOUSING_LOAN_DAILY を metric_code='DELINQ_RATE_31D' で抽出し、T_ORGANIZATION を有効期間で結合すれば店別に出せます。risk_flag='R' は分母・分子とも除外してください。"],
+   ["tip","TIP-014","mart層は指標を縦持ちしています。metric_code を WHERE に入れずに metric_value を SUM すると、延滞率と延滞残高が合算されて意味のない数値になります。"]],
+  [["hist","INC-0208455","月末スナップショットでは月中の発生・解消が見えないため、F_HOUSING_LOAN_EVENT の event_type_code で追ってください。取消イベントの除外が必要です。"]],
+  null,
+  [["tip","TIP-022","店舗統廃合で organization_id が変わります。最新行だけで結合すると件数が合わなくなります。顧客側マスターも同様に有効期間で結合してください。"]],
+  [["hist","INC-0225012","分析目的での勘定系直接照会は行内標準で不可。同内容は日次でリテール分析基盤へ連携済のため、そちらをご利用ください。"]]]
+},
+"INC-0248206":{
+ pool:"4,180",
+ hits:[
+  {id:"INC-0240115",rel:"a",dept:"リテール推進部",date:"2026-02-17",by:"ITデスク 岡田",
+   q:"<b>投信を解約</b>したお客さまの傾向を知りたい。どのデータか。",
+   a:"S_WEALTH_DAILY を metric_code='CANCEL_RATE' で抽出するよう案内。スイッチング（乗換）は資金流出ではないため、この指標では除外済みであることを補足。",
+   tables:["VDB_RETAIL_ANALYTICS.mart.S_WEALTH_DAILY"]},
+  {id:"INC-0236880",rel:"b",dept:"マーケティング部",date:"2025-12-04",by:"ITデスク 佐々木",
+   q:"キャンペーンの<b>提案の効果</b>を、その後の取引につながったかで見たい。",
+   a:"S_CAMPAIGN_DAILY と取引側のマートを customer_id と business_date の範囲で結合する方法を案内。提案記録の保持は24ヶ月である点に注意。",
+   tables:["VDB_RETAIL_ANALYTICS.mart.S_CAMPAIGN_DAILY"]},
+  {id:"INC-0243201",rel:"b",dept:"リテール推進部",date:"2026-04-22",by:"ITデスク 岡田",
+   q:"投信の<b>解約</b>件数が、営業推進の資料と合わない。",
+   a:"営業推進側はスイッチングを含む数字を使っていた。metric_code='CANCEL_RATE_INCL_SWITCH' が該当する旨を案内し、定義を揃えるよう回答。",
+   tables:["VDB_RETAIL_ANALYTICS.mart.S_WEALTH_DAILY"]},
+  {id:"INC-0229004",rel:"c",dept:"リテール推進部",date:"2025-10-30",by:"ITデスク 佐々木",
+   q:"CRMの活動ログに直接つなぎたい。渉外の記録を全部見たい。",
+   a:"CRM本番への分析接続はライセンス・性能の両面で不可。分析に必要な範囲は S_CAMPAIGN_DAILY へ日次連携済のため、そちらを利用いただくよう回答。",
+   tables:["CRM_PRD.PUBLIC.T_ACTIVITY_LOG"]}],
+ tips:[
+  {id:"TIP-031",by:"ITデスク 岡田",date:"2026-04-23",
+   title:"「解約」と言われたら、まずスイッチングを含むか含まないかを確認する",
+   body:"部署によって「解約」の意味が違います。リテール推進部は純資金流出（乗換除く）、営業推進部は乗換を含む数字で話していることが多いです。metric_code が2種類ある理由がここにあります。最初に確認しておくと、後で数字が合わない問い合わせを防げます。",
+   tables:["VDB_RETAIL_ANALYTICS.mart.S_WEALTH_DAILY"],from:"INC-0243201"},
+  {id:"TIP-008",by:"ITデスク 佐々木",date:"2025-12-05",
+   title:"別プロセスのマート同士は、共通参照層を介して結合する",
+   body:"資産運用とキャンペーンは業務プロセスが別で、直接の結合キーを持ちません。T_CUSTOMER_GOLDEN の customer_id を介すのが正攻法です。プロセスをまたぐ依頼では毎回ここを確認してください。",
+   tables:["VDB_ENTERPRISE_REFERENCE.reference.T_CUSTOMER_GOLDEN"],from:"INC-0236880"}],
+ role:"「解約」側の依頼（INC-0240115）と「提案」側の依頼（INC-0236880）は、<b>いずれも過去に単独では回答済み</b>です。ただし<b>両者を突き合わせた事例はありません</b>。結合できるかどうかはオントロジーで確認します。",
+ gap:"<b>①②③⑤は過去事例で確定できました。</b>一方、この2つを結合する経路は過去に前例がなく、オントロジー上で両マートが共通参照層（T_CUSTOMER_GOLDEN）と joinsWith で接続していることを確認して、④を補完候補として追加しています。",
+ src:[
+  [["h","INC-0240115・INC-0243201"],["t","TIP-031"]],
+  [["h","INC-0236880"]],
+  [["h","INC-0240115"]],
+  [["o","結合経路として補完"],["t","TIP-008"]],
+  [["w","INC-0229004"]]],
+ quote:[
+  [["hist","INC-0240115","S_WEALTH_DAILY を metric_code='CANCEL_RATE' で抽出してください。スイッチングはこの指標では除外済みです。"],
+   ["tip","TIP-031","部署によって「解約」の意味が違います。リテール推進部は純資金流出、営業推進部は乗換を含む数字で話していることが多いです。"]],
+  [["hist","INC-0236880","S_CAMPAIGN_DAILY と取引側のマートを customer_id と business_date の範囲で結合してください。提案記録の保持は24ヶ月です。"]],
+  [["hist","INC-0240115","解約の約定単位で確認したい場合は F_WEALTH_EVENT を使い、event_type_code='SWITCH' を除外してください。"]],
+  [["tip","TIP-008","資産運用とキャンペーンは業務プロセスが別で、直接の結合キーを持ちません。T_CUSTOMER_GOLDEN の customer_id を介すのが正攻法です。"]],
+  [["hist","INC-0229004","CRM本番への分析接続はライセンス・性能の両面で不可です。分析に必要な範囲は S_CAMPAIGN_DAILY へ日次連携済です。"]]]
+},
+"INC-0248233":{
+ pool:"4,180",
+ hits:[
+  {id:"INC-0236402",rel:"a",dept:"法人営業部",date:"2025-12-18",by:"ITデスク 佐々木",
+   q:"法人の<b>預金残高</b>を<b>業種別</b>に見たい。",
+   a:"S_CORP_DEPOSIT_DAILY を metric_code='AVG_BAL_MTD'（月中平残）で抽出し、M_CORP_CUSTOMER の業種コードを有効期間で結合するよう案内。月末残高は季節性が大きいため平残を推奨。",
+   tables:["VDB_WHOLESALE_ANALYTICS.mart.S_CORP_DEPOSIT_DAILY","VDB_WHOLESALE_ANALYTICS.master.M_CORP_CUSTOMER"]},
+  {id:"INC-0241770",rel:"a",dept:"法人企画部",date:"2026-03-05",by:"ITデスク 岡田",
+   q:"取引先を<b>企業グループ</b>単位でまとめて残高を見たい。",
+   a:"M_CORP_CUSTOMER の group_id で名寄せ可能。ただし合弁会社が複数グループに所属するため、group_priority=1 で主グループのみに絞らないと二重計上になる旨を回答。",
+   tables:["VDB_WHOLESALE_ANALYTICS.master.M_CORP_CUSTOMER"]},
+  {id:"INC-0233918",rel:"b",dept:"経営企画部",date:"2025-11-01",by:"ITデスク 佐々木",
+   q:"個人と法人の預金を<b>合算</b>して全体の残高推移を出したい。",
+   a:"リテールの個人預金は総合口座の貸越を控除する定義で、法人側と計算式が異なるため単純合算は不可。合算が必要な場合は財務・経営管理領域の管理会計側の数字を使うよう案内。",
+   tables:["VDB_RETAIL_ANALYTICS.mart.S_DEPOSIT_DAILY","VDB_WHOLESALE_ANALYTICS.mart.S_CORP_DEPOSIT_DAILY"]}],
+ tips:[
+  {id:"TIP-005",by:"ITデスク 佐々木",date:"2026-03-06",
+   title:"グループ名寄せは group_priority=1 を付け忘れると必ず二重計上になる",
+   body:"合弁会社は複数のグループに所属します。group_id だけで GROUP BY すると同じ残高が2つのグループに計上されます。合計が全体と合わないという問い合わせの典型パターンです。",
+   tables:["VDB_WHOLESALE_ANALYTICS.master.M_CORP_CUSTOMER"],from:"INC-0241770"},
+  {id:"TIP-019",by:"ITデスク 岡田",date:"2025-11-02",
+   title:"「預金残高」は法人と個人で計算式が違う。合算依頼は要注意",
+   body:"法人（ホールセール）は日々残の単純平均、個人（リテール）は総合口座の貸越を控除した値です。合算を求められたら、まず管理会計側の数字で足りないかを確認してください。",
+   tables:["VDB_WHOLESALE_ANALYTICS.mart.S_CORP_DEPOSIT_DAILY"],from:"INC-0233918"}],
+ role:"今回のご依頼は「業種別」と「グループ名寄せ」の2点ですが、<b>いずれも過去に個別の事例があり</b>、必要なデータと落とし穴（二重計上）まで判明しています。オントロジーは、この2つを1つのクエリにまとめられるかの確認に使います。",
+ gap:"<b>①②は過去事例でそのまま確定できました。</b>③④は今回の依頼には直接の前例がありませんが、オントロジー上で同じ業務プロセス配下・共通参照層として接続していることを確認し、必要に応じて足せる候補として提示しています。",
+ src:[
+  [["h","INC-0236402"],["t","TIP-019"]],
+  [["h","INC-0241770"],["t","TIP-005"]],
+  [["o","過去事例に該当なし"]],
+  [["o","部店軸として補完"]],
+  [["w","過去に同種の回答あり"]]],
+ quote:[
+  [["hist","INC-0236402","S_CORP_DEPOSIT_DAILY を metric_code='AVG_BAL_MTD'（月中平残）で抽出してください。月末残高は賞与・納税期の季節性が大きいため、業種比較には平残を推奨します。"],
+   ["tip","TIP-019","法人（ホールセール）は日々残の単純平均、個人（リテール）は総合口座の貸越を控除した値です。合算依頼は要注意です。"]],
+  [["hist","INC-0241770","M_CORP_CUSTOMER の group_id で名寄せできます。ただし group_priority=1 で主グループのみに絞らないと二重計上になります。"],
+   ["tip","TIP-005","合弁会社は複数のグループに所属します。group_id だけで GROUP BY すると同じ残高が2つのグループに計上されます。"]],
+  null,null,
+  [["hist","INC-0233918","勘定系の直接照会は分析目的では不可です。日次で分析基盤へ連携済のため、そちらをご利用ください。"]]]
+},
+"INC-0248251":{
+ pool:"4,180",
+ hits:[
+  {id:"INC-0244019",rel:"a",dept:"コンプライアンス統括部",date:"2026-06-11",by:"ITデスク 岡田",
+   q:"AMLの<b>アラート件数</b>が今年に入って急減している。データの不具合か。",
+   a:"不具合ではなく検知シナリオの閾値改定によるもの。M_AML_MONITORING の有効期間で改定時点を確認できることを案内。時系列で示す際は注記が必要と回答。",
+   tables:["VDB_COMPLIANCE_AML.mart.S_AML_MONITORING_DAILY","VDB_COMPLIANCE_AML.master.M_AML_MONITORING"]},
+  {id:"INC-0238771",rel:"a",dept:"コンプライアンス統括部",date:"2026-01-23",by:"ITデスク 佐々木",
+   q:"当局提出用に、<b>部店別・月別</b>のアラート件数と届出件数を出したい。",
+   a:"S_AML_MONITORING_DAILY を metric_code で切り替えて取得するよう案内。真陽性率の分母は当月クローズ件数が行内標準である点を補足。管理職承認と二者チェックが必要（内規AML-014）。",
+   tables:["VDB_COMPLIANCE_AML.mart.S_AML_MONITORING_DAILY","VDB_ENTERPRISE_REFERENCE.reference.T_ORGANIZATION"]},
+  {id:"INC-0230552",rel:"b",dept:"コンプライアンス統括部",date:"2025-11-19",by:"ITデスク 岡田",
+   q:"アラートが出た<b>個別のお客さま</b>を特定して、傾向を分析したい。",
+   a:"個票は犯収法の漏えい禁止の観点から金融犯罪対策室の調査担当ロールに限定。運用状況のモニタリング目的であれば集計層で充足する旨を回答し、申請不要と案内。",
+   tables:["VDB_COMPLIANCE_AML.event.F_AML_MONITORING_EVENT"]}],
+ tips:[
+  {id:"TIP-027",by:"ITデスク 岡田",date:"2026-06-12",
+   title:"AMLの件数の増減を聞かれたら、まずシナリオ改定を疑う",
+   body:"アラート件数の急増・急減は、実態の変化よりも閾値改定が原因のことが多いです。M_AML_MONITORING の effective_from を先に確認すると、説明が一往復で済みます。",
+   tables:["VDB_COMPLIANCE_AML.master.M_AML_MONITORING"],from:"INC-0244019"},
+  {id:"TIP-036",by:"ITデスク 佐々木",date:"2026-01-24",
+   title:"AML関連の依頼は「集計で足りるか」を最初に確認する",
+   body:"個票が必要かどうかで、申請の重さが10営業日変わります。運用モニタリング・当局報告であれば集計層で足ります。逆に、個別調査であれば集計層をいくら案内しても解決しません。ここの切り分けを最初に行ってください。",
+   tables:["VDB_COMPLIANCE_AML.mart.S_AML_MONITORING_DAILY"],from:"INC-0230552"}],
+ role:"<b>ほぼ同じご依頼（INC-0238771）が過去にあり</b>、当時の回答がそのまま使えます。また Tips に「集計で足りるかを最初に確認する」とあるため、今回が運用モニタリング目的であることを確認したうえで、集計層のみをご案内します。",
+ gap:"<b>①②③⑤は過去事例でそのまま確定できました。</b>④は前例がありませんが、オントロジー上で同一業務領域の隣接プロセス（KYC/CDD）として接続しており、必要に応じて足せる候補として提示しています。⑤の除外判断も、過去事例と業務領域に紐づく規制制約の両方で裏が取れています。",
+ src:[
+  [["h","INC-0238771"],["t","TIP-036"]],
+  [["h","INC-0244019"],["t","TIP-027"]],
+  [["h","INC-0238771"]],
+  [["o","隣接プロセスとして補完"]],
+  [["w","INC-0230552"],["o","規制制約により除外"]]],
+ quote:[
+  [["hist","INC-0238771","S_AML_MONITORING_DAILY を metric_code で切り替えて取得してください。真陽性率の分母は当月クローズ件数が行内標準です。当局提出時は管理職承認と二者チェックをお願いします（内規AML-014）。"],
+   ["tip","TIP-036","個票が必要かどうかで申請の重さが10営業日変わります。運用モニタリング・当局報告であれば集計層で足ります。"]],
+  [["hist","INC-0244019","件数の急減は不具合ではなく検知シナリオの閾値改定によるものでした。M_AML_MONITORING の有効期間で改定時点を確認できます。"],
+   ["tip","TIP-027","アラート件数の急増・急減は、実態の変化よりも閾値改定が原因のことが多いです。effective_from を先に確認してください。"]],
+  [["hist","INC-0238771","部店名は T_ORGANIZATION を有効期間で結合してください。統廃合された部店があると系列が途切れるため、当局資料では注記をお願いします。"]],
+  null,
+  [["hist","INC-0230552","個票は犯収法の漏えい禁止の観点から調査担当ロールに限定されています。運用状況のモニタリング目的であれば集計層で充足するため、申請は不要です。"]]]
+},
+"INC-0248288":{
+ pool:"4,180",
+ hits:[
+  {id:"INC-0229551",rel:"b",dept:"チャネル戦略部",date:"2025-10-15",by:"ITデスク 佐々木",
+   q:"店頭の<b>要員配置</b>を検討したい。混んでいる時間帯を知りたい。",
+   a:"S_BRANCH_CONTACT_DAILY で部店×時間帯の待ち時間と来店件数を取得できると案内。開設窓口数（OPEN_WINDOW_CNT）と併せて見ないと、来店増か窓口不足かが判別できない点を補足。",
+   tables:["VDB_RETAIL_ANALYTICS.mart.S_BRANCH_CONTACT_DAILY"]},
+  {id:"INC-0235140",rel:"b",dept:"事務統括部",date:"2025-12-09",by:"ITデスク 岡田",
+   q:"どの<b>手続き</b>に時間がかかっているかを調べたい。事務改善の材料にしたい。",
+   a:"S_ONBOARDING_DAILY の所要時間指標を案内。相続関連は所要時間が突出するため、平均ではなくP90または手続別で見るよう補足。",
+   tables:["VDB_RETAIL_ANALYTICS.mart.S_ONBOARDING_DAILY"]},
+  {id:"INC-0221306",rel:"c",dept:"チャネル戦略部",date:"2025-06-02",by:"ITデスク 佐々木",
+   q:"来店者数が実感より少ない。データが取れていないのではないか。",
+   a:"発券機を通さない来店（相談予約、ATMのみ、テレビ窓口）は捕捉対象外であることを説明。実来店数はデータより多くなる旨を回答。",
+   tables:["VDB_RETAIL_ANALYTICS.mart.S_BRANCH_CONTACT_DAILY"]}],
+ tips:[
+  {id:"TIP-011",by:"ITデスク 佐々木",date:"2025-10-16",
+   title:"「待ち時間」と「所要時間」は別プロセスの別指標。両方聞かれていることが多い",
+   body:"待ち時間＝発券から呼出まで、所要時間＝呼出から完了まで、で所管プロセスが分かれます。お客さまの体感は両者の合計です。「窓口が混んでいる」という依頼には、たいてい両方が必要です。片方だけ案内すると再問い合わせになります。",
+   tables:["VDB_RETAIL_ANALYTICS.mart.S_BRANCH_CONTACT_DAILY","VDB_RETAIL_ANALYTICS.mart.S_ONBOARDING_DAILY"],from:"INC-0229551"},
+  {id:"TIP-002",by:"ITデスク 岡田",date:"2025-06-03",
+   title:"店頭系のデータは「取れていない範囲」を先に伝える",
+   body:"発券機ベースのため、相談予約・ATM・テレビ窓口は入りません。これを先に伝えないと、後から「実感と違う」と差し戻されます。データがあるかどうかの問い合わせでは、まずこの但し書きから答えてください。",
+   tables:["VDB_RETAIL_ANALYTICS.mart.S_BRANCH_CONTACT_DAILY"],from:"INC-0221306"}],
+ role:"「混雑」と「手続きの所要時間」は<b>別々の部署から別々の依頼として過去に届いています</b>。Tips（TIP-011）に「両方聞かれていることが多い」と書き残されているとおり、今回は1件の依頼に両方が含まれています。",
+ gap:"<b>①②③⑤は過去事例で確定できました。</b>④は前例がありませんが、Tipsの「来店増か窓口不足かの判別」という指摘に対応するため、オントロジー上の共通参照層から補完しています。過去事例だけでは、要因分解に必要な体制情報が抜け落ちていました。",
+ src:[
+  [["h","INC-0229551"],["t","TIP-002"]],
+  [["h","INC-0235140"],["t","TIP-011"]],
+  [["o","過去事例に該当なし"]],
+  [["o","要因分解のため補完"]],
+  [["w","過去に同種の回答あり"]]],
+ quote:[
+  [["hist","INC-0229551","S_BRANCH_CONTACT_DAILY で部店×時間帯の待ち時間と来店件数を取得できます。開設窓口数と併せて見ないと、来店増か窓口不足かが判別できません。"],
+   ["tip","TIP-002","発券機ベースのため、相談予約・ATM・テレビ窓口は入りません。これを先に伝えないと後から差し戻されます。"]],
+  [["hist","INC-0235140","S_ONBOARDING_DAILY の所要時間指標をご利用ください。相続関連は所要時間が突出するため、平均ではなくP90または手続別で見てください。"],
+   ["tip","TIP-011","待ち時間＝発券から呼出まで、所要時間＝呼出から完了まで、で所管プロセスが分かれます。お客さまの体感は両者の合計です。"]],
+  null,null,
+  [["hist","INC-0221306","端末の生ログは分析利用が認められていません。分析に必要な範囲は集計層へ連携済です。"]]]
+}
+};
+DATA_Q.forEach(q=>{
+  const r=R[q.tkt]; if(!r) return;
+  q.rag={pool:r.pool,hits:r.hits,tips:r.tips,role:r.role,gap:r.gap};
+  q.cands.forEach((c,i)=>{ c.src=r.src[i]; c.quote=r.quote[i]; });
+});
+})();
+/* ==== 探索ステップを「過去履歴RAG主導 → オントロジーで検証・補完」の順に差し替え ==== */
+(function rewriteSteps(){
+const S={
+"INC-0248172":[
+ {t:"過去の問い合わせ履歴を検索",d:"発話をベクトル化し、過去4,180件の問い合わせと照合しました。「住宅ローン」「延滞」「店別」を含む依頼が上位に並び、うち2件はほぼ同じ内容でした。"},
+ {t:"当時の回答からデータ資産を抽出",d:"ヒットした事例の回答本文から、実際に案内された物理テーブルを抽出しました。S_HOUSING_LOAN_DAILY が2件で第一候補として案内されています。"},
+ {t:"サポートデスクTipsを検索",d:"担当者が書き残した運用ナレッジから、該当テーブルに紐づく2件を取得しました（metric_code の指定漏れ、組織マスターの時点結合）。"},
+ {t:"オントロジーで裏取り",d:"過去事例で案内されたテーブルが、業務指標「延滞率」から computedFrom で正しく接続していることを確認しました。指標定義がリテール領域のものであることも併せて検証しています。"},
+ {t:"過去事例に無い要件をオントロジーで補完",d:"「年代別」は過去の問い合わせ履歴に該当がありませんでした。業務対象「顧客」→ 業務属性 → 物理カラム（age_band_code）を辿り、共通参照層を補完候補として追加しています。"},
+ {t:"権限グラフと突合",d:"照会者のロールで参照できるかを判定しました。共通参照層は付与済、リテール領域の3表は申請が必要です。"}],
+"INC-0248206":[
+ {t:"過去の問い合わせ履歴を検索",d:"「投資信託」「解約」「提案」を含む依頼と照合しました。解約側・提案側それぞれに、ほぼ同じ依頼と近い依頼が見つかっています。"},
+ {t:"当時の回答からデータ資産を抽出",d:"解約は S_WEALTH_DAILY、提案は S_CAMPAIGN_DAILY が案内されていました。ただし両者を突き合わせた事例はありません。"},
+ {t:"サポートデスクTipsを検索",d:"「解約の定義を最初に確認する」「別プロセスのマートは共通参照層を介して結合する」という2件を取得しました。今回の回答の骨格になります。"},
+ {t:"オントロジーで裏取り",d:"解約と提案が別の業務プロセスに属することを確認。それぞれの業務指標が mart 層へ computedFrom で接続していることを検証しました。"},
+ {t:"結合経路をオントロジーで補完",d:"過去に前例のない「2つのマートの結合」について、両者が共通参照層と joinsWith で接続していることを確認し、結合キーを回答に含めました。"},
+ {t:"権限グラフと突合",d:"リテール領域の資産は参照可能ですが、行レベルポリシーにより担当部店内に限定されます。"}],
+"INC-0248233":[
+ {t:"過去の問い合わせ履歴を検索",d:"「法人」「預金」「業種」「企業グループ」を含む依頼と照合しました。業種別・グループ名寄せのそれぞれについて、ほぼ同じ依頼が見つかっています。"},
+ {t:"当時の回答からデータ資産を抽出",d:"S_CORP_DEPOSIT_DAILY と M_CORP_CUSTOMER の組み合わせが、いずれの事例でも案内されていました。"},
+ {t:"サポートデスクTipsを検索",d:"「group_priority=1 を付け忘れると二重計上になる」「預金残高は法人と個人で計算式が違う」という2件を取得しました。いずれも数字が合わない問い合わせの典型パターンです。"},
+ {t:"オントロジーで裏取り",d:"業務プロセス「法人預金」と「法人顧客管理」が同一の業務領域に属し、月中平残の定義がホールセール領域のものであることを確認しました。"},
+ {t:"追加候補をオントロジーで確認",d:"日次の明細層と共通参照層の組織マスターを、必要に応じて足せる候補として抽出しています。"},
+ {t:"権限グラフと突合",d:"照会者のロールで4件すべて参照可能です。追加申請は不要です。"}],
+"INC-0248251":[
+ {t:"過去の問い合わせ履歴を検索",d:"「AML」「アラート」「部店別」「当局」を含む依頼と照合しました。当局提出用の同種依頼（INC-0238771）がほぼ一致しています。"},
+ {t:"当時の回答からデータ資産を抽出",d:"S_AML_MONITORING_DAILY と M_AML_MONITORING、組織マスターの組み合わせが案内されていました。真陽性率の分母の扱いも回答に含まれています。"},
+ {t:"サポートデスクTipsを検索",d:"「集計で足りるかを最初に確認する」「件数の増減はまずシナリオ改定を疑う」という2件を取得しました。今回は運用モニタリング目的のため、集計層で足りると判断しています。"},
+ {t:"オントロジーで裏取り",d:"業務領域に紐づく規制制約（漏えい禁止）を確認し、個票を含むイベント層を候補から除外しました。過去事例の判断と一致しています。"},
+ {t:"追加候補をオントロジーで確認",d:"同一領域の隣接プロセス（KYC/CDD）を、必要に応じて足せる候補として抽出しました。"},
+ {t:"権限グラフと突合",d:"照会者のロールで集計層は参照可能です。個票は対象外ですが、本件の目的では申請不要です。"}],
+"INC-0248288":[
+ {t:"過去の問い合わせ履歴を検索",d:"「窓口」「待ち時間」「手続き」を含む依頼と照合しました。混雑側と所要時間側で、別々の部署からの依頼が見つかっています。"},
+ {t:"当時の回答からデータ資産を抽出",d:"S_BRANCH_CONTACT_DAILY と S_ONBOARDING_DAILY がそれぞれ案内されていました。捕捉できない来店の範囲についても回答済みです。"},
+ {t:"サポートデスクTipsを検索",d:"「待ち時間と所要時間は別指標で、両方聞かれていることが多い」「取れていない範囲を先に伝える」という2件を取得しました。今回の回答の構成をこれに合わせています。"},
+ {t:"オントロジーで裏取り",d:"待ち時間と所要時間が別の業務プロセスに属する別指標であることを確認しました。両者は部店と営業日で突合できます。"},
+ {t:"要因分解のための候補を補完",d:"Tipsが指摘する「来店増か窓口不足か」の判別には体制情報が必要ですが、過去事例には含まれていません。共通参照層の組織マスターを補完しました。"},
+ {t:"権限グラフと突合",d:"上位4件は個人情報を含まない区分のため、申請すれば翌営業日に参照可能と判定しました。"}]
+};
+DATA_Q.forEach(q=>{ if(S[q.tkt]) q.steps=S[q.tkt]; });
+})();
+const PERM_Q = [
+{
+ tkt:"INC-0248315", dept:"融資企画部", user:"佐藤",
+ sample:"カタログでは見えるのに、SELECTすると ORA-01031 になる",
+ question:"データカタログでは DWH_RTL.MART_CREDIT.M_LOAN_DELINQ_MTH というテーブルが見えていて、項目の一覧も確認できるのですが、SQLを実行すると「ORA-01031: insufficient privileges」というエラーになります。見えているのに使えないのはなぜでしょうか。",
+ kw:["ORA-01031","insufficient","カタログ","SELECT","見えるのに","権限エラー"],
+ verdict:"<b>候補①が該当</b>します。テーブル本体のSELECT権限が付与されていないためです。カタログは「メタデータは公開・実データは制限」設定のため、定義だけが見えている状態です。なお付与後も候補③（行レベルの参照スコープ）が効くため、全店で見るには追加の申請が必要です。",
+ cands:[
+  {name:"オブジェクトSELECT権限の未付与",score:94,fl:["ng","該当"],
+   src:"IDM権限マスタ ／ DB の GRANT 実体（リアルタイム照会）",
+   why:"当該テーブルは機密Ⅱ指定で、SELECTは R_CRD_SENSITIVE_RO にのみ付与されています。照会者の R_RTL_ANALYST_RO には含まれません。",
+   detail:"データカタログは<b>「メタデータ公開／データ制限」</b>設定のため、テーブル名・カラム名・説明は全職員に見えます。一方、実データのSELECTは専用ロールに限定されています。<b>カタログで見えることは参照可能であることを意味しません。</b>これはカタログの誤りではなく、利用者がデータの存在を知って申請できるようにするための意図的な設計です。",
+   chain:[
+    ["ok","STEP 1 ／ 接続経路","ネットワーク・DB接続","社内セグメントからの接続許可あり。DBユーザー <code class='in'>SATO_T</code> は有効、CREATE SESSION 付与済です。"],
+    ["ok","STEP 2 ／ ロール付与","ロールの割当","<code class='in'>R_RTL_ANALYST_RO</code> を 2025-04-01 に付与（人事異動連携による自動付与）。有効期限なし。"],
+    ["ok","STEP 3 ／ スキーマ","スキーマ USAGE 権限","<code class='in'>MART_CREDIT</code> への USAGE あり。<b>カタログにテーブル名が表示されるのは、この段階まで通過しているためです。</b>"],
+    ["ng","STEP 4 ／ オブジェクト","テーブル SELECT 権限","<b>ここで拒否されています。</b> <code class='in'>M_LOAN_DELINQ_MTH</code> の SELECT は <code class='in'>R_CRD_SENSITIVE_RO</code> にのみ付与されています。"],
+    ["wa","STEP 5 ／ 行・列レベル","RLS／マスキングポリシー","仮に STEP 4 が解決しても、行レベルポリシーにより<b>自ブロック（BLOCK_CD='03'）の店舗のみ</b>が返ります。全店比較には参照スコープの拡大申請が別途必要です。"]],
+   pol:[
+    ["列マスキングポリシー ／ PII_MASK_L2","権限付与後も、以下の列は変換されて返ります。ハッシュは決定論的なため、結合キーとしては利用できます。",
+     "CUST_NO   -> SHA256(CUST_NO || SALT)\nCUST_NAME -> '***'\nBIRTH_YMD -> TRUNC(BIRTH_YMD,'YYYY')   -- 年のみ"],
+    ["行レベルポリシー ／ RLS_BRANCH_SCOPE","利用者の所属ブロックに応じて自動的に行が絞り込まれます。エラーにはならず、単に件数が少なくなる点にご注意ください。",
+     "BRANCH_CD IN (\n  SELECT BRANCH_CD FROM MST.M_BRANCH\n  WHERE BLOCK_CD = SYS_CONTEXT('APP_CTX','USER_BLOCK'))"],
+    ["監査ポリシー ／ AUDIT_SENSITIVE_ALL","本テーブルへの全SELECTがDB監査基盤に記録され、月次でデータオーナーへ利用状況レポートが送付されます。",""]]},
+
+  {name:"スキーマ USAGE 権限の不足",score:22,fl:["n","非該当"],
+   src:"DB の GRANT 実体（リアルタイム照会）",
+   why:"USAGE がなければカタログにテーブル名自体が表示されません。表示できている時点で本要因は否定されます。",
+   detail:"スキーマレベルの権限が不足している場合、多くのカタログ製品ではオブジェクトの存在自体が隠されます。今回は<b>項目一覧まで参照できている</b>とのことですので、USAGE は付与済と判断しました（DB側のGRANT実体でも確認済です）。"},
+
+  {name:"行レベルセキュリティによる0件返却",score:31,fl:["wa","一部関連"],
+   src:"ポリシー定義 RLS_BRANCH_SCOPE",
+   why:"今回のエラーの直接原因ではありません（RLSは0件を返すだけでエラーになりません）が、権限付与後に「件数が想定より少ない」事象として顕在化します。",
+   detail:"行レベルポリシーは<b>エラーを返さず、単に該当行を除外します</b>。そのため ORA-01031 の原因ではありません。ただし佐藤さまのご依頼は「支店別（全店比較）」ですので、権限付与後にこの制約が問題になります。<b>権限申請と同時にスコープ拡大も申請されることを強く推奨します。</b>別々に出すと承認が二度手間になります。"},
+
+  {name:"DBユーザーのロック／パスワード期限切れ",score:14,fl:["n","非該当"],
+   src:"DBユーザー状態（DBA_USERS）",
+   why:"アカウントが無効であれば接続時点で ORA-28000 等になります。SQLが実行されエラーが返っている時点で、認証は成功しています。",
+   detail:"DBユーザー <code class='in'>SATO_T</code> の状態は OPEN、パスワード有効期限は 2026-11-30 です。直近の接続成功ログも確認できています。"},
+
+  {name:"シノニム／ビュー経由の間接権限の不足",score:27,fl:["n","非該当"],
+   src:"オブジェクト定義（DBA_SYNONYMS / DBA_VIEWS）",
+   why:"照会対象は実表であり、シノニムやビューを経由していません。参照先の権限不足という構造にはなっていません。",
+   detail:"ビュー経由の参照では「ビューのSELECT権限はあるが、参照先の実表の権限がない」ことで同じ ORA-01031 が発生することがあります。今回は実表を直接照会されているため、この構造には該当しませんでした。<b>なお、マスキング済ビュー V_LOAN_DELINQ_MTH_MASKED は定義者権限で作成されており、参照先の権限がなくても利用できます。</b>"}
+ ],
+ kg:[
+  {cap:"利用者",nodes:[{l:"SATO_T",s:"融資企画部",k:"u"}]},
+  {cap:"is_member_of → 所属・職務",nodes:[{l:"融資企画部 与信管理G",s:"2025-04〜",k:"t"},{l:"職務:企画分析",s:"JOB_PLAN",k:"t"}]},
+  {cap:"has_role → 付与ロール",nodes:[{l:"R_RTL_ANALYST_RO",s:"付与済",k:"ok"},{l:"R_CRD_SENSITIVE_RO",s:"未付与",k:"ng"}]},
+  {cap:"grants → 権限セット",nodes:[{l:"USAGE",s:"MART_CREDIT",k:"ok"},{l:"SELECT",s:"一般マート",k:"ok"},{l:"SELECT",s:"機密Ⅱマート",k:"ng"}]},
+  {cap:"applies_to → 対象オブジェクト",nodes:[{l:"M_LOAN_DELINQ_MTH",s:"要 R_CRD_SENSITIVE_RO",k:"ng"},{l:"V_..._MASKED",s:"参照可",k:"ok"}]}
+ ],
+ qpath:[0,0,1,2,0],
+ gql:'<span class="r">MATCH</span> (u:<span class="n">User</span> {id:<span class="v">"SATO_T"</span>})-[:<span class="r">HAS_ROLE</span>]-&gt;(r:<span class="n">Role</span>)\n      -[g:<span class="r">GRANTS</span>]-&gt;(p:<span class="n">Privilege</span>)-[:<span class="r">APPLIES_TO</span>]-&gt;(o:<span class="n">Object</span>)\n<span class="r">WHERE</span> o.name = <span class="v">"MART_CREDIT.M_LOAN_DELINQ_MTH"</span>\n  <span class="r">AND</span> p.action = <span class="v">"SELECT"</span>\n<span class="r">RETURN</span> r, g   <span class="v">// → 0 rows ＝ 経路が存在しない（＝権限なし）</span>\n\n<span class="r">MATCH</span> (r2:<span class="n">Role</span>)-[:<span class="r">GRANTS</span>]-&gt;(:<span class="n">Privilege</span>)-[:<span class="r">APPLIES_TO</span>]-&gt;(o)\n<span class="r">RETURN</span> r2   <span class="v">// → 必要なロール = R_CRD_SENSITIVE_RO</span>',
+ steps:[
+  {t:"事象とエラーコードを解釈",d:"ORA-01031（insufficient privileges）は、オブジェクトへの権限不足を示すコードです。接続・認証は成功していると判断できます。",sc:"ORA-01031"},
+  {t:"対象オブジェクトを特定",d:"データカタログでスキーマ・表名を解決し、データ分類（機密Ⅱ）と所管データオーナーを取得。",sc:"1 object"},
+  {t:"権限グラフを利用者から探索",d:"User → Role → Privilege → Object の経路を探索。SELECT に到達する経路が0件であることを確認。",sc:"0 path"},
+  {t:"必要ロールを逆引き",d:"対象オブジェクトから逆方向に探索し、SELECT を保持する唯一のロール R_CRD_SENSITIVE_RO を特定。",sc:"1 role"},
+  {t:"付与の前提条件を確認",d:"当該ロールの申請要件（e-Learning DP-201 の受講）を照会。受講記録が失効していることを検出。",sc:"1 blocker"},
+  {t:"代替経路を探索",d:"同一の集計ロジックを持つ匿名化ビューが、現在のロールで参照可能であることを確認。充足度92%と評価。",sc:"1 alt"}
+ ],
+ actions:[
+  ["個人情報取扱いe-Learning（DP-201）を受講する",
+   "機微情報付ロールの申請には、有効期限内の受講証明が必須です。<b>受講記録が2025-06-30で失効しているため、まずこちらからお願いします。</b>",
+   ["所要：約40分","受講状況：<em>失効（要再受講）</em>"]],
+  ["IDM で R_CRD_SENSITIVE_RO を申請する",
+   "申請区分は「期間限定付与（90日）」を推奨します。利用目的欄には「2027年度与信方針策定のための延滞動向分析」のように具体的にご記載ください（目的が抽象的な申請は差戻し率が高い項目です）。",
+   ["申請画面：IDM ＞ 権限申請 ＞ データ参照権限","申請区分：期間限定90日"]],
+  ["参照スコープの拡大を同一申請で依頼する",
+   "全店比較が目的であれば、行レベルポリシーの「全店スコープ」を同じ申請内で依頼してください。別々に出すと承認が二度手間になります。",
+   ["申請項目：参照スコープ ＝ 全店","追加承認：データオーナーのみ"]],
+  ["承認を得る（2段階）",
+   "①所属長（融資企画部長）→ ②データオーナー（リスク統括部 与信管理G 山田）の順で承認されます。",
+   ["標準リードタイム：3営業日"]]
+ ],
+ lead:"e-Learning 受講当日＋承認3営業日",
+ alt:"<b>すぐに使える代替があります。</b>マスキング済ビュー <span class='mono'>DWH_RTL.MART_CREDIT.V_LOAN_DELINQ_MTH_MASKED</span> は、現在お持ちの <span class='mono'>R_RTL_ANALYST_RO</span> で<b>本日から参照可能</b>です。顧客識別子はハッシュ化されていますが、店番・年代区分・延滞区分・残高はそのまま保持されており、ご依頼の「支店別×年代別の延滞率」は本ビューだけで算出できます（充足度 92%）。個社の特定が必要になった段階で、上記の申請にお進みください。",
+ audit:[
+  ["2026-08-21 10:42:07","SELECT","MART_CREDIT.M_LOAN_DELINQ_MTH","DENY"],
+  ["2026-08-21 10:41:15","SELECT","MART_CREDIT.M_LOAN_DELINQ_MTH","DENY"],
+  ["2026-08-21 10:38:52","DESCRIBE","MART_CREDIT.M_LOAN_DELINQ_MTH","ALLOW"],
+  ["2026-08-21 09:15:33","SELECT","MART_CREDIT.V_LOAN_DELINQ_MTH_MASKED","ALLOW"]
+ ],
+ reply:"【ご照会】M_LOAN_DELINQ_MTH が見えるのにSELECTできない件\n\n■ 原因\nテーブル本体のSELECT権限が付与されていないためです。\nデータカタログは「定義（メタデータ）は公開／実データは制限」という設定のため、項目一覧までは全職員に表示されます。カタログで見えることは参照可能であることを意味しません。\n\n■ 本日から使える代替\nDWH_RTL.MART_CREDIT.V_LOAN_DELINQ_MTH_MASKED（匿名化ビュー）は現在の権限で参照可能です。\n支店別×年代別の延滞率であれば、こちらで算出できます。まずはこちらでご着手ください。\n\n■ 本体表が必要な場合の手続き\n1) e-Learning DP-201 の再受講（受講記録が2025-06-30で失効しています／約40分）\n2) IDM ＞ 権限申請 ＞ データ参照権限 で R_CRD_SENSITIVE_RO を申請（期間限定90日を推奨）\n3) 全店で比較される場合は「参照スコープ＝全店」を同じ申請に含めてください\n4) 承認は 所属長 → データオーナー（リスク統括部 山田）の2段階、標準3営業日です\n\nご不明点があればお知らせください。"
+},
+{
+ tkt:"INC-0248341", dept:"リテール推進部", user:"高橋",
+ sample:"データは取れるが、顧客名が ***** で表示されてしまう",
+ question:"投信のデータは取得できるのですが、顧客名が「***」、顧客番号も英数字の長い文字列になってしまいます。エラーは出ていません。設定の問題でしょうか？お客さまを特定して営業に使いたいのですが。",
+ kw:["マスキング","顧客名","***","伏字","ハッシュ","エラーは出","表示されない"],
+ verdict:"<b>候補①が該当</b>します。不具合ではなく、動的データマスキングポリシーによる仕様です。権限自体は正常に付与されています。なお候補⑤のとおり、<b>営業目的での個社特定は利用目的の観点から別ルートをご案内</b>します。",
+ cands:[
+  {name:"動的データマスキングの適用",score:96,fl:["ng","該当"],
+   src:"ポリシー定義 PII_MASK_L2 ／ 適用ロール一覧",
+   why:"分析利用者ロールには既定でマスキングが適用されます。同じSQLでも、権限レベルの高い利用者が実行すれば実値が返ります。",
+   detail:"エラーが出ていないとおり、テーブルへのSELECT権限は正常です。表示されている「***」やハッシュ値は<b>不具合ではなく仕様</b>で、動的データマスキング（Dynamic Data Masking）が実行時に値を変換しています。<b>ハッシュは決定論的（同一顧客は常に同一値）</b>なので、顧客単位の集計・名寄せ・他マートとの結合はそのまま可能です。",
+   chain:[
+    ["ok","STEP 1 ／ 接続経路","ネットワーク・DB接続","問題ありません。"],
+    ["ok","STEP 2 ／ ロール付与","ロールの割当","<code class='in'>R_RTL_SALES_RO</code> 付与済。"],
+    ["ok","STEP 3 ／ スキーマ","スキーマ USAGE 権限","<code class='in'>MART_ASSET</code> への USAGE あり。"],
+    ["ok","STEP 4 ／ オブジェクト","テーブル SELECT 権限","SELECT 付与済。<b>エラーが出ないのはこのためです。</b>"],
+    ["wa","STEP 5 ／ 行・列レベル","列マスキングポリシー","<b>ここが今回の事象です。</b> <code class='in'>PII_MASK_L2</code> により CUST_NAME・CUST_NO・TEL・ADDR が変換されます。分析用途では実値不要という設計思想に基づく既定値です。"]],
+   pol:[
+    ["列マスキングポリシー ／ PII_MASK_L2","分析利用者ロールに既定適用されます。ハッシュ値は結合キーとして利用可能です。",
+     "CUST_NO   -> SHA256(CUST_NO || SALT)   -- 結合キーとして利用可\nCUST_NAME -> '***'\nTEL, ADDR -> NULL"],
+    ["行レベルポリシー ／ RLS_SALES_SCOPE","担当ブロック内の顧客のみが返ります。全店の傾向を見る場合はスコープ拡大申請が必要です。",
+     "MAIN_BRANCH_CD IN (自ブロックの店番)"],
+    ["利用目的の制約 ／ 内規 DG-032","分析目的で取得したデータを個社特定して営業活動に転用することは、取得時の利用目的の範囲外となる場合があります。営業リスト化には別途の目的整理が必要です。",""]]},
+
+  {name:"SELECT権限の不足",score:11,fl:["n","非該当"],
+   src:"DB の GRANT 実体",
+   why:"権限不足であればエラー（ORA-01031）となり、データ自体が取得できません。値が返っている時点で否定されます。",
+   detail:"SELECT 権限は正常に付与されています。マスキングは「権限がない」のではなく「権限の範囲内で値を変換して返す」仕組みです。"},
+
+  {name:"参照先が匿名化ビューだった",score:34,fl:["wa","一部関連"],
+   src:"オブジェクト定義（DBA_VIEWS）",
+   why:"今回のSQLは実表を参照しているため直接の原因ではありませんが、BIツールのデータソースが匿名化ビューを向いている可能性は残ります。",
+   detail:"行内には同一ロジックの匿名化ビューが複数存在し、BIツールのデータソースがそちらを向いているケースがあります。<b>今回は実表を直接照会されていることを確認</b>したため、原因は候補①のポリシー適用と判断しました。BIツール経由でも同様の事象が出る場合は、データソース定義もあわせてご確認ください。"},
+
+  {name:"文字コード／クライアント表示の問題",score:8,fl:["n","非該当"],
+   src:"接続クライアント設定（NLS_LANG）",
+   why:"文字化けであれば規則性のない記号列になります。「***」固定とハッシュ形式の英数字列は、明らかに変換ロジックの適用結果です。",
+   detail:"文字化けの場合は同じ列でも値ごとに異なる化け方をします。今回は全レコードが同一パターンであるため、表示の問題ではありません。"},
+
+  {name:"利用目的の範囲を超える利用（営業リスト化）",score:52,fl:["wa","要確認"],
+   src:"内規 DG-032 ／ 個人情報保護方針",
+   why:"技術的な原因ではありませんが、ご依頼の「お客さまを特定して営業に使いたい」という目的自体に、別途の整理が必要です。",
+   detail:"分析基盤のデータは<b>統計・傾向分析を目的</b>として整備されています。個社を特定したアプローチリストの作成は、DWHからの手作りではなく<b>CRM（営業支援システム）のターゲットリスト機能</b>を使うのが行内標準です。抽出条件をIT部門へご連携いただければ、CRM側へリスト配信します（5営業日）。これにより利用目的・保管・削除が正規のフローで管理されます。"}
+ ],
+ kg:[
+  {cap:"利用者",nodes:[{l:"TAKAHASHI_M",s:"リテール推進部",k:"u"}]},
+  {cap:"has_role → 付与ロール",nodes:[{l:"R_RTL_SALES_RO",s:"付与済",k:"ok"},{l:"R_RTL_PII_UNMASK",s:"未付与",k:"ng"}]},
+  {cap:"grants → 権限セット",nodes:[{l:"SELECT",s:"MART_ASSET",k:"ok"},{l:"UNMASK",s:"PII列",k:"ng"}]},
+  {cap:"applies_to → 対象列",nodes:[{l:"取引・金額列",s:"実値",k:"ok"},{l:"CUST_NAME",s:"'***'",k:"ng"},{l:"CUST_NO",s:"ハッシュ",k:"ng"}]}
+ ],
+ qpath:[0,1,1,1],
+ gql:'<span class="r">MATCH</span> (u:<span class="n">User</span> {id:<span class="v">"TAKAHASHI_M"</span>})-[:<span class="r">HAS_ROLE</span>]-&gt;(r)\n      -[:<span class="r">GRANTS</span>]-&gt;(p:<span class="n">Privilege</span>)-[:<span class="r">APPLIES_TO</span>]-&gt;(c:<span class="n">Column</span>)\n<span class="r">MATCH</span> (c)&lt;-[:<span class="r">MASKS</span>]-(mp:<span class="n">MaskingPolicy</span>)\n<span class="r">WHERE NOT</span> (r)-[:<span class="r">EXEMPT_FROM</span>]-&gt;(mp)\n<span class="r">RETURN</span> c.name, mp.transform   <span class="v">// 変換が適用される列を返す</span>',
+ steps:[
+  {t:"事象を解釈",d:"「エラーは出ないが値が伏字」という記述から、権限拒否ではなく実行時の値変換が疑われると判断。",sc:"no error"},
+  {t:"SELECT権限の有無を確認",d:"権限グラフ上で SELECT への経路が存在することを確認。権限不足の可能性を排除。",sc:"path OK"},
+  {t:"マスキングポリシーを照会",d:"対象列に MASKS 関係を持つポリシー PII_MASK_L2 を検出。利用者ロールが除外対象でないことを確認。",sc:"1 policy"},
+  {t:"変換仕様を取得",d:"CUST_NO はソルト付きSHA-256、CUST_NAME は固定文字列に変換される仕様を取得。決定論的ハッシュのため結合可能と判定。",sc:"4 cols"},
+  {t:"利用目的との整合を確認",d:"「営業に使いたい」という記述から、内規 DG-032（利用目的の範囲）に照らして別ルートの案内が必要と判定。",sc:"DG-032"},
+  {t:"正規ルートを提示",d:"CRMのターゲットリスト機能を代替として提示。解除申請（R_RTL_PII_UNMASK）は最終手段として案内。",sc:"2 routes"}
+ ],
+ actions:[
+  ["まず、実値が本当に必要か整理する",
+   "傾向分析（どんな属性の顧客が解約しやすいか）であれば、ハッシュ値のままで完結します。ハッシュは決定論的なので、顧客単位のGROUP BYや他マートとの結合はそのまま可能です。",
+   ["推奨度：高（申請不要・即日）"]],
+  ["営業リスト化が目的なら、CRMの正規ルートを使う",
+   "個社を特定したアプローチリストは、DWHから手作りするのではなく CRM のターゲットリスト機能を利用するのが行内標準です。抽出条件をIT部門へご連携ください。",
+   ["依頼先：ITシステム部 CRM担当","リードタイム：5営業日"]],
+  ["どうしてもDWH上で実値が必要な場合",
+   "<code class='in'>R_RTL_PII_UNMASK</code> の申請が必要です。利用目的・保管方法・削除期限の記載と、個人情報保護管理者（CPO室）の承認が必要になります。",
+   ["承認：所属長 → データオーナー → CPO室","リードタイム：10営業日","付与期間：最大30日"]]
+ ],
+ lead:"（代替ルートであれば）5営業日",
+ alt:"<b>ハッシュ化された CUST_NO は、そのまま結合キーに使えます。</b>同一のマスキングポリシーが適用される他マート（M_PROPOSAL_FACT、T_FUND_HOLD_SNAP など）とはハッシュ値同士で正しくJOINできるため、「解約前90日の提案接触有無」といった分析は、実値の解除なしに実行可能です。まずはこの範囲で分析を進め、個社アプローチの段階でCRMルートへ移行されることを推奨します。",
+ audit:[
+  ["2026-08-21 11:20:44","SELECT","MART_ASSET.M_FUND_TRADE_HIST","ALLOW (MASKED)"],
+  ["2026-08-21 11:18:02","SELECT","MART_CRM.M_PROPOSAL_FACT","ALLOW (MASKED)"],
+  ["2026-08-20 16:55:10","SELECT","MART_ASSET.M_FUND_TRADE_HIST","ALLOW (MASKED)"]
+ ],
+ reply:"【ご照会】顧客名が「***」で表示される件\n\n■ 原因\n不具合ではなく、動的データマスキングポリシー（PII_MASK_L2）による仕様です。\nSELECT権限は正常に付与されており、エラーが出ないのはそのためです。分析用途では個人の実値は不要という前提で、分析利用者ロールには既定でマスキングが適用されます。\n\n■ そのままで進められること\n顧客番号のハッシュは決定論的（同一顧客は常に同一値）です。\n・顧客単位の集計、名寄せ、重複排除\n・他マート（提案ファクト、保有残高スナップ）とのJOIN\nはすべて実値なしで可能です。「解約前90日の提案接触有無」の分析もこの範囲で実行できます。\n\n■ 個社を特定した営業リストが必要な場合\nDWHから手作りするのではなく、CRMのターゲットリスト機能をご利用ください。\n抽出条件をITシステム部 CRM担当へご連携いただければ、CRM側へリスト配信します（5営業日）。\n利用目的・保管・削除が正規のフローで管理されるため、こちらを推奨します。\n\n※ DWH上でのマスキング解除（R_RTL_PII_UNMASK）は、CPO室承認を含め10営業日を要します。"
+},
+{
+ tkt:"INC-0248358", dept:"経営企画部", user:"中村",
+ sample:"Tableauからは見えるのに、SQL Developerから接続できない",
+ question:"同じDWHのデータなのに、Tableauのダッシュボードでは普通に見えるのに、SQL Developerから接続しようとすると認証で弾かれます。どちらも私のIDのはずなのですが、何が違うのでしょうか。",
+ kw:["Tableau","SQL Developer","接続","認証","弾かれ","BI","繋がらない"],
+ verdict:"<b>候補①②③の複合</b>です。BI経由の参照はサービスアカウントがDWHへ接続しており、DWHから見た接続主体はご本人のIDではありません。SQL Developerからの接続は「個人IDでの直接接続」にあたり、踏み台経由・個人DBユーザーの発行・スキーマ権限の3つがいずれも未整備です。",
+ cands:[
+  {name:"接続経路の制限（踏み台経由が必須）",score:93,fl:["ng","該当"],
+   src:"ネットワークACL ／ 内規 SEC-021",
+   why:"DWHのリスナーは踏み台セグメントからのみ受け付けます。執務端末から直接1521番ポートへは到達できません。",
+   detail:"分析基盤への直接接続はすべて踏み台サーバ（Bastion）経由に限定されています（内規 SEC-021）。多要素認証を経た踏み台上のVDIから接続する構成が標準です。<b>認証で弾かれているように見えますが、実際はネットワーク層で到達できていません。</b>",
+   chain:[
+    ["ng","STEP 1 ／ 接続経路","ネットワーク到達性","<b>ここで拒否されています。</b> DWHのリスナーは Bastion セグメント（10.42.8.0/24）からのみ受け付ける設定です。執務端末から直接1521番ポートへは到達できません。"],
+    ["ng","STEP 2 ／ 認証","個人DBユーザーの発行","<code class='in'>NAKAMURA_S</code> のDBユーザーは未発行です。BI閲覧のみの利用者には既定で発行されません。"],
+    ["wa","STEP 3 ／ ロール付与","ロールの割当","Tableau上の権限（ダッシュボード閲覧グループ）は付与済ですが、これはBIツール側の権限であり、DB側のロールとは別管理です。"],
+    ["wa","STEP 4 ／ オブジェクト","テーブル SELECT 権限","DB個人ユーザー発行後に、あらためて対象スキーマのSELECT申請が必要です。BIで見えている範囲が自動で付与されるわけではありません。"],
+    ["wa","STEP 5 ／ 行・列レベル","RLS／マスキング","直接接続の場合、Tableau側で効いていた行制御は適用されません。DB側のRLSに置き換わるため、見える範囲が変わる可能性があります。"]],
+   pol:[
+    ["接続経路ポリシー ／ NET_BASTION_ONLY","分析基盤への直接接続はすべて踏み台サーバ経由に限定されています（内規 SEC-021）。",
+     "ALLOW: 10.42.8.0/24 (Bastion)\nDENY : 執務端末セグメント全域"],
+    ["サービスアカウントの位置づけ","SVC_TABLEAU_RO は「ダッシュボードで公開された範囲のみ」を返す前提で広めの権限を持ちます。この権限は個人には引き継がれません。",""]]},
+
+  {name:"個人DBユーザーの未発行",score:88,fl:["ng","該当"],
+   src:"DBユーザー一覧（DBA_USERS）",
+   why:"BI閲覧のみの利用者にはDBユーザーが既定で発行されません。SQLを直接書く利用にはユーザー発行の申請が必要です。",
+   detail:"行内では「BIダッシュボードを見る人」と「SQLを書く人」で必要な整備が分かれています。前者はBIツール側のグループ所属のみ、後者は<b>個人DBユーザーの発行＋踏み台利用＋スキーマ権限</b>の3点が必要です。中村さまは前者の状態です。なお、SQL研修 DA-101 は受講済のため、発行申請の前提条件は満たしています。"},
+
+  {name:"BI経由はサービスアカウントで接続している",score:85,fl:["ng","前提"],
+   src:"Tableau データソース定義 ／ 接続ログ",
+   why:"Tableauは SVC_TABLEAU_RO というサービスアカウントでDWHへ接続し、利用者の出し分けはダッシュボード側で制御しています。",
+   detail:"「どちらも私のIDのはず」という点が今回の誤解の核心です。<b>DWHから見た接続主体は、ダッシュボード閲覧時には SVC_TABLEAU_RO です。</b>利用者ごとの見える範囲はTableau側のユーザーフィルタで制御されています。したがって、Tableauで見えていることはDB権限があることを意味しません。"},
+
+  {name:"パスワードの有効期限切れ",score:12,fl:["n","非該当"],
+   src:"DBユーザー状態（DBA_USERS）",
+   why:"そもそも個人DBユーザーが存在しないため、パスワード期限の問題は発生し得ません。",
+   detail:"DBユーザー未発行のため該当しません。なお発行後は90日ごとのパスワード変更が必要になります。"},
+
+  {name:"クライアントの接続設定（TNS）の誤り",score:29,fl:["n","非該当"],
+   src:"接続試行ログ（リスナー側に記録なし）",
+   why:"設定誤りであればリスナー側にエラーが記録されますが、記録自体がありません。ネットワーク層で遮断されていることを示します。",
+   detail:"接続文字列やサービス名の誤りであれば ORA-12514 等がリスナーログに残ります。今回はリスナーに到達記録がないため、経路の問題（候補①）と判断しました。"}
+ ],
+ kg:[
+  {cap:"利用者",nodes:[{l:"NAKAMURA_S",s:"経営企画部",k:"u"}]},
+  {cap:"connects_via → 接続経路",nodes:[{l:"Tableau",s:"BI経由",k:"ok"},{l:"SQL Developer",s:"直接接続",k:"ng"}]},
+  {cap:"authenticates_as → 接続主体",nodes:[{l:"SVC_TABLEAU_RO",s:"サービスAC",k:"ok"},{l:"NAKAMURA_S",s:"未発行",k:"ng"}]},
+  {cap:"traverses → ネットワーク",nodes:[{l:"BIサーバ",s:"Bastion内",k:"ok"},{l:"執務端末",s:"到達不可",k:"ng"}]},
+  {cap:"applies_to → 対象",nodes:[{l:"公開ダッシュボード",s:"閲覧可",k:"ok"},{l:"DWHスキーマ",s:"直接不可",k:"ng"}]}
+ ],
+ qpath:[0,1,1,1,1],
+ gql:'<span class="r">MATCH</span> path = (u:<span class="n">User</span> {id:<span class="v">"NAKAMURA_S"</span>})\n      -[:<span class="r">CONNECTS_VIA</span>]-&gt;(ch:<span class="n">Channel</span>)\n      -[:<span class="r">AUTHENTICATES_AS</span>]-&gt;(principal)\n      -[:<span class="r">HAS_ROLE</span>]-&gt;(:<span class="n">Role</span>)-[:<span class="r">GRANTS</span>]-&gt;(:<span class="n">Privilege</span>)\n      -[:<span class="r">APPLIES_TO</span>]-&gt;(o:<span class="n">Object</span> {schema:<span class="v">"DWH_RTL"</span>})\n<span class="r">RETURN</span> ch.name, principal.id, length(path)\n<span class="v">// → Tableau 経由の1経路のみ成立。直接接続の経路は STEP1 で切断</span>',
+ steps:[
+  {t:"事象を解釈",d:"「BIでは見えるが直接接続できない」という記述から、権限ではなく接続経路（チャネル）の差分を疑うと判断。",sc:"channel diff"},
+  {t:"接続主体を特定",d:"BI経由の接続ログを照会し、DWHから見た接続主体がサービスアカウント SVC_TABLEAU_RO であることを確認。",sc:"SVC account"},
+  {t:"個人IDの経路を探索",d:"利用者の直接接続経路を権限グラフで探索。ネットワークACLの段階で経路が切断されていることを検出。",sc:"cut at hop1"},
+  {t:"DBユーザーの存在を確認",d:"個人DBユーザーが未発行であることを確認。認証段階でも成立しないと判定。",sc:"no user"},
+  {t:"前提条件の充足を確認",d:"個人DBユーザー発行の要件（SQL研修 DA-101）の受講記録を照会。受講済のため申請可能と判定。",sc:"prereq OK"},
+  {t:"必要な申請を組み立て",d:"3件の申請（DBユーザー発行・踏み台利用・スキーマ権限）が並行して必要と整理し、順序と所要日数を算出。",sc:"3 requests"}
+ ],
+ actions:[
+  ["分析用DBユーザーの発行を申請する",
+   "IDM ＞ 分析基盤 ＞ 個人DBユーザー発行。SQLをご自身で書く分析業務であることの記載が必要です。前提のSQL研修 DA-101 は受講済です。",
+   ["リードタイム：3営業日","前提条件：充足済"]],
+  ["Bastion（踏み台）の利用申請を行う",
+   "多要素認証つきの踏み台経由でのみDWHへ到達できます。踏み台上のVDIにSQL Developerが標準環境として用意されています。",
+   ["申請先：ITシステム部 基盤グループ","リードタイム：2営業日"]],
+  ["対象スキーマのSELECT権限を申請する",
+   "BIで見えていた範囲と同等の権限が自動で付くわけではありません。必要なスキーマ（DWH_RTL／DWH_CORP）を指定して申請してください。",
+   ["リードタイム：3営業日","注意：<em>機密Ⅱのマートは別途データオーナー承認</em>"]]
+ ],
+ lead:"3件並行で 3〜5営業日",
+ alt:"<b>申請完了までの代替として、Tableauからのデータ抽出が使えます。</b>公開済ダッシュボードはクロス集計のCSVダウンロードが許可されています（1回あたり10万行上限）。定型の集計であれば、申請を待たずに本機能で取得できます。また、決まった条件での抽出であれば、データ活用推進室の共有ワークブックに条件を追加する方法もあります。",
+ audit:[
+  ["2026-08-21 09:30:11","CONNECT","DWH_RTL (direct/1521)","DENY (network)"],
+  ["2026-08-21 09:28:47","CONNECT","DWH_RTL (direct/1521)","DENY (network)"],
+  ["2026-08-21 08:55:02","QUERY","Tableau: 預金推移DB","ALLOW (SVC_TABLEAU_RO)"],
+  ["2026-08-20 17:40:19","QUERY","Tableau: 預金推移DB","ALLOW (SVC_TABLEAU_RO)"]
+ ],
+ reply:"【ご照会】Tableauからは見えるが、SQL Developerから接続できない件\n\n■ 原因（接続経路の違いです）\nTableauのダッシュボードは、DWHへは「Tableau専用のサービスアカウント（SVC_TABLEAU_RO）」で接続しており、利用者ごとの見える範囲はTableau側で制御しています。\nつまり、DWHから見た接続主体は中村さまのIDではありません。そのため、Tableauで見えていることはDB権限があることを意味しません。\n\nSQL Developerからの接続は「個人IDでの直接接続」にあたり、以下がいずれも未整備の状態です。\n1) 踏み台（Bastion）経由の接続経路 … 執務端末から直接は到達できません（内規 SEC-021）\n2) 個人DBユーザー … BI閲覧のみの方には既定で発行されません\n3) 対象スキーマのSELECT権限 … BIで見えていた範囲は引き継がれません\n\n■ 手続き（3件を並行で申請いただけます）\n・IDM ＞ 分析基盤 ＞ 個人DBユーザー発行（3営業日／SQL研修DA-101は受講済です）\n・ITシステム部 基盤グループへ Bastion 利用申請（2営業日）\n・対象スキーマのSELECT権限申請（3営業日／機密Ⅱは別途データオーナー承認）\n\n■ それまでの代替\n公開済ダッシュボードはクロス集計のCSVダウンロードが可能です（1回10万行まで）。定型集計であれば申請を待たずにご利用いただけます。"
+}
+,
+{
+ tkt:"INC-0248377", dept:"市場国際部", user:"木村",
+ sample:"異動したのに、前の部署のデータがまだ見えている",
+ question:"4月に市場国際部へ異動したのですが、前にいたリスク統括部のときに使っていた与信系のデータが今でも見えています。使う予定はないのですが、このままで問題ないでしょうか。",
+ kw:["異動","前の部署","まだ見えて","残って","権限","返上"],
+ verdict:"<b>候補①が該当</b>します。人事異動で自動剥奪されるのは「部署ひも付きロール」のみで、個別申請で取得した期間限定ロールは対象外のためです。<b>最小権限の原則（内規 SEC-003）に照らして不適合</b>のため、速やかな返上をお願いします。ご自身から申告いただいた点は、内部統制上たいへん適切な対応です。",
+ cands:[
+  {name:"個別申請ロールは異動で自動剥奪されない",score:95,fl:["ng","該当"],
+   src:"IDM権限マスタ ／ ロールライフサイクル定義",
+   why:"R_CRD_SENSITIVE_RO は個別申請ロールのため異動連携の対象外です。2025-10に期限延長が承認され、2026-10-31まで有効な状態です。",
+   detail:"行内のロールは2種類あります。<b>部署ひも付きロール</b>は人事異動連携で自動的に付け替えられますが、<b>個別申請ロール</b>は申請時に設定した期限まで有効で、異動では剥奪されません（プロジェクト横断での利用を想定した設計のためです）。今回残っているのは後者です。直近90日の利用実績は0件で、現在の職務では不要な与信系マート12テーブルへのSELECTが可能な状態になっています。",
+   chain:[
+    ["ok","STEP 1 ／ 接続経路","ネットワーク・DB接続","有効です。"],
+    ["ok","STEP 2 ／ ロール付与","部署ひも付きロール","異動により <code class='in'>R_RISK_ANALYST_RO</code> は 2026-04-01 に自動剥奪済。市場系の <code class='in'>R_MKT_ANALYST_RO</code> が自動付与されています。<b>ここは正常に動作しています。</b>"],
+    ["ng","STEP 3 ／ ロール付与","個別申請ロール","<b>ここが問題です。</b> <code class='in'>R_CRD_SENSITIVE_RO</code> は個別申請ロールのため異動連携の対象外。2025-10 に期限延長が承認され、2026-10-31 まで有効です。"],
+    ["wa","STEP 4 ／ オブジェクト","テーブル SELECT 権限","結果として、現在の職務に不要な与信系マート12テーブルへのSELECTが可能な状態です（直近90日の利用実績は0件）。"],
+    ["ng","STEP 5 ／ 統制上の評価","職務分離・最小権限","最小権限の原則（内規 SEC-003）および四半期の権限棚卸しの観点から<b>不適合</b>と判定されます。次回棚卸し（2026-09-30締め）で自動検出される見込みです。"]],
+   pol:[
+    ["権限ライフサイクル ／ 内規 SEC-003","部署ひも付きロールは人事異動連携で自動剥奪。個別申請ロールは申請時に設定した期限まで有効で、異動では剥奪されません。",""],
+    ["四半期 権限棚卸し ／ IDM-REV","所属長が四半期ごとに部下の保有ロールを確認・承認します。次回は 2026-09-30 締めです。",""],
+    ["未使用権限の自動検出ルール","90日以上未使用、かつ現部署の標準ロールセットに含まれないロールは、棚卸しレポートで「返上推奨」として自動フラグされます。",
+     "unused_days >= 90\nAND role NOT IN (標準ロールセット[現部署])\n=> FLAG: RECOMMEND_REVOKE"]]},
+
+  {name:"人事異動連携の遅延・失敗",score:18,fl:["n","非該当"],
+   src:"IDM 連携ジョブ実行ログ",
+   why:"2026-04-01 02:00 の連携ジョブは正常終了しており、部署ひも付きロールの付け替えは完了しています。",
+   detail:"連携ジョブが失敗していれば、市場系ロール <code class='in'>R_MKT_ANALYST_RO</code> も付与されないはずです。両方が正しく処理されているため、連携自体は正常です。"},
+
+  {name:"兼務登録の残存",score:24,fl:["n","非該当"],
+   src:"人事マスタ（兼務情報）",
+   why:"人事マスタ上、リスク統括部との兼務登録はありません。所属は市場国際部の単一です。",
+   detail:"兼務が登録されている場合は、両部署の標準ロールが正当に付与されます。今回は兼務登録がないため、この構造には該当しません。"},
+
+  {name:"権限棚卸しの未実施・形骸化",score:47,fl:["wa","一部関連"],
+   src:"IDM-REV 棚卸し履歴",
+   why:"直接の原因ではありませんが、2026-06 の棚卸しで本ロールが「継続」と承認されており、確認が形骸化していた可能性があります。",
+   detail:"2026-06-30 締めの棚卸しでは、前所属（リスク統括部）の所属長が承認者として設定されていました。<b>異動直後は承認者が旧所属長のまま処理されることがあり</b>、そのまま「継続」と判断された可能性があります。これは個人の問題ではなく運用設計の課題のため、あわせてITシステム部側で改善を検討します。"},
+
+  {name:"グループ経由の間接付与",score:15,fl:["n","非該当"],
+   src:"ロール階層（ROLE_HIERARCHY）",
+   why:"当該ロールは利用者へ直接付与されており、上位ロールからの継承ではありません。",
+   detail:"間接付与の場合は、上位ロール側を外さないと解決しません。今回は直接付与のため、IDMからの返上操作のみで即時に解消できます。"}
+ ],
+ kg:[
+  {cap:"利用者",nodes:[{l:"KIMURA_Y",s:"市場国際部",k:"u"}]},
+  {cap:"is_member_of → 所属の変遷",nodes:[{l:"市場国際部",s:"2026-04〜 現在",k:"ok"},{l:"リスク統括部",s:"〜2026-03",k:"ng"}]},
+  {cap:"has_role → 付与ロール",nodes:[{l:"R_MKT_ANALYST_RO",s:"部署ひも付き・適正",k:"ok"},{l:"R_CRD_SENSITIVE_RO",s:"個別申請・過剰",k:"ng"}]},
+  {cap:"grants → 権限セット",nodes:[{l:"SELECT",s:"市場系マート",k:"ok"},{l:"SELECT",s:"与信系マート 12件",k:"ng"}]},
+  {cap:"applies_to → 対象オブジェクト",nodes:[{l:"市場系データ",s:"職務に適合",k:"ok"},{l:"与信系データ",s:"職務外・未使用138日",k:"ng"}]}
+ ],
+ qpath:[0,1,1,1,1],
+ gql:'<span class="r">MATCH</span> (u:<span class="n">User</span> {id:<span class="v">"KIMURA_Y"</span>})-[h:<span class="r">HAS_ROLE</span>]-&gt;(r:<span class="n">Role</span>)\n<span class="r">MATCH</span> (u)-[:<span class="r">IS_MEMBER_OF</span>]-&gt;(d:<span class="n">Dept</span>)\n<span class="r">WHERE NOT</span> (d)-[:<span class="r">STANDARD_ROLE</span>]-&gt;(r)\n  <span class="r">AND</span> h.last_used_days &gt; 90\n<span class="r">RETURN</span> r.id, h.granted_at, h.expires_at, h.grant_type\n<span class="v">// → R_CRD_SENSITIVE_RO / 個別申請 / 未使用138日 ＝ 返上推奨</span>',
+ steps:[
+  {t:"事象を解釈",d:"「異動後も前部署のデータが見える」という申告から、権限の残存（過剰権限）の可能性を検証。",sc:"over-privilege"},
+  {t:"所属の変遷を確認",d:"人事マスタから 2026-04-01 付の異動を確認。兼務登録がないことも併せて確認。",sc:"1 transfer"},
+  {t:"ロールの付与種別を判定",d:"保有ロールを「部署ひも付き」と「個別申請」に分類。部署ひも付きは正常に付け替え済であることを確認。",sc:"2 types"},
+  {t:"残存ロールを特定",d:"個別申請ロール R_CRD_SENSITIVE_RO が 2026-10-31 まで有効な状態で残存していることを検出。",sc:"1 role"},
+  {t:"利用実績と統制基準を照合",d:"直近90日の利用実績0件（最終利用138日前）。最小権限の原則（SEC-003）に照らして不適合と判定。",sc:"unused 138d"},
+  {t:"影響範囲と横展開を評価",d:"与信系マート12テーブルが対象。同時期異動者にも同様の残存がある可能性が高いと判断し、一括点検を起票。",sc:"12 objects"}
+ ],
+ actions:[
+  ["IDM から権限返上を申請する（推奨・即日）",
+   "IDM ＞ 保有権限一覧 ＞ 該当ロール ＞「返上」。<b>返上は承認不要で即時反映されます。</b>棚卸しを待たずにご対応いただくのが最も望ましい形です。",
+   ["所要：約3分","承認：不要（即時反映）"]],
+  ["継続利用の予定がある場合は上長へ相談する",
+   "引継ぎ等でどうしても一時的に必要な場合は、現所属長とデータオーナー双方の合意のうえ、期間を短く切り直して再申請してください。",
+   ["再申請時の推奨期間：30日以内"]],
+  ["同時期異動者の一括点検（ITシステム部側で対応します）",
+   "同様の残存が他にもある可能性が高いため、2026-04-01付の異動者全員について個別申請ロールの残存を一括抽出し、各所属長へ返上依頼を送付します。本件チケットに紐づけて起票済です。",
+   ["起票番号：TASK-2026-0812","担当：ITシステム部 ID管理グループ"]],
+  ["棚卸しの承認者設定を見直す（改善要望）",
+   "異動直後の棚卸しで承認者が旧所属長のまま処理される事象を確認しました。承認者を「棚卸し実施時点の所属長」に切り替える改善を要望として起票します。",
+   ["起票番号：REQ-2026-0233"]]
+ ],
+ lead:"返上は即時（3分）",
+ alt:"<b>本件はナレッジ化しました。</b>「異動しても個別申請ロールは残る」という点は問い合わせ頻度が高いため、社内ポータルのFAQ（DG-FAQ-018）に反映し、異動時の自動通知メールにも注意文を追加する改善要望を起票しました。今後は異動者へ自動でご案内されます。",
+ audit:[
+  ["2026-08-21 13:05:22","ROLE_CHECK","R_CRD_SENSITIVE_RO","ACTIVE (unused 138d)"],
+  ["2026-06-30 18:00:00","IDM_REVIEW","R_CRD_SENSITIVE_RO","APPROVED (継続)"],
+  ["2026-04-01 02:00:00","ROLE_REVOKE","R_RISK_ANALYST_RO","AUTO (HR sync)"],
+  ["2026-04-01 02:00:00","ROLE_GRANT","R_MKT_ANALYST_RO","AUTO (HR sync)"],
+  ["2025-10-14 11:32:08","ROLE_EXTEND","R_CRD_SENSITIVE_RO","APPROVED (~2026-10-31)"]
+ ],
+ reply:"【ご照会】異動後も前部署（リスク統括部）のデータが見える件\n\nご自身から申告いただき、ありがとうございます。内部統制上、たいへん適切なご対応です。\n\n■ 原因\n行内のロールには2種類あります。\n・部署ひも付きロール … 人事異動連携で自動的に付け替えられます（今回も正常に処理されています）\n・個別申請ロール … 申請時に設定した期限まで有効で、異動では剥奪されません\n\n残っているのは後者の R_CRD_SENSITIVE_RO（与信・延滞情報）で、2025年10月に期限延長が承認され 2026-10-31 まで有効な状態です。\n\n■ ご対応のお願い（3分で完了します）\nIDM ＞ 保有権限一覧 ＞ R_CRD_SENSITIVE_RO ＞「返上」\n返上は承認不要で即時反映されます。9月末の棚卸しを待たず、お手隙の際にご対応ください。\n引継ぎ等で一時的に必要な場合は、現所属長とデータオーナーの合意のうえ、30日以内で再申請をお願いします。\n\n■ ITシステム部側の対応\n・2026-04-01付の異動者全員について、同様の残存を一括点検します（TASK-2026-0812）\n・異動直後の棚卸しで承認者が旧所属長のまま処理される事象について、改善要望を起票しました（REQ-2026-0233）\n・「異動しても個別申請ロールは残る」旨をFAQ（DG-FAQ-018）と異動時の自動通知に追加します"
+},
+{
+ tkt:"INC-0248392", dept:"審査部", user:"小林",
+ sample:"同じSQLなのに、自分と同僚で件数が違う",
+ question:"同じSQLを実行しているはずなのに、私が実行すると1,200件、同僚が実行すると3,500件になります。どちらが正しいのでしょうか。エラーは出ていません。",
+ kw:["件数が違う","件数が合わない","同僚","同じSQL","1,200","3,500","違う結果"],
+ verdict:"<b>候補①が該当</b>します。行レベルセキュリティ（RLS）により、利用者ごとに参照できる範囲が異なるためです。<b>どちらも「その利用者にとっては正しい」結果</b>です。全店の数値が必要な場合は参照スコープの拡大申請が必要です。",
+ cands:[
+  {name:"行レベルセキュリティによる参照スコープの差",score:91,fl:["ng","該当"],
+   src:"ポリシー定義 RLS_BRANCH_SCOPE ／ 両名の所属属性",
+   why:"小林さまは審査部（自ブロック限定）、同僚の方は本部スコープ（全店）が付与されています。同一SQLでも返る行数が異なります。",
+   detail:"行レベルセキュリティは<b>エラーを出さずに、利用者ごとに見える行を絞り込みます</b>。そのため「同じSQLなのに件数が違う」という形で表面化します。今回、小林さまには自ブロック（BLOCK_CD='05'）限定、同僚の方（審査部 本部担当）には全店スコープが付与されていました。<b>1,200件も3,500件も、それぞれの権限範囲では正しい結果です。</b>資料に使う際は、どちらのスコープで集計したかを必ず明記してください。",
+   chain:[
+    ["ok","STEP 1 ／ 接続経路","ネットワーク・DB接続","両名とも正常です。"],
+    ["ok","STEP 2 ／ ロール付与","ロールの割当","両名とも <code class='in'>R_CRD_REVIEW_RO</code> を保有しています。ロールレベルでは差がありません。"],
+    ["ok","STEP 3 ／ スキーマ","スキーマ USAGE 権限","両名とも付与済です。"],
+    ["ok","STEP 4 ／ オブジェクト","テーブル SELECT 権限","両名とも付与済です。<b>エラーが出ないのはこのためです。</b>"],
+    ["ng","STEP 5 ／ 行・列レベル","行レベルポリシー（RLS）","<b>ここに差があります。</b> 小林さま＝自ブロック限定（BLOCK_CD='05'／12ヶ店）、同僚の方＝全店スコープ（本部担当として付与）。返る行数の差はこの設定によるものです。"]],
+   pol:[
+    ["行レベルポリシー ／ RLS_BRANCH_SCOPE","利用者コンテキストに応じて行が絞り込まれます。スコープ属性は IDM 側で管理され、DB接続時にセッションへ設定されます。",
+     "-- 一般利用者\nBRANCH_CD IN (SELECT BRANCH_CD FROM MST.M_BRANCH\n              WHERE BLOCK_CD = SYS_CONTEXT('APP_CTX','USER_BLOCK'))\n-- 本部スコープ保有者\n1 = 1   -- 全件"],
+    ["自分のスコープを確認する方法","以下のSQLで、ご自身に適用されているスコープを確認できます。数値の根拠を示す際にご利用ください。",
+     "SELECT SYS_CONTEXT('APP_CTX','USER_BLOCK')  AS MY_BLOCK,\n       SYS_CONTEXT('APP_CTX','SCOPE_TYPE') AS MY_SCOPE\nFROM DUAL;"]]},
+
+  {name:"抽出条件・対象期間の相違",score:44,fl:["wa","要確認"],
+   src:"直近のクエリ履歴（DB監査ログ）",
+   why:"監査ログ上、両名のSQLは同一でした。ただしバインド変数（期間）までは記録されないため、念のためご確認をお願いします。",
+   detail:"監査ログに記録された SQL_ID は両名で一致していました。ただし<b>バインド変数の値（対象期間など）は記録されない</b>ため、期間指定が異なっていた可能性は完全には排除できません。実行時の条件を突き合わせていただくと確実です。件数比（1,200／3,500 ≒ 34%）が小林さまのブロックの店舗数比（12／35ヶ店 ≒ 34%）とほぼ一致するため、RLSが主因である可能性が高いと判断しています。"},
+
+  {name:"データ反映タイミングの差（バッチ実行前後）",score:26,fl:["n","非該当"],
+   src:"バッチ実行ログ（日次連携ジョブ）",
+   why:"両名の実行時刻はいずれも日次連携の完了後（06:30以降）で、参照している断面は同一です。",
+   detail:"日次連携の途中で参照すると件数が変動することがありますが、今回は両名とも 09:00 以降の実行で、連携は 06:12 に正常終了しています。"},
+
+  {name:"参照先オブジェクトの相違（実表とビュー）",score:33,fl:["n","非該当"],
+   src:"クエリ履歴の解析",
+   why:"両名とも同一の実表を参照していました。匿名化ビューと実表が混在していたケースには該当しません。",
+   detail:"行内には同一名称に近い匿名化ビューが存在し、片方がビューを参照していると件数が異なることがあります（ビュー側で除外条件が入るため）。今回は両名とも実表を参照していたため、該当しません。"},
+
+  {name:"マスキングによるNULL化で条件が外れた",score:19,fl:["n","非該当"],
+   src:"ポリシー定義 PII_MASK_L2 ／ 実行SQLの条件句",
+   why:"実行されたSQLの絞り込み条件にマスキング対象列は含まれていませんでした。",
+   detail:"マスキング対象列を WHERE 句で使うと、変換後の値と比較されるため意図せず0件になることがあります。今回のSQLは店番と年月のみを条件にしており、この構造には該当しません。"}
+ ],
+ kg:[
+  {cap:"利用者（比較）",nodes:[{l:"KOBAYASHI_R",s:"審査部（ブロック担当）",k:"u"},{l:"同僚",s:"審査部（本部担当）",k:"u"}]},
+  {cap:"has_role → 付与ロール",nodes:[{l:"R_CRD_REVIEW_RO",s:"両名とも同一",k:"ok"}]},
+  {cap:"has_attribute → スコープ属性",nodes:[{l:"BLOCK_SCOPE",s:"自ブロック 12ヶ店",k:"ng"},{l:"HQ_SCOPE",s:"全店 35ヶ店",k:"ok"}]},
+  {cap:"filtered_by → 行レベルポリシー",nodes:[{l:"RLS_BRANCH_SCOPE",s:"BLOCK_CD='05'",k:"ng"},{l:"RLS_BRANCH_SCOPE",s:"1=1（全件）",k:"ok"}]},
+  {cap:"applies_to → 実行結果",nodes:[{l:"1,200件",s:"小林さま",k:"ng"},{l:"3,500件",s:"同僚の方",k:"ok"}]}
+ ],
+ qpath:[0,0,0,0,0],
+ gql:'<span class="r">MATCH</span> (u:<span class="n">User</span>)-[:<span class="r">HAS_ATTRIBUTE</span>]-&gt;(a:<span class="n">ScopeAttr</span>)\n      &lt;-[:<span class="r">EVALUATES</span>]-(rls:<span class="n">RowPolicy</span> {id:<span class="v">"RLS_BRANCH_SCOPE"</span>})\n      -[:<span class="r">APPLIES_TO</span>]-&gt;(o:<span class="n">Object</span>)\n<span class="r">WHERE</span> u.id <span class="r">IN</span> [<span class="v">"KOBAYASHI_R"</span>, <span class="v">"SUZUKI_H"</span>]\n<span class="r">RETURN</span> u.id, a.scope_type, rls.predicate, count_visible(o,u)\n<span class="v">// → 同一ロール・同一SQLでも predicate が異なる ＝ 件数差の説明</span>',
+ steps:[
+  {t:"事象を解釈",d:"「エラーなし・同一SQL・件数のみ相違」という条件から、権限拒否ではなく行レベルの絞り込みを最有力と設定。",sc:"row-level"},
+  {t:"両名のSQLを突合",d:"DB監査ログから両名の SQL_ID を取得し、同一であることを確認。参照先オブジェクトも一致。",sc:"same SQL"},
+  {t:"ロール差分を確認",d:"両名の保有ロールを比較。差分なし（ともに R_CRD_REVIEW_RO）と判定し、ロール要因を排除。",sc:"no diff"},
+  {t:"スコープ属性を比較",d:"IDM のスコープ属性を比較し、BLOCK_SCOPE と HQ_SCOPE の差を検出。適用述語の違いを特定。",sc:"scope diff"},
+  {t:"件数比で妥当性を検証",d:"件数の比（1,200／3,500）が、対象となる店舗数の比（12／35ヶ店）とほぼ一致することを確認しました。RLSによる差であることの裏付けになります。"},
+  {t:"残せる可能性を提示",d:"バインド変数は監査ログに残らないため、対象期間の相違が完全には排除できません。候補②として併記しています。"}
+ ],
+ actions:[
+  ["自分に適用されているスコープを確認する",
+   "SYS_CONTEXT で現在のスコープを確認できます。数値を資料に使う際、根拠として添えておくと後の齟齬を防げます。",
+   ["所要：即時","申請：不要"]],
+  ["集計資料には「対象範囲」を必ず明記する",
+   "「自ブロック12ヶ店ベース」「全店35ヶ店ベース」のように範囲を明記してください。行内では同じ指標名でもスコープ違いの数値が併存するため、注記がないと後工程で混乱します。",
+   ["推奨度：高"]],
+  ["全店の数値が必要な場合はスコープ拡大を申請する",
+   "IDM ＞ 権限申請 ＞ 参照スコープ拡大。審査部で全店の与信状況を見る業務であれば、承認は得やすい区分です。",
+   ["承認：所属長 → データオーナー","リードタイム：3営業日"]],
+  ["念のため、実行時の条件を同僚の方と突き合わせる",
+   "監査ログにはバインド変数（期間など）が残りません。対象期間が揃っていたかだけ、ご確認をお願いします。",
+   ["所要：5分"]]
+ ],
+ lead:"スコープ拡大が必要な場合 3営業日",
+ alt:"<b>どちらの数値も誤りではありません。</b>「自ブロック12ヶ店の1,200件」「全店35ヶ店の3,500件」という、範囲の異なる正しい集計結果です。まずは資料に対象範囲を明記いただくことで、多くの場合は追加の申請なく運用できます。全店比較そのものが業務要件である場合のみ、スコープ拡大をご申請ください。",
+ audit:[
+  ["2026-08-21 09:14:52","SELECT","MART_CREDIT.M_REVIEW_CASE","ALLOW (1,200 rows / BLOCK)"],
+  ["2026-08-21 09:12:30","SELECT","MART_CREDIT.M_REVIEW_CASE","ALLOW (3,500 rows / HQ)"],
+  ["2026-08-21 06:12:44","BATCH","日次連携ジョブ","SUCCESS"],
+  ["2026-08-20 15:02:11","SELECT","MART_CREDIT.M_REVIEW_CASE","ALLOW (1,187 rows / BLOCK)"]
+ ],
+ reply:"【ご照会】同じSQLで件数が異なる件（1,200件／3,500件）\n\n■ 結論：どちらも正しい数値です\n行レベルセキュリティ（RLS）により、利用者ごとに参照できる範囲が異なるためです。\n・小林さま … 自ブロック限定（BLOCK_CD='05'／12ヶ店）→ 1,200件\n・同僚の方 … 全店スコープ（本部担当として付与）／35ヶ店 → 3,500件\n\nRLSはエラーを出さずに行を絞り込むため、「同じSQLなのに件数が違う」という形で表面化します。件数比（約34%）が店舗数比（12／35ヶ店）とほぼ一致しており、この説明と整合します。\n\n■ ご自身のスコープの確認方法\nSELECT SYS_CONTEXT('APP_CTX','USER_BLOCK')  AS MY_BLOCK,\n       SYS_CONTEXT('APP_CTX','SCOPE_TYPE') AS MY_SCOPE\nFROM DUAL;\n\n■ お願い\n集計資料には「自ブロック12ヶ店ベース」等、対象範囲の明記をお願いします。行内では同じ指標名でスコープ違いの数値が併存するため、注記がないと後工程で混乱が生じます。\n\n■ 全店の数値が必要な場合\nIDM ＞ 権限申請 ＞ 参照スコープ拡大（所属長→データオーナー承認、3営業日）\n\n※ 監査ログにはバインド変数が残らないため、対象期間が揃っていたかのみ、念のため同僚の方とご確認ください。"
+}
+/*__MORE_P__*/];
+
+/* ==== 権限照会：過去インシデントとTipsの検索結果を PERM_Q に付与 ==== */
+/* ==== 権限照会の診断ステップも「過去履歴RAG主導 → 権限グラフで裏取り」に差し替え ==== */
+(function rewritePSteps(){
+const S={
+"INC-0248315":[
+ {t:"過去の同種インシデントを検索",d:"「カタログに見える」「ORA-01031」を含む過去1,940件と照合しました。ほぼ同じ事象（INC-0239412）が見つかり、原因も回答も確定しています。"},
+ {t:"サポートデスクTipsを検索",d:"「スコープ拡大とセットで確認する」「e-Learningの受講期限を先に確認する」の2件を取得しました。過去に手戻りが起きたパターンです。"},
+ {t:"権限グラフで実際の経路を確認",d:"利用者からオブジェクトまでの経路を辿り、SELECT に到達する経路が存在しないことを確認しました。過去事例の判断と一致します。"},
+ {t:"不足しているロールを逆引き",d:"対象オブジェクトから逆方向に探索し、SELECT を保持する唯一のロールを特定しました。"},
+ {t:"Tipsに沿って前提条件を先回り確認",d:"e-Learningの受講記録が失効していること、行レベルポリシーで自ブロック限定になることを、申請前に検出しました。"},
+ {t:"代替経路を確認",d:"同一の集計ロジックを持つ匿名化ビューが現在のロールで参照可能であることを確認しました。"}],
+"INC-0248341":[
+ {t:"過去の同種インシデントを検索",d:"「顧客名」「***」「マスキング」を含む過去事例と照合し、ほぼ同じ事象（INC-0237905）を特定しました。不具合ではなく仕様であることが確定しています。"},
+ {t:"続きの依頼まで含めて検索",d:"同じ利用者層から「営業リストを作りたい」という続きの依頼（INC-0240930）が過去にあり、その際の回答も取得しました。"},
+ {t:"サポートデスクTipsを検索",d:"「まず実値が本当に必要か聞く」という切り分けのTipsを取得しました。これで解除申請の大半が不要になるとされています。"},
+ {t:"権限グラフで裏取り",d:"SELECT 権限は正常に付与されており、エラーが出ない理由と整合することを確認しました。"},
+ {t:"適用ポリシーを特定",d:"対象列に紐づくマスキングポリシーと、利用者ロールが除外対象でないことを確認。変換仕様（決定論的ハッシュ）まで取得しました。"},
+ {t:"正規ルートを提示",d:"利用目的の観点から、営業リスト化はCRMのターゲットリスト機能を代替として提示しました。"}],
+"INC-0248358":[
+ {t:"過去の同種インシデントを検索",d:"「BIでは見える」「SQLクライアント」を含む過去事例と照合し、ほぼ同じ事象（INC-0233077）を特定しました。必要な申請3件まで確定しています。"},
+ {t:"申請手順の事例も検索",d:"DBユーザー発行の申請手順を尋ねた事例（INC-0245660）から、申請先と前提条件を取得しました。"},
+ {t:"サポートデスクTipsを検索",d:"「接続主体の違いから説明する」というTipsを取得しました。ここを先に説明しないと権限の話がかみ合わない、とされています。"},
+ {t:"接続ログで接続主体を確認",d:"BI経由の接続主体がサービスアカウントであることを確認しました。過去事例の説明と一致します。"},
+ {t:"権限グラフで個人経路を確認",d:"個人IDでの直接接続経路が、ネットワークACLの段階で切断されていることを検出しました。個人DBユーザーも未発行です。"},
+ {t:"前提条件の充足を確認",d:"個人DBユーザー発行の前提であるSQL研修の受講記録を確認し、申請可能と判定しました。"}],
+"INC-0248377":[
+ {t:"過去の同種インシデントを検索",d:"「異動」「前部署のデータが見える」を含む過去事例と照合し、ほぼ同じ事象（INC-0228140）を特定しました。原因と対処が確定しています。"},
+ {t:"関連する監査案件も検索",d:"内部監査部からの「未使用権限が大量に検出された」という依頼（INC-0243550）がヒットし、これが構造的な課題であることが分かりました。"},
+ {t:"サポートデスクTipsを検索",d:"「まずロールの付与種別を見る」というTipsを取得しました。自主申告した利用者には統制上望ましい対応である旨を添えるよう書かれています。"},
+ {t:"権限グラフで付与種別を判定",d:"保有ロールを部署ひも付きと個別申請に分類し、部署ひも付きは正常に付け替え済であることを確認しました。"},
+ {t:"残存ロールと影響範囲を特定",d:"個別申請ロールが有効なまま残存し、現在の職務に不要な与信系データが参照可能な状態であることを検出しました。"},
+ {t:"横展開の要否を判断",d:"過去の監査案件との照合から、同時期異動者にも同様の残存がある可能性が高いと判断し、一括点検を起票しました。"}],
+"INC-0248392":[
+ {t:"過去の同種インシデントを検索",d:"「同じSQLなのに件数が違う」を含む過去事例と照合し、直近のほぼ同じ事象（INC-0246101）を特定しました。原因も回答も確定しています。"},
+ {t:"サポートデスクTipsを検索",d:"「件数比と対象店舗数比を見比べる」という切り分け手順のTipsを取得しました。今回もこの手順をそのまま適用します。"},
+ {t:"両者のSQLを突合",d:"監査ログから両名のクエリを取得し、同一であることを確認しました。参照先オブジェクトも一致しています。"},
+ {t:"権限グラフでスコープ属性を比較",d:"保有ロールに差はなく、行レベルポリシーに渡されるスコープ属性のみが異なることを検出しました。"},
+ {t:"Tipsの手順で妥当性を検証",d:"件数の比（1,200／3,500）が対象店舗数の比（12／35ヶ店）とほぼ一致することを確認しました。RLSによる差である裏付けになります。"},
+ {t:"残る可能性を提示",d:"バインド変数は監査ログに残らないため、対象期間の相違が完全には排除できません。候補②として併記しています。"}]
+};
+PERM_Q.forEach(q=>{ if(S[q.tkt]) q.steps=S[q.tkt]; });
+})();
+(function attachRagP(){
+const R={
+"INC-0248315":{
+ pool:"1,940",
+ hits:[
+  {id:"INC-0239412",rel:"a",dept:"審査部",date:"2026-02-05",by:"ITデスク 岡田",
+   q:"カタログには出ているのに、SELECTすると<b>ORA-01031</b>になる。",
+   a:"カタログは「メタデータ公開／データ制限」設定のため、定義だけが見える状態。機密Ⅱのマートは専用ロールが必要である旨を説明し、IDMからの申請を案内。",
+   tables:["機密Ⅱマート全般"]},
+  {id:"INC-0242208",rel:"a",dept:"融資企画部",date:"2026-03-27",by:"ITデスク 佐々木",
+   q:"権限をもらったのに、<b>件数が想定より少ない</b>。全店分が見られない。",
+   a:"行レベルポリシーにより自ブロック限定になっていた。権限申請と参照スコープ拡大は別項目のため、同時申請しないと二度手間になる旨を回答。",
+   tables:["VDB_RETAIL_ANALYTICS.mart.S_HOUSING_LOAN_DAILY"]},
+  {id:"INC-0234880",rel:"b",dept:"リテール企画部",date:"2025-11-28",by:"ITデスク 岡田",
+   q:"機微情報のロールを申請したが<b>差し戻された</b>。",
+   a:"利用目的の記載が「分析のため」と抽象的だったことが理由。具体的な業務名と期間を記載するよう助言し、再申請で承認。",
+   tables:[]}],
+ tips:[
+  {id:"TIP-041",by:"ITデスク 佐々木",date:"2026-03-28",
+   title:"権限申請は「スコープ拡大」と必ずセットで確認する",
+   body:"オブジェクト権限が付いても、行レベルポリシーで自ブロック限定のままというケースが多発しています。依頼内容が全店比較なら、最初から同一申請にスコープ拡大を含めてください。別々に出すと承認が二往復します。",
+   tables:[],from:"INC-0242208"},
+  {id:"TIP-016",by:"ITデスク 岡田",date:"2025-11-29",
+   title:"機微ロールの申請前に、e-Learningの受講期限を確認する",
+   body:"DP-201 は有効期限があり、失効していると申請自体が受け付けられません。申請フォームでは弾かれないのに承認段階で差し戻されるため、先に受講状況を確認してあげると1往復減らせます。",
+   tables:[],from:"INC-0234880"}],
+ role:"<b>ほぼ同じ事象（INC-0239412）が過去にあり</b>、原因も回答も確定しています。さらに Tips に「スコープ拡大とセットで確認」「e-Learningの受講期限を先に確認」とあるため、今回はこの2点を先回りして確認したうえでご案内します。",
+ gap:"<b>候補①の判定は過去事例でほぼ確定</b>していますが、実際にどのロールが不足しているかは事案ごとに異なります。ここは権限グラフを利用者から辿って特定しました。候補③（スコープ）も、Tipsの指摘を受けて権限グラフ上で先回りして確認しています。"
+},
+"INC-0248341":{
+ pool:"1,940",
+ hits:[
+  {id:"INC-0237905",rel:"a",dept:"マーケティング部",date:"2026-01-15",by:"ITデスク 佐々木",
+   q:"顧客名が<b>「***」で表示される</b>。設定の問題か。",
+   a:"不具合ではなくマスキングポリシーの適用であることを説明。ハッシュは決定論的なので結合・名寄せはそのまま可能である旨を補足し、解除申請は最終手段として案内。",
+   tables:[]},
+  {id:"INC-0240930",rel:"b",dept:"リテール推進部",date:"2026-02-26",by:"ITデスク 岡田",
+   q:"抽出したデータで<b>営業リストを作りたい</b>。個社を特定したい。",
+   a:"分析基盤のデータは統計・傾向分析が利用目的のため、営業リスト化はCRMのターゲットリスト機能を使うよう案内。抽出条件をIT部門へ連携するフローを説明。",
+   tables:[]}],
+ tips:[
+  {id:"TIP-009",by:"ITデスク 佐々木",date:"2026-01-16",
+   title:"「マスキングされている」の問い合わせは、まず実値が本当に必要か聞く",
+   body:"傾向分析であればハッシュのままで完結します。ハッシュは決定論的なのでGROUP BYもJOINも通ります。実値が必要なのは個社アプローチのときだけで、その場合はDWHではなくCRM側が正攻法です。この切り分けで解除申請の8割は不要になります。",
+   tables:[],from:"INC-0237905"}],
+ role:"<b>ほぼ同じ事象（INC-0237905）が過去にあり</b>、不具合ではなく仕様であることが確定しています。加えて過去には「営業リストを作りたい」という続きの依頼（INC-0240930）もあり、Tipsでも同じ切り分けが推奨されています。今回もその想定で回答を組み立てます。",
+ gap:"事象の切り分けは過去事例でほぼ確定しました。<b>どの列にどのポリシーが適用されているか</b>は利用者のロールによって変わるため、この部分は権限グラフとポリシー定義から特定しています。"
+},
+"INC-0248358":{
+ pool:"1,940",
+ hits:[
+  {id:"INC-0233077",rel:"a",dept:"経営企画部",date:"2025-10-22",by:"ITデスク 岡田",
+   q:"BIでは見えるのに、<b>SQLクライアントから接続できない</b>。",
+   a:"BIはサービスアカウントで接続しており、DWHから見た接続主体が本人IDではないことを説明。個人DBユーザー発行・踏み台利用・スキーマ権限の3件が必要である旨を案内。",
+   tables:[]},
+  {id:"INC-0245660",rel:"b",dept:"データ活用推進室",date:"2026-07-08",by:"ITデスク 佐々木",
+   q:"分析用のDBユーザーを発行してほしい。<b>どこから申請すればよいか</b>。",
+   a:"IDM ＞ 分析基盤 ＞ 個人DBユーザー発行から。SQL研修DA-101の受講が前提であることを案内。踏み台利用申請は基盤グループへ別途必要。",
+   tables:[]}],
+ tips:[
+  {id:"TIP-024",by:"ITデスク 岡田",date:"2025-10-23",
+   title:"「BIでは見えるのに」と言われたら、接続主体の違いから説明する",
+   body:"利用者は自分のIDでDWHにつながっていると思っています。BIはサービスアカウント経由で、権限は個人に引き継がれません。ここを先に説明しないと、権限の話が延々かみ合いません。申請が3件必要になることも同時に伝えてください。",
+   tables:[],from:"INC-0233077"}],
+ role:"<b>ほぼ同じ事象（INC-0233077）が過去にあり</b>、原因と必要な申請3件まで確定しています。Tipsにも「接続主体の違いから説明する」と書き残されているため、その順序で回答します。",
+ gap:"必要な申請は過去事例で確定しています。<b>そのうちどれが未整備で、前提条件（研修受講）を満たしているか</b>は利用者ごとに異なるため、権限グラフとネットワークACLから個別に判定しました。"
+},
+"INC-0248377":{
+ pool:"1,940",
+ hits:[
+  {id:"INC-0228140",rel:"a",dept:"市場国際部",date:"2025-09-12",by:"ITデスク 佐々木",
+   q:"異動したのに<b>前部署のデータが見えている</b>。問題ないか。",
+   a:"部署ひも付きロールは異動連携で自動剥奪されるが、個別申請ロールは対象外である旨を説明。IDMからの返上（承認不要・即時）を案内。",
+   tables:[]},
+  {id:"INC-0243550",rel:"b",dept:"内部監査部",date:"2026-05-14",by:"ITデスク 岡田",
+   q:"四半期の権限棚卸しで、<b>未使用の権限が大量に検出</b>された。",
+   a:"異動者の個別申請ロールが残存していたケースが大半。異動時の一括点検を運用として追加すべきと起票。",
+   tables:[]}],
+ tips:[
+  {id:"TIP-033",by:"ITデスク 佐々木",date:"2025-09-13",
+   title:"異動関連の権限問い合わせは、まずロールの付与種別を見る",
+   body:"部署ひも付きか個別申請かで挙動が正反対です。前者は自動で付け替わり、後者は期限まで残ります。利用者は「異動したら全部消える」と思っているので、この違いを説明するのが最初の一歩です。自主申告してくれた方には、統制上望ましい対応である旨を必ず添えてください。",
+   tables:[],from:"INC-0228140"}],
+ role:"<b>ほぼ同じ事象（INC-0228140）が過去にあり</b>、原因と対処（IDMからの返上・承認不要）が確定しています。また監査部からの類似依頼（INC-0243550）から、これが個別事象ではなく運用上の構造的な課題であることも分かっています。",
+ gap:"事象の説明は過去事例で確定しました。<b>実際にどのロールが残存し、どの範囲のデータが見えているか</b>は権限グラフから特定しています。横展開（同時期異動者の一括点検）は、過去の監査部案件との照合から必要と判断しました。"
+},
+"INC-0248392":{
+ pool:"1,940",
+ hits:[
+  {id:"INC-0242208",rel:"a",dept:"融資企画部",date:"2026-03-27",by:"ITデスク 佐々木",
+   q:"権限をもらったのに<b>件数が想定より少ない</b>。全店分が見られない。",
+   a:"行レベルポリシーにより自ブロック限定になっていた。エラーは出ず件数だけが変わるため気づきにくい旨を説明し、スコープ拡大申請を案内。",
+   tables:[]},
+  {id:"INC-0246101",rel:"a",dept:"審査部",date:"2026-07-30",by:"ITデスク 岡田",
+   q:"同じSQLなのに<b>人によって件数が違う</b>。どちらが正しいのか。",
+   a:"参照スコープの差によるもので、どちらもその利用者にとっては正しい結果。資料には対象範囲を明記するよう助言。",
+   tables:[]}],
+ tips:[
+  {id:"TIP-018",by:"ITデスク 岡田",date:"2026-07-31",
+   title:"「件数が合わない」は、まず件数比と対象店舗数比を見比べる",
+   body:"RLSによる差であれば、件数の比が対象店舗数の比とほぼ一致します。ここが一致すれば、抽出条件の違いを疑う前にスコープ差だと切り分けられます。監査ログには件数が残るので、その場で確認できます。",
+   tables:[],from:"INC-0246101"},
+  {id:"TIP-029",by:"ITデスク 佐々木",date:"2026-03-28",
+   title:"集計資料には対象範囲を明記してもらう",
+   body:"行内では同じ指標名でスコープ違いの数値が併存します。「自ブロック12ヶ店ベース」等の注記がないと、後工程で必ず食い違います。スコープ拡大申請を勧める前に、まず注記で足りないかを確認してください。",
+   tables:[],from:"INC-0242208"}],
+ role:"<b>ほぼ同じ事象（INC-0246101）が直近にあり</b>、原因も回答も確定しています。Tips（TIP-018）にある「件数比と対象店舗数比を見比べる」という切り分け手順を、今回もそのまま適用しました。",
+ gap:"原因の特定は過去事例とTipsでほぼ確定しました。<b>両者のスコープ属性が実際にどう異なるか</b>は権限グラフから取得し、件数比との整合まで確認しています。"
+}
+};
+PERM_Q.forEach(q=>{ const r=R[q.tkt]; if(r) q.rag=r; });
+})();
+/* ===================== 共通ユーティリティ ===================== */
+const $=(s,r=document)=>r.querySelector(s);
+const esc=s=>String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
+const acc=(t,body,sub="",open=false)=>'<details class="acc"'+(open?" open":"")+'><summary>'+t+(sub?'<span class="sm">'+sub+'</span>':'')+'</summary><div class="accin">'+body+'</div></details>';
+const scroll=()=>{const w=$("#wrap");w.scrollTop=w.scrollHeight;};
+
+/* ナレッジグラフ（軽量スタイル） */
+const KC={/* 業務オントロジーのノード種別（ナレッジグラフの定義に準拠） */
+          cc:["#f7f1e3","#ddcda6","#7a6134"],  /* BusinessConcept  業務概念   */
+          dm:["#dde8f4","#a6c0da","#16395c"],  /* BusinessDomain   業務領域   */
+          pr:["#e7eff8","#9cbadb","#1b4d7e"],  /* BusinessProcess  業務プロセス */
+          en:["#f0edf9","#c2b6e2","#5a4a8c"],  /* BusinessEntity   業務対象   */
+          me:["#e7f5ee","#a9d6bf","#146c4b"],  /* BusinessMetric   業務指標   */
+          ev:["#fdf3e6","#e5c99a","#8a5a06"],  /* BusinessEvent    業務イベント */
+          at:["#eef2e8","#c4d1b2","#4f6136"],  /* BusinessAttribute 業務属性  */
+          tb:["#ddeef5","#8fc0d4","#0f5f7a"],  /* Table            物理テーブル */
+          u:["#f2f5f8","#c8d2dc","#5b6672"],d:["#dde8f4","#a6c0da","#16395c"],
+          t:["#eaf1f9","#b9d2ea","#1b4d7e"],m:["#eef7f3","#bfe0d2","#146c4b"],
+          e:["#f4f2fa","#d8d0ee","#5a4a8c"],p:["#fdf8ee","#ecd9b6","#8a5a06"],
+          ok:["#f1f9f3","#bfe0c9","#15803d"],ng:["#fdf3f2","#eecac6","#b91c1c"]};
+function renderKG(tiers,opt){
+  opt=opt||{};
+  const W=opt.W||760, PAD=6,GAP=10,NH=40,TG=34,CH=14;
+  const path=opt.path||null, lit=!!path;   /* path 指定時はアニメーションせず即表示 */
+  let y=10,nodes=[],edges=[],prev=[];
+  tiers.forEach((t,ti)=>{
+    const cy=y; y+=CH;
+    const n=t.nodes.length, nw=(W-PAD*2-GAP*(n-1))/n;
+    const row=t.nodes.map((d,i)=>({...d,x:PAD+i*(nw+GAP),y,w:nw,h:NH,ti,idx:i}));
+    row.forEach(r=>nodes.push(r));
+    if(prev.length) prev.forEach(p=>row.forEach(c=>edges.push([p,c,ti])));
+    t._cy=cy; prev=row; y+=NH+TG;
+  });
+  const on=(d)=>!path||path[d.ti]===d.idx;
+  let s='<svg class="kg" viewBox="0 0 '+W+' '+(y-TG+10)+'" xmlns="http://www.w3.org/2000/svg">';
+  edges.forEach(([a,b,ti])=>{
+    const x1=a.x+a.w/2,y1=a.y+a.h,x2=b.x+b.w/2,y2=b.y,m=(y1+y2)/2;
+    let cls="eg e"+ti;
+    if(lit) cls+=(on(a)&&on(b))?" on hot":" on off";
+    s+='<path class="'+cls+'" d="M'+x1+' '+y1+' C'+x1+' '+m+' '+x2+' '+m+' '+x2+' '+y2+'"/>';
+  });
+  tiers.forEach(t=>{s+='<text class="cap" x="6" y="'+(t._cy+9)+'">'+esc(t.cap)+'</text>';});
+  nodes.forEach(d=>{
+    const c=KC[d.k]||KC.u;
+    const fs=d.l.length>17?8.2:(d.l.length>12?9.2:10.5);
+    let cls="nd n"+d.ti;
+    if(lit) cls+=on(d)?" on hit":" on off";
+    s+='<g class="'+cls+'"><title>'+esc(d.l+" — "+d.s)+'</title>'+
+      '<rect x="'+d.x+'" y="'+d.y+'" width="'+d.w+'" height="'+d.h+'" rx="6" fill="'+c[0]+'" stroke="'+(on(d)&&lit?"#2563a8":c[1])+'"/>'+
+      '<text class="l1" x="'+(d.x+d.w/2)+'" y="'+(d.y+18)+'" text-anchor="middle" font-size="'+fs+'" fill="'+c[2]+'">'+esc(d.l)+'</text>'+
+      '<text class="l2" x="'+(d.x+d.w/2)+'" y="'+(d.y+30)+'" text-anchor="middle">'+esc(d.s)+'</text></g>';});
+  return s+'</svg>';
+}
+/* 候補の trace（業務語の連なり）から、グラフ上のノード位置を解決する */
+function tracePath(tiers,trace){
+  if(!trace) return null;
+  return tiers.map((t,ti)=>t.nodes.findIndex(n=>(n.m||n.l)===trace[ti]));
+}
+/* 経路をパンくずで表示 */
+function bcrumb(trace){
+  return '<div class="bc">'+trace.map((t,i)=>
+    (i?'<em>›</em>':'')+'<span'+(i===trace.length-1?' class="last"':'')+'>'+esc(t)+'</span>').join("")+'</div>';
+}
+/* details を開いたときに段階アニメーション */
+document.addEventListener("toggle",e=>{
+  if(!e.target.matches("details.acc")||!e.target.open) return;
+  const svg=e.target.querySelector("svg.kg"); if(!svg||svg.dataset.done) return;
+  svg.dataset.done="1";
+  const tiers=+svg.dataset.tiers||6;
+  for(let i=0;i<tiers;i++) setTimeout(()=>{
+    svg.querySelectorAll(".n"+i).forEach(n=>n.classList.add("on"));
+    svg.querySelectorAll(".e"+i).forEach(n=>n.classList.add("on"));
+  },170*i+60);
+},true);
+
+function kgBlock(q){
+  const svg=renderKG(q.kg).replace("<svg ",'<svg data-tiers="'+q.kg.length+'" ');
+  return svg+'<h5 class="sh">実行されたグラフクエリ</h5><pre class="code">'+q.gql+'</pre>';
+}
+function stepsBlock(q){
+  return '<div>'+q.steps.map((s,i)=>'<div class="stp"><div class="n2">'+(i+1)+'</div><div style="flex:1"><b>'+s.t+'</b><p>'+s.d+'</p></div></div>').join("")+'</div>';
+}
+/* 同名指標の業務領域別定義（業務領域を含めて探索する理由） */
+function defsBlock(q){
+  if(!q.defs) return "";
+  return '<table class="tb"><tr><th>業務領域</th><th>指標名</th><th>その業務領域での定義</th></tr>'+
+    q.defs.map((d,i)=>'<tr'+(i===0?' style="background:#f4f7fb"':'')+'><td>'+(i===0?'<b>'+d[0]+'</b>（本件）':d[0])+
+      '</td><td>'+d[1]+'</td><td>'+d[2]+'</td></tr>').join("")+'</table>';
+}
+/* 候補の完全な探索経路（業務概念 → 業務領域 → … → 物理データ） */
+function fullTrace(q,c){ return c.trace; }
+/* 候補が属する業務領域（探索経路の2番目＝BusinessDomain） */
+function candDomain(q,c){ return c.trace[1]; }
+
+/* ===================== メッセージ描画 ===================== */
+let cur={p1:null,p2:null};
+function pane(){return $(".pane.on");}
+function addUser(txt,who){
+  pane().insertAdjacentHTML("beforeend",
+    '<div class="u fade"><div class="b">'+(who?'<div class="w">'+who+'</div>':'')+esc(txt)+'</div></div>');
+  scroll();
+}
+function addAI(html){
+  pane().insertAdjacentHTML("beforeend",'<div class="a fade"><div class="ic">◈</div><div class="bd">'+html+'</div></div>');
+  scroll();
+}
+function think(msg,cb,ms){
+  const p=pane();
+  p.insertAdjacentHTML("beforeend",'<div class="a fade" id="thk"><div class="ic">◈</div><div class="bd"><div class="think"><i></i>'+msg+'</div></div></div>');
+  scroll();
+  setTimeout(()=>{const t=$("#thk"); if(t)t.remove(); cb();}, ms||900);
+}
+function fu(items){
+  return '<div class="fu">'+items.map(x=>'<button class="fub" data-fu="'+x[0]+'">'+x[1]+'</button>').join("")+'</div>';
+}
+
+/* ===================== 画面1：データ照会 ===================== */
+/* ---- RAG：過去の問い合わせ履歴とサポートデスクTipsの検索結果 ---- */
+const RELLB={a:["a","ほぼ同じ依頼"],b:["b","近い依頼"],c:["c","部分的に関連"]};
+function hitsBlock(q){
+  return '<div class="ragwrap"><div class="raghd"><span class="n4">1</span>過去の問い合わせ履歴からの検索結果'+
+    '<span class="cnt">'+q.rag.hits.length+' 件を採用（照合対象 '+q.rag.pool+' 件）</span></div>'+
+    q.rag.hits.map(h=>{
+      const r=RELLB[h.rel];
+      return '<div class="hit"><div class="hitm"><span class="rel '+r[0]+'">'+r[1]+'</span>'+
+      '<span class="tid">'+h.id+'</span><span class="who">'+h.dept+' ・ '+h.date+' ・ 回答者 '+h.by+'</span></div>'+
+      '<div class="hitq">'+h.q+'</div>'+
+      '<div class="hita"><span class="lb2">当時の回答（要点）</span>'+h.a+'</div>'+
+      (h.tables?'<div class="hitt">'+h.tables.map(t=>'<span>'+t+'</span>').join("")+'</div>':'')+
+      '</div>';}).join("")+'</div>';
+}
+function tipsBlock(q){
+  if(!q.rag.tips||!q.rag.tips.length) return "";
+  return '<div class="ragwrap"><div class="raghd"><span class="n4">2</span>サポートデスクのTips（担当者が書き残した運用ナレッジ）'+
+    '<span class="cnt">'+q.rag.tips.length+' 件</span></div>'+
+    q.rag.tips.map(t=>'<div class="tip"><div class="tipm"><span class="pin">TIPS</span><span class="tid">'+t.id+'</span>'+
+      '<span class="who" style="color:var(--tx3);font-size:10.5px">'+t.by+' ・ '+t.date+'</span></div>'+
+      '<div class="tt">'+t.title+'</div><div class="tb3">'+t.body+'</div>'+
+      (t.tables?'<div class="hitt">'+t.tables.map(x=>'<span>'+x+'</span>').join("")+'</div>':'')+
+      (t.from?'<div class="tf">きっかけとなった問い合わせ：'+t.from+'</div>':'')+
+      '</div>').join("")+'</div>';
+}
+const PVLB={h:["h","過去事例"],t:["t","Tips"],o:["o","オントロジー補完"],w:["w","過去に非推奨と回答"]};
+function provBlock(c){
+  if(!c.src) return "";
+  return '<span class="prov">'+c.src.map(s=>{
+    const p=PVLB[s[0]];
+    return '<span class="pv '+p[0]+'">'+p[1]+(s[1]?'：'+s[1]:'')+'</span>';
+  }).join("")+'</span>';
+}
+
+function askData(q){
+  cur.p1=q;
+  think("過去の問い合わせ履歴とサポートデスクTipsを検索しています…",()=>{
+    addAI('<p>まず、<b>過去の問い合わせ履歴</b>と<b>サポートデスクのTips</b>を検索しました。'+
+      '同種のご依頼に、当時どのデータを案内したかが残っています。</p>'+
+      hitsBlock(q)+tipsBlock(q)+
+      '<div class="prole">'+q.rag.role+'</div>');
+    setTimeout(()=>{
+      think("過去事例で案内されたデータを、オントロジーで検証・補完しています…",()=>{
+        let h='<p>過去事例で実際に案内されたデータを起点に、<b>オントロジーで検証と補完</b>を行いました。'+
+          '今回のご依頼は次の業務領域・分析テーマに対応します。</p>'+
+          '<div class="intent"><div class="lb">業務領域</div><div class="dm">'+q.dom.full+'</div>'+
+          (q.dom.alt?'<div style="font-size:11px;color:var(--tx3);margin-top:3px">隣接する業務領域：'+q.dom.alt+'</div>':'')+
+          '<hr><div class="lb">分析テーマ</div><div class="th">'+q.intent.theme+'</div>'+
+          '<div style="font-size:12px;color:var(--tx2);margin-bottom:6px">'+q.intent.oneline+'</div>'+
+          q.intent.metrics.map(m=>'<span class="cp m">'+m+'</span>').join("")+
+          q.intent.dims.map(m=>'<span class="cp d">'+m+'</span>').join("")+
+          '<div class="dmnote">'+q.dom.note+'</div></div>'+
+          '<p>過去事例とオントロジーを突き合わせて、候補を <b>'+q.cands.length+'件</b> に整理しました。行をクリックすると詳細をご案内します。</p>'+
+          '<div class="cands">'+q.cands.map((c,i)=>
+            '<button class="cd'+(i===0?' top':'')+'" data-cand="'+i+'">'+
+            '<span class="no">'+(i+1)+'</span><span class="mid">'+
+            '<span class="t1">'+c.name+' <span class="fl '+c.fl[0]+'">'+c.fl[1]+'</span></span>'+
+            '<span class="pth">'+c.path+'</span>'+
+            provBlock(c)+
+            '<span class="wy">'+c.why+'</span>'+
+            '<span class="tr"><b>探索経路</b>　'+fullTrace(q,c).join(" › ")+'</span>'+
+            '</span><span class="rt"><span class="go">詳細 →</span></span></button>').join("")+'</div>'+
+          '<div class="prole">'+q.rag.gap+'</div>'+
+          acc("どうやって探したか（検索と検証の内訳）",
+              '<h5 class="sh">探索ステップ</h5>'+stepsBlock(q)+
+              '<h5 class="sh">同名の指標でも、業務領域が変われば定義が変わります</h5>'+
+              '<p style="font-size:11.5px;color:var(--tx2);margin:0 0 8px">'+q.dom.why+'</p>'+defsBlock(q)+
+              '<h5 class="sh">ナレッジグラフ探索パス（過去事例の裏取りに使用）</h5>'+kgBlock(q),
+              "過去履歴 → Tips → オントロジー検証")+
+          fu([["cmp","候補の違いを比べたい"],["perm","私の権限で参照できる？"],["cau","分析上の注意点は？"]]);
+        addAI(h);
+      },1000);
+    },520);
+  },1000);
+}
+/* ---- 右スライドオーバー（詳細） ---- */
+let dwCtx=null;
+function openDrawer(o){
+  dwCtx=o;
+  $("#dwk").textContent=o.kicker;
+  $("#dwt").innerHTML=o.title;
+  $("#dws").innerHTML=o.sub||"";
+  $("#dws").style.display=o.sub?"":"none";
+  $("#dwb").innerHTML=o.body;
+  $("#dwsend").textContent=o.cta||"この候補で回答案を作る";
+  $("#dw").classList.add("on"); $("#dw").setAttribute("aria-hidden","false");
+  $("#ov").classList.add("on");
+  $("#dwb").scrollTop=0;
+}
+function closeDrawer(){
+  $("#dw").classList.remove("on"); $("#dw").setAttribute("aria-hidden","true");
+  $("#ov").classList.remove("on"); dwCtx=null;
+}
+$("#dwx").addEventListener("click",closeDrawer);
+$("#dwclose").addEventListener("click",closeDrawer);
+$("#ov").addEventListener("click",closeDrawer);
+document.addEventListener("keydown",e=>{if(e.key==="Escape") closeDrawer();});
+$("#dwsend").addEventListener("click",()=>{
+  const o=dwCtx; closeDrawer();
+  if(!o) return;
+  ($(".tab.on").dataset.p==="p1"?dataFollow:permFollow)("send");
+});
+
+/* データマップ（探索経路をハイライトしたナレッジグラフ） */
+function dataMap(q,trace){
+  const p=tracePath(q.kg,trace);
+  return renderKG(q.kg,{path:p})+
+    '<div class="kglg"><span><i></i>この候補に至った探索経路</span><span><s></s>探索したが採用しなかった枝</span></div>';
+}
+
+function candDetail(i){
+  const q=cur.p1,c=q.cands[i],d=c.detail,tr=fullTrace(q,c);
+  const body=
+    '<div class="dwsc"><div style="flex:1"><div class="l3">この候補をご案内する理由</div>'+
+      '<div style="font-size:12.5px;margin-top:2px">'+c.why+'</div>'+provBlock(c)+'</div></div>'+
+    '<div class="intent" style="margin-bottom:12px"><div style="font-size:12.5px">'+d.desc+'</div></div>'+
+    '<dl class="kv" style="margin-bottom:14px">'+
+      '<dt>業務領域</dt><dd>'+candDomain(q,c)+'</dd>'+
+      '<dt>システム</dt><dd>'+c.sys+'</dd>'+
+      '<dt>粒度</dt><dd>'+c.grain+'</dd>'+
+      '<dt>更新タイミング</dt><dd>'+c.fresh+'</dd>'+
+      '<dt>参照可否</dt><dd>'+c.acc+'</dd></dl>'+
+    acc("この候補の根拠（過去事例・Tips）",
+      (c.quote?c.quote.map(x=>x[0]==="tip"
+        ? '<div class="tip" style="border:1px solid #e6d3a4;border-radius:7px;margin-bottom:7px">'+
+          '<div class="tipm"><span class="pin">TIPS</span><span class="tid">'+x[1]+'</span></div>'+
+          '<div class="tb3">'+x[2]+'</div></div>'
+        : '<div class="hit" style="border:1px solid var(--ln);border-radius:7px;margin-bottom:7px">'+
+          '<div class="hitm"><span class="tid">'+x[1]+'</span></div>'+
+          '<div class="hita" style="border:0;padding:0;margin:0">'+x[2]+'</div></div>').join("")
+        :'<p style="font-size:12px;color:var(--tx2);margin:0">過去の問い合わせ履歴には該当がありませんでした。'+
+         'この候補は<b>オントロジーによる補完</b>で提示しています。</p>')+
+      '<h5 class="sh">オントロジーによる裏取り</h5><table class="tb"><tr><th>種別</th><th>内容</th></tr>'+
+      c.evid.map(e=>'<tr><td>'+e[0]+'</td><td>'+e[1]+'</td></tr>').join("")+'</table>',
+      "過去事例と裏取り", true)+
+    acc("オントロジー上の探索経路（データマップ）",
+      '<h5 class="sh">業務概念から物理データまでの経路</h5>'+bcrumb(tr)+
+      '<h5 class="sh">ナレッジグラフ上の位置</h5>'+dataMap(q,tr),"補強")+
+    acc("主要な項目",'<div>'+d.attrs.map(a=>'<span class="att '+a[1]+'">'+a[0]+'</span>').join("")+'</div>'+
+      (d.joins?'<h5 class="sh">結合するデータ</h5><table class="tb"><tr><th>テーブル</th><th>結合キー</th><th>用途</th></tr>'+
+        d.joins.map(j=>'<tr><td class="m">'+j[0]+'</td><td class="m">'+j[1]+'</td><td>'+j[2]+'</td></tr>').join("")+'</table>':''),
+      d.attrs.length+" 項目")+
+    acc("使ううえでの注意点（現場ナレッジ）",'<ul class="t">'+d.cautions.map(x=>'<li>'+x+'</li>').join("")+'</ul>',d.cautions.length+" 件")+
+    (d.sql?acc("サンプルSQL",'<pre class="code">'+d.sql+'</pre>'):"")+
+    acc("データオーナー・利用申請",'<dl class="kv">'+d.gov.map(g=>'<dt>'+g[0]+'</dt><dd>'+g[1]+'</dd>').join("")+'</dl>'+
+      (d.note?'<div class="note">'+d.note+'</div>':''));
+  openDrawer({kicker:"候補 "+(i+1)+" ／ "+q.cands.length+"　データの詳細",
+    title:esc(c.name)+' <span class="fl '+c.fl[0]+'">'+c.fl[1]+'</span>',
+    sub:c.path, body, cta:"この内容で回答案を作る"});
+}
+function dataFollow(k){
+  const q=cur.p1; if(!q) return;
+  const L={cmp:"候補の違いを比べたい",perm:"私の権限で参照できますか？",cau:"分析上の注意点を教えて",send:"この内容で業務部門へ回答する"};
+  addUser(L[k]);
+  think("確認しています…",()=>{
+    let h="";
+    if(k==="cmp"){
+      h='<p>5件の候補を、実務で選ぶときに効く観点で比較します。</p><div class="cands" style="padding:13px 15px">'+
+        '<table class="tb"><tr><th>#</th><th>データ</th><th>業務領域</th><th>粒度</th><th>更新</th><th>位置づけ</th><th>参照可否</th></tr>'+
+        q.cands.map((c,i)=>'<tr><td>'+(i+1)+'</td><td><b>'+c.name+'</b><br><span class="m" style="font-size:10px">'+c.path+'</span></td>'+
+        '<td>'+candDomain(q,c)+'</td><td>'+c.grain+'</td><td>'+c.fresh+'</td>'+
+        '<td><span class="fl '+c.fl[0]+'">'+c.fl[1]+'</span></td><td>'+c.acc+'</td></tr>').join("")+'</table></div>'+
+        '<p style="font-size:12.5px">'+q.compare+'</p>';
+    }else if(k==="perm"){
+      h='<p>'+q.permNote+'</p>'+
+        '<p style="font-size:12px;color:var(--tx2)">権限の詳しい診断（どの段階で止まっているか・申請手順）は、上部の <b>「権限照会」</b> タブでご確認いただけます。</p>';
+    }else if(k==="cau"){
+      h='<p>この分析テーマで、数値の解釈を誤りやすい点をまとめます。</p><ul class="t">'+q.cands[0].detail.cautions.map(x=>'<li>'+x+'</li>').join("")+'</ul>';
+    }else{
+      h='<p>回答案を作成しました。担当者の確認後、問い合わせ元へ送信されます。</p>'+
+        '<div class="intent" style="font-size:12.5px;white-space:pre-wrap">'+esc(q.reply)+'</div>'+
+        '<p style="font-size:12px;color:var(--tx3)">※ 本モックでは実際の送信は行われません。</p>';
+    }
+    addAI(h+fu([["cmp","候補の違いを比べたい"],["cau","分析上の注意点は？"]]));
+  },700);
+}
+
+/* ===================== 画面2：権限照会 ===================== */
+function askPerm(q){
+  cur.p2=q;
+  think("過去の同種インシデントとサポートデスクTipsを検索しています…",()=>{
+    addAI('<p>まず、<b>過去の同種インシデント</b>と<b>サポートデスクのTips</b>を検索しました。'+
+      'この種の事象は再発が多く、当時の切り分けと回答がそのまま使えることがあります。</p>'+
+      hitsBlock(q)+tipsBlock(q)+
+      '<div class="prole">'+q.rag.role+'</div>');
+    setTimeout(()=>{
+      think("過去事例の切り分けを、権限グラフと監査ログで裏取りしています…",()=>{
+        let h='<p>過去事例で示された原因を起点に、<b>この利用者の実際の権限経路</b>を確認しました。'+
+          '考えられる原因 <b>'+q.cands.length+'件</b> の検証結果です。</p>'+
+          '<div class="cands">'+q.cands.map((c,i)=>
+            '<button class="cd'+(c.fl[0]==="ng"?" top":"")+'" data-pcand="'+i+'">'+
+            '<span class="no">'+(i+1)+'</span><span class="mid">'+
+            '<span class="t1">'+c.name+' <span class="fl '+c.fl[0]+'">'+c.fl[1]+'</span></span>'+
+            '<span class="wy">'+c.why+'</span>'+
+            '<span class="tr"><b>確認元</b>　'+c.src+'</span>'+
+            '</span><span class="rt"><span class="go">詳細 →</span></span></button>').join("")+'</div>'+
+          '<p><b>結論：</b>'+q.verdict+'</p>'+
+          '<div class="prole">'+q.rag.gap+'</div>'+
+          acc("どうやって切り分けたか（検索と裏取りの内訳）",
+            '<h5 class="sh">診断ステップ</h5>'+stepsBlock(q)+
+            '<h5 class="sh">権限グラフ（過去事例の裏取りに使用）</h5>'+kgBlock(q),
+            "過去履歴 → Tips → 権限グラフ")+
+          fu([["act","対応手順を教えて"],["alt","すぐ使える代替手段は？"],["log","監査ログを見たい"]]);
+        addAI(h);
+      },1000);
+    },520);
+  },1000);
+}
+function pcandDetail(i){
+  const q=cur.p2,c=q.cands[i];
+  const hit=c.fl[0]==="ng";
+  let body=
+    '<div class="dwsc"><div style="flex:1"><div class="l3">'+(hit?"この仮説が該当すると判断した理由":"この仮説を否定した理由")+'</div>'+
+      '<div style="font-size:12.5px;margin-top:2px">'+c.why+'</div></div></div>'+
+    '<div class="intent" style="margin-bottom:12px"><div style="font-size:12.5px">'+c.detail+'</div></div>'+
+    acc("権限グラフ上の経路（データマップ）",
+      '<p style="font-size:12px;color:var(--tx2);margin:0 0 8px">'+
+      (hit?'この仮説が示す経路です。<b>赤いノードが不足している段階</b>で、そこから先の経路が成立していません。'
+          :'参考として、実際に成立している／切断されている権限経路を表示します。本仮説は上記のとおり<b>否定されています</b>。')+
+      '</p>'+renderKG(q.kg,{path:q.qpath})+
+      '<div class="kglg"><span><i></i>実際に評価された経路</span><span><s></s>その他の枝</span></div>'+
+      '<h5 class="sh">確認元</h5><p style="font-size:11.5px;color:var(--tx2);margin:0">'+c.src+'</p>',
+      hit?"該当経路":"参考", true)+
+    (c.chain?acc("権限チェーン（どこで止まっているか）",'<ul class="chain">'+c.chain.map(x=>
+      '<li><span class="st '+x[0]+'">'+(x[0]==="ok"?"✓":x[0]==="ng"?"✕":"!")+'</span><span style="flex:1">'+
+      '<span class="lb">'+x[1]+'</span><b>'+x[2]+'</b><p>'+x[3]+'</p></span></li>').join("")+'</ul>',"5 段階"):"")+
+    (c.pol?acc("適用されているポリシー定義",c.pol.map(p=>
+      '<h5 class="sh">'+p[0]+'</h5><p style="font-size:12px;color:var(--tx2);margin:0 0 6px">'+p[1]+'</p>'+
+      (p[2]?'<pre class="code">'+esc(p[2]).replace(/\n/g,"<br>")+'</pre>':'')).join(""),c.pol.length+" 件"):"");
+  openDrawer({kicker:"候補 "+(i+1)+" ／ "+q.cands.length+"　原因仮説の検証結果",
+    title:esc(c.name)+' <span class="fl '+c.fl[0]+'">'+c.fl[1]+'</span>',
+    sub:"", body, cta:"この内容で回答案を作る"});
+}
+function permFollow(k){
+  const q=cur.p2; if(!q) return;
+  const L={act:"対応手順を教えてください",alt:"すぐ使える代替手段はありますか？",log:"監査ログを見たい",send:"この内容で業務部門へ回答する"};
+  addUser(L[k]);
+  think("確認しています…",()=>{
+    let h="";
+    if(k==="act"){
+      h='<p>この順にお進みください。所要は合計 <b>'+q.lead+'</b> の見込みです。</p><div class="cands" style="padding:13px 15px">'+
+        q.actions.map((a,i)=>'<div class="act"><div class="n3">'+(i+1)+'</div><div style="flex:1"><b>'+a[0]+'</b><p>'+a[1]+'</p>'+
+        '<div class="mt">'+a[2].map(m=>'<span>'+m+'</span>').join("")+'</div></div></div>').join("")+'</div>';
+    }else if(k==="alt"){
+      h='<p>'+q.alt+'</p>';
+    }else if(k==="log"){
+      h='<p>この利用者の直近イベントです。</p><div class="cands" style="padding:10px 14px"><table class="tb">'+
+        '<tr><th>日時</th><th>操作</th><th>対象</th><th>結果</th></tr>'+
+        q.audit.map(a=>'<tr><td class="m">'+a[0]+'</td><td class="m">'+a[1]+'</td><td class="m">'+a[2]+'</td>'+
+        '<td class="m" style="color:'+(a[3].indexOf("DENY")===0?"var(--ng)":"var(--ok)")+';font-weight:700">'+a[3]+'</td></tr>').join("")+'</table></div>';
+    }else{
+      h='<p>回答案を作成しました。</p><div class="intent" style="font-size:12.5px;white-space:pre-wrap">'+esc(q.reply)+'</div>'+
+        '<p style="font-size:12px;color:var(--tx3)">※ 本モックでは実際の送信・権限付与は行われません。</p>';
+    }
+    addAI(h+fu([["act","対応手順を教えて"],["alt","代替手段は？"],["log","監査ログを見たい"]]));
+  },700);
+}
+
+/* ===================== 入力・イベント ===================== */
+function curSet(){return $(".tab.on").dataset.p==="p1"?DATA_Q:PERM_Q;}
+function match(txt){
+  const set=curSet();
+  let best=null,bs=0;
+  set.forEach(q=>{
+    let s=0; q.kw.forEach(k=>{if(txt.indexOf(k)>=0) s+=k.length;});
+    if(s>bs){bs=s;best=q;}
+  });
+  return bs>0?best:null;
+}
+function send(txt){
+  if(!txt.trim()) return;
+  const p=$(".tab.on").dataset.p;
+  const q=match(txt);
+  const who=q?q.dept+" "+q.user+" ・ "+q.tkt:"業務部門からの問い合わせ";
+  addUser(txt,who);
+  if(!q){
+    think("照合しています…",()=>{
+      addAI('<p>申し訳ありません。本デモでは以下のサンプル質問に対する回答のみを用意しています。下部のサンプル質問からお選びください。</p>'+
+        '<ul class="t">'+curSet().map(x=>'<li>'+esc(x.sample)+'</li>').join("")+'</ul>');
+    },600);
+    return;
+  }
+  (p==="p1"?askData:askPerm)(q);
+}
+function renderChips(){
+  const set=curSet();
+  $("#chips").innerHTML=set.map((q,i)=>'<button class="chip" data-chip="'+i+'"><b>'+q.dept+'</b>'+esc(q.sample)+'</button>').join("");
+}
+function renderIntro(){
+  const p1=$("#p1"),p2=$("#p2");
+  if(!p1.innerHTML) p1.innerHTML='<div class="intro"><h1>業務部門からの問い合わせを入力してください</h1>'+
+    '<p>まず<b>過去の問い合わせ履歴</b>と<b>サポートデスクのTips</b>を検索し、同種の依頼に当時どう回答したかを取り出します。<br>'+
+    'そのうえで<b>業務オントロジー</b>（業務概念→業務領域→業務プロセス→業務対象→指標→物理データ）を辿り、<br>'+
+    '過去事例の裏取りと、履歴に無い要件の補完を行います。行をクリックすると根拠・注意点・SQLまで展開します。</p></div>';
+  if(!p2.innerHTML) p2.innerHTML='<div class="intro"><h1>権限に関する事象を入力してください</h1>'+
+    '<p>「データは見えるのにSELECTできない」といった事象は再発が多く、まず<b>過去の同種インシデント</b>と<b>Tips</b>を検索します。<br>'+
+    'そのうえで<b>権限グラフ</b>（利用者→ロール→権限→オブジェクト→ポリシー）でこの利用者の実際の経路を裏取りし、<br>'+
+    '原因の候補・どこで止まっているか・ネクストアクションまでご案内します。</p></div>';
+}
+
+$("#ta").addEventListener("input",e=>{
+  e.target.style.height="auto"; e.target.style.height=Math.min(e.target.scrollHeight,120)+"px";
+  $("#snd").disabled=!e.target.value.trim();
+});
+$("#ta").addEventListener("keydown",e=>{
+  if(e.isComposing||e.keyCode===229) return;   /* 日本語入力の変換確定を送信としない */
+  if(e.key==="Enter"&&!e.shiftKey){e.preventDefault();const v=e.target.value;e.target.value="";e.target.style.height="auto";$("#snd").disabled=true;send(v);}
+});
+$("#snd").addEventListener("click",()=>{const t=$("#ta");const v=t.value;t.value="";t.style.height="auto";$("#snd").disabled=true;send(v);});
+
+document.addEventListener("click",e=>{
+  const chip=e.target.closest("[data-chip]");
+  if(chip){const q=curSet()[+chip.dataset.chip];send(q.question);return;}
+  const cd=e.target.closest("[data-cand]"); if(cd){candDetail(+cd.dataset.cand);return;}
+  const pd=e.target.closest("[data-pcand]"); if(pd){pcandDetail(+pd.dataset.pcand);return;}
+  const f=e.target.closest("[data-fu]");
+  if(f){ ($(".tab.on").dataset.p==="p1"?dataFollow:permFollow)(f.dataset.fu); return;}
+});
+document.querySelectorAll(".tab").forEach(t=>t.addEventListener("click",()=>{
+  document.querySelectorAll(".tab").forEach(x=>x.classList.remove("on"));
+  t.classList.add("on");
+  const kg=t.dataset.p==="p3";
+  document.body.classList.toggle("kgmode",kg);
+  document.querySelectorAll(".pane,.kgpane").forEach(p=>p.classList.remove("on"));
+  $("#"+t.dataset.p).classList.add("on");
+  if(kg){ if(window.fitView) fitView(); return; }
+  renderChips(); scroll();
+}));
+
+renderIntro(); renderChips();
+
+/* =====================================================================
+   ナレッジグラフ（業務オントロジー × 接続オントロジー × データオントロジー）
+   ノード型・OWLプロパティ・レイヤ構成は業務データ・ナレッジグラフの定義に準拠
+   ===================================================================== */
+const ONT={
+ cls:{
+  Ontology:         {ja:"オントロジー",  layer:"business", c:["#1b4d7e","#123a63","#ffffff"]},
+  BusinessDomain:   {ja:"業務領域",      layer:"business", c:["#dde8f4","#7fa3c8","#16395c"]},
+  BusinessProcess:  {ja:"業務プロセス",  layer:"business", c:["#e7eff8","#9cbadb","#1b4d7e"]},
+  BusinessEntity:   {ja:"業務対象",      layer:"business", c:["#f0edf9","#c2b6e2","#5a4a8c"]},
+  BusinessEvent:    {ja:"業務イベント",  layer:"business", c:["#fdf3e6","#e5c99a","#8a5a06"]},
+  BusinessMetric:   {ja:"業務指標",      layer:"business", c:["#e7f5ee","#a9d6bf","#146c4b"]},
+  BusinessAttribute:{ja:"業務属性",      layer:"business", c:["#eef2e8","#c4d1b2","#4f6136"]},
+  BusinessConcept:  {ja:"業務概念",      layer:"business", c:["#f7f1e3","#ddcda6","#7a6134"]},
+  BusinessRole:     {ja:"業務ロール",    layer:"business", c:["#fbeef1","#e8bfc9","#8c3f52"]},
+  Database:         {ja:"データベース",  layer:"data",     c:["#e3eef3","#a6c6d5","#1f5a72"]},
+  Schema:           {ja:"スキーマ",      layer:"data",     c:["#e9f2f6","#b5d2de","#2b6b83"]},
+  Table:            {ja:"テーブル",      layer:"data",     c:["#ddeef5","#8fc0d4","#0f5f7a"]},
+  Column:           {ja:"カラム",        layer:"data",     c:["#eef6fa","#bcd8e5","#3d7b93"]},
+  SupportTicket:    {ja:"根拠QA",        layer:"evidence", c:["#fcf3e2","#e3c894","#8a5f14"]},
+  DeskTip:          {ja:"デスクTips",    layer:"evidence", c:["#fbf0d8","#dcbf7e","#8a5f14"]}
+ },
+ props:{
+  hasDomain:          {ja:"業務領域を持つ",               layer:"business"},
+  belongsToDomain:    {ja:"業務領域に属する",             layer:"business"},
+  handlesEntity:      {ja:"業務対象を扱う",               layer:"business"},
+  hasEvent:           {ja:"業務イベントを持つ",           layer:"business"},
+  measuredBy:         {ja:"業務指標で計測される",         layer:"business"},
+  hasAttribute:       {ja:"業務属性を持つ",               layer:"business"},
+  mentionedInProcess: {ja:"業務プロセスで言及される",     layer:"business"},
+  usesData:           {ja:"データ資産を利用する",         layer:"mapping"},
+  backedBy:           {ja:"物理データで実装される",       layer:"mapping"},
+  computedFrom:       {ja:"物理データから計算される",     layer:"mapping"},
+  mappedToColumn:     {ja:"物理カラムへ対応付けられる",   layer:"mapping"},
+  resolvedTo:         {ja:"データ資産に解決される",       layer:"mapping"},
+  storedIn:           {ja:"格納される",                   layer:"data"},
+  partOf:             {ja:"構成要素である",               layer:"data"},
+  joinsWith:          {ja:"結合できる",                   layer:"data"},
+  raisesQuestion:     {ja:"質問を提起する",               layer:"evidence"},
+  aboutProcess:       {ja:"業務プロセスを対象とする",     layer:"evidence"},
+  resolvedBy:         {ja:"検索結果としてデータ資産を返す",layer:"evidence"},
+  appliesTo:          {ja:"Tipsの適用対象",             layer:"evidence"},
+  derivedFrom:        {ja:"この問い合わせから得られた",   layer:"evidence"}
+ }
+};
+
+/* ---- 業務領域と業務プロセス（業務領域＝分析用データベースが1対1で対応） ---- */
+const DOMSPEC=[
+{id:"retail",l:"リテール",db:"VDB_RETAIL_ANALYTICS",owner:"リテールデータオフィス",procs:[
+ {id:"customer",l:"個人顧客管理",t:"CUSTOMER",ent:"顧客",ev:"顧客情報更新",met:"顧客数",cc:["顧客属性","名寄せ"],role:"リテール企画部"},
+ {id:"deposit",l:"個人預金",t:"DEPOSIT",ent:"預金口座",ev:"入出金",met:"預金残高",cc:["預金","残高"],role:"個人業務部"},
+ {id:"housing_loan",l:"住宅ローン",t:"HOUSING_LOAN",ent:"住宅ローン契約",ev:"実行・返済・延滞",met:"延滞率",cc:["住宅ローン","延滞","繰上返済"],role:"融資企画部"},
+ {id:"consumer_loan",l:"消費性ローン",t:"CONSUMER_LOAN",ent:"カードローン契約",ev:"借入・返済",met:"貸出残高",cc:["カードローン","与信枠"],role:"融資企画部"},
+ {id:"wealth",l:"資産運用",t:"WEALTH",ent:"投資信託保有",ev:"購入・解約",met:"解約率",cc:["投資信託","解約","預り資産"],role:"リテール推進部"},
+ {id:"nisa",l:"NISA",t:"NISA",ent:"NISA口座",ev:"買付・非課税枠利用",met:"買付額",cc:["NISA","非課税枠"],role:"リテール推進部"},
+ {id:"olive_card",l:"カード・Olive",t:"OLIVE_CARD",ent:"カード契約",ev:"決済",met:"決済件数",cc:["カード","決済"],role:"決済事業部"},
+ {id:"transfer",l:"振込・決済",t:"TRANSFER",ent:"振込取引",ev:"振込実行",met:"振込件数",cc:["振込","手数料"],role:"決済事業部"},
+ {id:"digital_channel",l:"デジタルチャネル",t:"DIGITAL_CHANNEL",ent:"アプリ利用",ev:"ログイン・操作",met:"アクティブ利用者数",cc:["アプリ","ログイン"],role:"デジタル戦略部"},
+ {id:"branch_contact",l:"店頭・コンタクト",t:"BRANCH_CONTACT",ent:"来店・受付",ev:"発券・呼出",met:"平均待ち時間",cc:["窓口","待ち時間","来店"],role:"チャネル戦略部"},
+ {id:"campaign",l:"キャンペーン",t:"CAMPAIGN",ent:"キャンペーン対象",ev:"提案・反応",met:"反応率",cc:["キャンペーン","提案"],role:"マーケティング部"},
+ {id:"onboarding",l:"口座開設",t:"ONBOARDING",ent:"開設申込",ev:"申込・審査",met:"開設完了率",cc:["口座開設","申込"],role:"事務統括部"},
+ {id:"consent",l:"同意管理",t:"CONSENT",ent:"同意記録",ev:"同意取得・撤回",met:"同意取得率",cc:["同意","利用目的"],role:"CPO室"},
+ {id:"profitability",l:"収益管理",t:"PROFITABILITY",ent:"顧客収益",ev:"収益計上",met:"顧客別収益",cc:["収益","採算"],role:"経営企画部"}
+]},
+{id:"wholesale",l:"ホールセール",db:"VDB_WHOLESALE_ANALYTICS",owner:"法人データオフィス",procs:[
+ {id:"corp_customer",l:"法人顧客管理",t:"CORP_CUSTOMER",ent:"法人顧客",ev:"属性更新",met:"取引先数",cc:["法人顧客","業種","企業グループ"],role:"法人営業部"},
+ {id:"corp_deposit",l:"法人預金",t:"CORP_DEPOSIT",ent:"法人預金口座",ev:"入出金",met:"月中平残",cc:["法人預金","平残"],role:"法人営業部"},
+ {id:"corp_loan",l:"法人融資",t:"CORP_LOAN",ent:"融資契約",ev:"実行・返済",met:"貸出残高",cc:["融資","実行"],role:"法人営業部"},
+ {id:"credit_review",l:"与信審査",t:"CREDIT_REVIEW",ent:"審査案件",ev:"稟議・決裁",met:"審査所要日数",cc:["審査","稟議"],role:"審査部"},
+ {id:"trade_finance",l:"貿易金融",t:"TRADE_FINANCE",ent:"信用状",ev:"信用状発行・決済",met:"取扱高",cc:["貿易金融","信用状"],role:"国際業務部"},
+ {id:"cash_management",l:"キャッシュマネジメント",t:"CASH_MANAGEMENT",ent:"CMSサービス",ev:"資金移動",met:"利用社数",cc:["CMS","資金管理"],role:"トランザクション業務部"},
+ {id:"solution",l:"ソリューション営業",t:"SOLUTION",ent:"提案案件",ev:"提案・成約",met:"成約率",cc:["提案","成約"],role:"法人企画部"}
+]},
+{id:"markets",l:"市場",db:"VDB_MARKETS_ANALYTICS",owner:"市場データオフィス",procs:[
+ {id:"fx",l:"外国為替",t:"FX",ent:"為替ポジション",ev:"約定",met:"為替収益",cc:["為替","FX"],role:"市場営業部"},
+ {id:"rates_bonds",l:"金利・債券",t:"RATES_BONDS",ent:"債券ポジション",ev:"売買",met:"評価損益",cc:["債券","金利"],role:"市場運用部"},
+ {id:"derivatives",l:"デリバティブ",t:"DERIVATIVES",ent:"デリバティブ契約",ev:"約定・評価",met:"想定元本",cc:["デリバティブ","スワップ"],role:"市場営業部"},
+ {id:"position_pnl",l:"ポジション・損益",t:"POSITION_PNL",ent:"トレーディングポジション",ev:"日次評価",met:"日次損益",cc:["ポジション","損益"],role:"市場管理部"},
+ {id:"alm",l:"ALM",t:"ALM",ent:"ALMポジション",ev:"ギャップ更新",met:"金利感応度",cc:["ALM","金利リスク"],role:"ALM担当"}
+]},
+{id:"global",l:"グローバル",db:"VDB_GLOBAL_ANALYTICS",owner:"国際データオフィス",procs:[
+ {id:"global_customer",l:"海外顧客管理",t:"GLOBAL_CUSTOMER",ent:"海外顧客",ev:"属性更新",met:"海外取引先数",cc:["海外顧客","現地法人"],role:"国際業務部"},
+ {id:"crossborder_loan",l:"クロスボーダー融資",t:"CROSSBORDER_LOAN",ent:"海外融資契約",ev:"実行・返済",met:"海外貸出残高",cc:["クロスボーダー","海外融資"],role:"国際業務部"},
+ {id:"global_cash",l:"グローバル資金管理",t:"GLOBAL_CASH",ent:"海外資金ポジション",ev:"資金移動",met:"通貨別残高",cc:["資金管理","通貨"],role:"資金証券部"},
+ {id:"country_risk",l:"カントリーリスク",t:"COUNTRY_RISK",ent:"国別エクスポージャー",ev:"格付更新",met:"国別与信残高",cc:["カントリーリスク","国別与信"],role:"リスク統括部"}
+]},
+{id:"risk",l:"リスク",db:"VDB_ENTERPRISE_RISK",owner:"リスク統括部",procs:[
+ {id:"credit_risk",l:"信用リスク",t:"CREDIT_RISK",ent:"与信エクスポージャー",ev:"格付・引当",met:"予想損失",cc:["信用リスク","格付","引当"],role:"リスク統括部"},
+ {id:"market_risk",l:"市場リスク",t:"MARKET_RISK",ent:"市場ポジション",ev:"日次計測",met:"VaR",cc:["市場リスク","VaR"],role:"リスク統括部"},
+ {id:"liquidity_risk",l:"流動性リスク",t:"LIQUIDITY_RISK",ent:"流動性ポジション",ev:"日次計測",met:"流動性カバレッジ比率",cc:["流動性","LCR"],role:"リスク統括部"},
+ {id:"operational_risk",l:"オペレーショナルリスク",t:"OPERATIONAL_RISK",ent:"損失事象",ev:"事象登録",met:"損失額",cc:["オペリスク","損失事象"],role:"リスク統括部"},
+ {id:"risk_appetite",l:"リスクアペタイト",t:"RISK_APPETITE",ent:"RAF指標",ev:"モニタリング",met:"限度枠使用率",cc:["リスクアペタイト","限度枠"],role:"リスク統括部"},
+ {id:"stress_test",l:"ストレステスト",t:"STRESS_TEST",ent:"ストレスシナリオ",ev:"シナリオ実行",met:"ストレス後自己資本比率",cc:["ストレステスト","シナリオ"],role:"リスク統括部"}
+]},
+{id:"compliance",l:"コンプライアンス・AML",db:"VDB_COMPLIANCE_AML",owner:"コンプライアンス統括部",procs:[
+ {id:"aml_monitoring",l:"AML取引モニタリング",t:"AML_MONITORING",ent:"モニタリング対象取引",ev:"アラート検知・調査",met:"アラート件数",cc:["マネロン","アラート","取引モニタリング"],role:"金融犯罪対策室"},
+ {id:"kyc_cdd",l:"KYC/CDD",t:"KYC_CDD",ent:"顧客確認記録",ev:"確認・更新",met:"確認完了率",cc:["KYC","顧客確認"],role:"金融犯罪対策室"},
+ {id:"sanctions",l:"制裁スクリーニング",t:"SANCTIONS",ent:"スクリーニング対象",ev:"照合・判定",met:"ヒット件数",cc:["制裁","スクリーニング"],role:"金融犯罪対策室"},
+ {id:"privacy",l:"個人情報保護",t:"PRIVACY",ent:"個人データ利用",ev:"利用目的登録",met:"目的外利用件数",cc:["個人情報","利用目的"],role:"CPO室"},
+ {id:"conduct",l:"コンダクト",t:"CONDUCT",ent:"苦情・不芳事象",ev:"受付・対応",met:"苦情件数",cc:["苦情","コンダクト"],role:"コンプライアンス統括部"}
+]},
+{id:"finance",l:"財務・経営管理",db:"VDB_FINANCE_MANAGEMENT",owner:"財務部",procs:[
+ {id:"general_ledger",l:"総勘定元帳",t:"GENERAL_LEDGER",ent:"仕訳",ev:"記帳",met:"勘定残高",cc:["元帳","仕訳"],role:"財務部"},
+ {id:"management_accounting",l:"管理会計",t:"MANAGEMENT_ACCOUNTING",ent:"部門損益",ev:"配賦",met:"部門別収益",cc:["管理会計","配賦"],role:"経営企画部"},
+ {id:"capital",l:"自己資本管理",t:"CAPITAL",ent:"自己資本",ev:"RWA計測",met:"自己資本比率",cc:["自己資本","RWA"],role:"財務部"}
+]},
+{id:"data_management",l:"データマネジメント",db:"VDB_DATA_GOVERNANCE",owner:"データ管理部",procs:[
+ {id:"catalog_glossary",l:"カタログ・用語集",t:"CATALOG_GLOSSARY",ent:"データ資産",ev:"登録・更新",met:"登録資産数",cc:["データカタログ","用語集"],role:"データ管理部"},
+ {id:"lineage_access",l:"リネージ・アクセス",t:"LINEAGE_ACCESS",ent:"アクセス権限",ev:"付与・剥奪",met:"権限付与件数",cc:["権限","リネージ"],role:"データ管理部"},
+ {id:"ownership_quality",l:"オーナーシップ・品質",t:"OWNERSHIP_QUALITY",ent:"データ品質指標",ev:"品質計測",met:"品質スコア",cc:["データ品質","オーナー"],role:"データ管理部"}
+]}
+];
+
+/* ---- 全ドメイン共通の参照データ ---- */
+const REFTBL=[
+ {n:"T_CUSTOMER_GOLDEN",d:"統合顧客マスター",cols:["customer_id","party_id","customer_type_code","age_band_code","organization_id","status_code","effective_from","effective_to"]},
+ {n:"T_ORGANIZATION",d:"組織マスター（部店）",cols:["organization_id","organization_name","organization_type","parent_organization_id","effective_from","effective_to"]},
+ {n:"T_PRODUCT",d:"商品マスター",cols:["product_id","product_name","product_category","domain_code","effective_from","effective_to"]},
+ {n:"T_CALENDAR",d:"営業日カレンダー",cols:["calendar_date","fiscal_year","fiscal_month","business_day_flag","month_end_flag"]}
+];
+const COLSET={
+ event: b=>[[b+"_event_id",1],[b+"_id",0],["customer_id",0],["organization_id",0],["product_id",0],["event_timestamp",0],["event_type_code",0],["amount",0],["currency_code",0],["channel_code",0],["processing_status_code",0]],
+ mart:  b=>[["business_date",1],[b+"_id",1],["metric_code",1],["customer_id",0],["organization_id",0],["product_id",0],["metric_value",0],["risk_flag",0],["quality_status_code",0],["currency_code",0],["snapshot_timestamp",0]],
+ master:b=>[[b+"_id",1],["customer_id",0],["organization_id",0],["product_id",0],["status_code",0],["effective_from",0],["effective_to",0],["source_system_code",0],["record_updated_at",0]]
+};
+
+/* ---- グラフの構築（仕様からノードとトリプルを生成） ---- */
+const N={}, E=[];
+function node(id,t,l,extra){ N[id]=Object.assign({id,t,l},extra||{}); return id; }
+function tri(s,p,o){ E.push({s,p,o}); }
+
+(function buildKG(){
+  const ROOT=node("bank:KnowledgeGraph","Ontology","業務データ・ナレッジグラフ",
+    {d:"公開情報を基に生成した完全な合成データであり、実在する内部構造を表さない。",gen:"2026-08-20"});
+  /* 全社共通の参照データベース */
+  node("res:db/VDB_ENTERPRISE_REFERENCE","Database","VDB_ENTERPRISE_REFERENCE",{d:"全社共通の参照データベース"});
+  node("res:schema/VDB_ENTERPRISE_REFERENCE.reference","Schema","reference",{d:"全ドメインから結合される参照系スキーマ"});
+  tri("res:schema/VDB_ENTERPRISE_REFERENCE.reference","storedIn","res:db/VDB_ENTERPRISE_REFERENCE");
+  REFTBL.forEach(r=>{
+    const tid="res:table/VDB_ENTERPRISE_REFERENCE.reference."+r.n;
+    node(tid,"Table",r.n,{d:r.d,dom:"shared",full:"VDB_ENTERPRISE_REFERENCE.reference."+r.n,sch:"reference"});
+    tri(tid,"storedIn","res:schema/VDB_ENTERPRISE_REFERENCE.reference");
+    r.cols.forEach(c=>{
+      const cid=tid+"."+c;
+      node(cid,"Column",c,{d:"参照系の共通項目",dom:"shared",key:c.endsWith("_id")&&r.cols.indexOf(c)===0});
+      tri(cid,"partOf",tid);
+    });
+  });
+
+  let tk=0;
+  DOMSPEC.forEach(dm=>{
+    const did="res:domain/"+dm.id;
+    node(did,"BusinessDomain",dm.l,{d:dm.l+"業務を束ねる業務領域。分析用データベース "+dm.db+" が対応する。",dom:dm.id,owner:dm.owner,db:dm.db});
+    tri(ROOT,"hasDomain",did);
+    /* ドメイン専用データベースとスキーマ */
+    const dbid="res:db/"+dm.db;
+    node(dbid,"Database",dm.db,{d:dm.l+"領域の分析用データベース",dom:dm.id});
+    ["event","mart","master"].forEach(s=>{
+      const sid="res:schema/"+dm.db+"."+s;
+      node(sid,"Schema",s,{dom:dm.id,d:{event:"業務イベントの明細を保持する層",mart:"日次スナップショット・集計値を保持する層",master:"業務対象の属性と有効期間を保持する層"}[s]});
+      tri(sid,"storedIn",dbid);
+    });
+
+    dm.procs.forEach(p=>{
+      const pid="res:subdomain/"+dm.id+"/"+p.id;
+      node(pid,"BusinessProcess",p.l,{d:dm.l+"領域における"+p.l+"の一連の業務活動。",dom:dm.id,owner:dm.owner});
+      tri(pid,"belongsToDomain",did);
+
+      const eid="res:object_type/"+dm.id+"_"+p.id;
+      node(eid,"BusinessEntity",p.ent,{d:"問い合わせ履歴から帰納した"+p.ent+"の業務対象",dom:dm.id,st:"candidate"});
+      tri(pid,"handlesEntity",eid);
+
+      const vid="res:event_type/"+dm.id+"_"+p.id;
+      node(vid,"BusinessEvent",p.ev,{d:p.ent+"に対して発生する"+p.ev+"の業務イベント",dom:dm.id,st:"candidate"});
+      tri(eid,"hasEvent",vid);
+
+      const mid="res:metric_type/"+dm.id+"_"+p.id;
+      node(mid,"BusinessMetric",p.met,{d:p.l+"を計測する業務指標。定義は"+dm.l+"領域のものが適用される。",dom:dm.id,st:"candidate"});
+      tri(eid,"measuredBy",mid);
+
+      /* 物理テーブル3層 */
+      const base=p.t.toLowerCase();
+      const T={
+        event:{full:dm.db+".event.F_"+p.t+"_EVENT", n:"F_"+p.t+"_EVENT", d:p.l+"の明細イベント", sch:"event"},
+        mart: {full:dm.db+".mart.S_"+p.t+"_DAILY",  n:"S_"+p.t+"_DAILY",  d:p.l+"の日次スナップショット", sch:"mart"},
+        master:{full:dm.db+".master.M_"+p.t,        n:"M_"+p.t,           d:p.l+"のマスター", sch:"master"}
+      };
+      const tids={};
+      Object.keys(T).forEach(k=>{
+        const t=T[k], tid="res:table/"+t.full;
+        tids[k]=tid;
+        node(tid,"Table",t.n,{d:t.d,dom:dm.id,full:t.full,sch:t.sch,proc:p.l});
+        tri(tid,"storedIn","res:schema/"+dm.db+"."+t.sch);
+        tri(pid,"usesData",tid);
+        COLSET[k](base).forEach(c=>{
+          const cid=tid+"."+c[0];
+          node(cid,"Column",c[0],{dom:dm.id,key:!!c[1],d:c[0]+"（"+t.d+"の項目）"});
+          tri(cid,"partOf",tid);
+        });
+      });
+      /* 接続オントロジー：業務→物理 */
+      tri(vid,"backedBy",tids.event);
+      tri(mid,"computedFrom",tids.mart);
+      tri(tids.event,"joinsWith",tids.master);
+      tri(tids.mart,"joinsWith",tids.master);
+      ["T_CUSTOMER_GOLDEN","T_ORGANIZATION","T_PRODUCT","T_CALENDAR"].forEach(r=>{
+        tri(tids.mart,"joinsWith","res:table/VDB_ENTERPRISE_REFERENCE.reference."+r);
+        tri(pid,"usesData","res:table/VDB_ENTERPRISE_REFERENCE.reference."+r);
+      });
+
+      /* 業務属性 → 物理カラム */
+      const attrs=[
+        {l:p.ent+"を識別・管理する仮想項目", ph:base+"_id",      tb:tids.master},
+        {l:"顧客を識別する仮想項目",         ph:"customer_id",   tb:tids.mart},
+        {l:p.met+"の計測値",                 ph:"metric_value",  tb:tids.mart}
+      ];
+      attrs.forEach((a,i)=>{
+        const aid="res:property_type/"+dm.id+"_"+p.id+"_"+i;
+        node(aid,"BusinessAttribute",a.l,{d:"業務属性。物理カラム "+a.ph+" に対応付けられる。",dom:dm.id,ph:a.ph,st:"candidate"});
+        tri(eid,"hasAttribute",aid);
+        tri(aid,"mappedToColumn",a.tb+"."+a.ph);
+      });
+
+      /* 業務概念（問い合わせで使われる検索語） */
+      p.cc.forEach((c,i)=>{
+        const cid="res:business_concept/"+dm.id+"_"+p.id+"_"+i;
+        node(cid,"BusinessConcept",c,{d:"過去の問い合わせから抽出された検索語。",dom:dm.id});
+        tri(cid,"mentionedInProcess",pid);
+        tri(cid,"resolvedTo",tids.mart);
+      });
+
+      /* 業務ロール */
+      const rid="res:business_concept/role_"+dm.id+"_"+p.id;
+      node(rid,"BusinessRole",p.role,{d:"データ問い合わせを行う利用者の役割。",dom:dm.id});
+
+      /* 根拠QA（合成） */
+      for(let k=0;k<2;k++){
+        tk++;
+        const tid2="res:ticket/SYN-"+String(tk).padStart(4,"0");
+        const dim=k?"部店別":"月別";
+        node(tid2,"SupportTicket","SYN-"+String(tk).padStart(4,"0"),{
+          dom:dm.id,
+          q:p.cc[0]+"について、"+p.met+"を"+dim+"に確認したいです。どのデータを使えばよいですか。",
+          a:"第一候補は"+T.mart.full+"です。"+p.l+"における"+p.ent+"を基点に、"+T.event.full+"、"+T.master.full+
+            "をcustomer_idと業務固有IDで結合すると、"+p.ev+"の明細と"+p.met+"の日次推移を確認できます。"+
+            "これはPoC用の架空データ構造であり、実環境では"+dm.owner+"（仮説）による確認と利用申請が必要です。"
+        });
+        tri(rid,"raisesQuestion",tid2);
+        tri(tid2,"aboutProcess",pid);
+        tri(tid2,"resolvedBy",tids.mart);
+        tri(tid2,"resolvedBy",tids.event);
+      }
+      /* サポートデスクTips（過去の問い合わせから書き残された運用ナレッジ） */
+      const tipid="res:tip/"+dm.id+"_"+p.id;
+      const lastTk="res:ticket/SYN-"+String(tk).padStart(4,"0");
+      node(tipid,"DeskTip","TIP-"+String(tk).padStart(3,"0")+" "+p.l+"の集計",{
+        dom:dm.id, by:"ITデスク",
+        tip:"S_"+p.t+"_DAILY は指標を縦持ちしているため、metric_code を指定せずに metric_value を集計すると"+
+            p.met+"と他の指標が合算されます。"+p.l+"の依頼では、まず対象の指標コードを確認してください。"});
+      tri(tipid,"appliesTo",tids.mart);
+      tri(tipid,"derivedFrom",lastTk);
+    });
+  });
+})();
+
+/* ---- 索引 ---- */
+const ADJ={};
+E.forEach((e,i)=>{
+  (ADJ[e.s]=ADJ[e.s]||[]).push({i,o:e.o,p:e.p,dir:1});
+  (ADJ[e.o]=ADJ[e.o]||[]).push({i,o:e.s,p:e.p,dir:-1});
+});
+const NIDS=Object.keys(N);
+NIDS.forEach(id=>{ N[id].deg=(ADJ[id]||[]).length; });
+
+/* ===================== グラフ探索ビュー ===================== */
+const GV={focus:"bank:KnowledgeGraph", hop:2, model:"all", sel:null,
+  layers:{business:true,mapping:true,data:true,evidence:false},
+  vb:{x:-520,y:-380,w:1040,h:760}, pos:{}, vis:[], path:["全社業務俯瞰"]};
+const MAXN=110;
+
+function layerOfNode(id){ return ONT.cls[N[id].t].layer; }
+function nodeAllowed(id){
+  const L=layerOfNode(id);
+  if(!GV.layers[L]) return false;
+  if(GV.model==="business" && L==="data") return false;
+  if(GV.model==="data" && L==="business" && N[id].t!=="BusinessDomain" && N[id].t!=="Ontology") return false;
+  /* カラムは数が多く俯瞰の妨げになるため、テーブル・属性を中心に見ているときだけ展開する */
+  if(N[id].t==="Column"){
+    const ft=N[GV.focus].t;
+    if(["Table","Column","Schema","BusinessAttribute"].indexOf(ft)<0) return false;
+  }
+  return true;
+}
+function edgeAllowed(p){ return GV.layers[ONT.props[p].layer]!==false; }
+
+/* 焦点からの幅優先探索でBFS木を作り、放射状に配置する */
+function explore(){
+  const f=GV.focus, seen={}, order=[], par={}, hopOf={};
+  if(!nodeAllowed(f)){ GV.layers[layerOfNode(f)]=true; }
+  seen[f]=1; hopOf[f]=0; order.push(f);
+  /* 種別の重要度（俯瞰時に業務の骨格が先に見えるようにする） */
+  const RANK={BusinessDomain:0,BusinessProcess:1,BusinessEntity:2,BusinessMetric:3,BusinessEvent:4,
+              Table:5,BusinessAttribute:6,BusinessConcept:7,BusinessRole:8,Schema:9,Database:10,SupportTicket:11,DeskTip:11,Column:12};
+  let frontier=[f];
+  for(let h=1;h<=GV.hop;h++){
+    /* 親1件あたりの上限を配分し、特定の枝だけが展開されないようにする */
+    const cand=frontier.map(u=>({u,list:(ADJ[u]||[]).slice()
+      .sort((a,b)=>(RANK[N[a.o].t]||9)-(RANK[N[b.o].t]||9))
+      .filter(a=>!seen[a.o]&&edgeAllowed(a.p)&&nodeAllowed(a.o))}));
+    const room=MAXN-order.length;
+    const per=Math.max(2,Math.floor(room/Math.max(1,cand.length)));
+    const next=[];
+    cand.forEach(({u,list})=>{
+      let k=0;
+      list.forEach(a=>{
+        if(seen[a.o]||k>=per||order.length>=MAXN) return;
+        seen[a.o]=1; par[a.o]=u; hopOf[a.o]=h; order.push(a.o); next.push(a.o); k++;
+      });
+    });
+    frontier=next;
+    if(order.length>=MAXN) break;
+  }
+  /* BFS木の葉数から角度セクタを割り当てる */
+  const kids={}; order.forEach(id=>{ if(par[id]) (kids[par[id]]=kids[par[id]]||[]).push(id); });
+  const leaves={};
+  (function cnt(id){ const k=kids[id]||[]; if(!k.length){leaves[id]=1;return 1;}
+    let s=0; k.forEach(c=>s+=cnt(c)); leaves[id]=s; return s; })(f);
+  const pos={}; pos[f]={x:0,y:0,hop:0};
+  (function place(id,a0,a1){
+    const k=kids[id]||[]; if(!k.length) return;
+    let a=a0;
+    k.forEach(c=>{
+      const span=(a1-a0)*(leaves[c]/leaves[id]);
+      const mid=a+span/2, r=190*hopOf[c]+(hopOf[c]>1?40:0);
+      pos[c]={x:Math.cos(mid)*r, y:Math.sin(mid)*r, hop:hopOf[c]};
+      place(c,a+span*0.06,a+span*0.94);
+      a+=span;
+    });
+  })(f,-Math.PI,Math.PI);
+  GV.pos=pos; GV.vis=order; GV.hopOf=hopOf;
+}
+
+function fitView(){
+  const ids=GV.vis; if(!ids.length) return;
+  let x0=1e9,y0=1e9,x1=-1e9,y1=-1e9;
+  ids.forEach(id=>{const p=GV.pos[id];if(!p)return;
+    x0=Math.min(x0,p.x-90);x1=Math.max(x1,p.x+90);y0=Math.min(y0,p.y-30);y1=Math.max(y1,p.y+30);});
+  const pad=40,w=x1-x0+pad*2,h=y1-y0+pad*2;
+  GV.vb={x:x0-pad,y:y0-pad,w,h};
+  applyVB();
+}
+function applyVB(){ const s=$("#kgcanvas svg"); if(s) s.setAttribute("viewBox",[GV.vb.x,GV.vb.y,GV.vb.w,GV.vb.h].join(" ")); }
+
+function nodeBox(id){
+  const n=N[id], lab=n.l;
+  const w=Math.max(76,Math.min(178, lab.length*(lab.length>14?7.4:8.6)+22));
+  return {w,h:n.t==="Ontology"?34:30};
+}
+function drawGraph(){
+  explore();
+  const set={}; GV.vis.forEach(id=>set[id]=1);
+  const edges=[];
+  E.forEach(e=>{ if(set[e.s]&&set[e.o]&&edgeAllowed(e.p)) edges.push(e); });
+  const showLab=edges.length<=54;
+  let s='<svg xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMid meet"><defs>'+
+    '<marker id="ar" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="6" markerHeight="6" orient="auto-start-reverse">'+
+    '<path d="M0 0 L8 4 L0 8 z" fill="#b9c3ce"/></marker></defs><g id="gscene">';
+  const near = GV.sel? new Set([GV.sel].concat((ADJ[GV.sel]||[]).map(a=>a.o))) : null;
+  edges.forEach(e=>{
+    const a=GV.pos[e.s],b=GV.pos[e.o]; if(!a||!b) return;
+    const lay=ONT.props[e.p].layer;
+    const cls="gedge "+({mapping:"map",data:"dat",evidence:"evi"}[lay]||"")+
+      (near?((near.has(e.s)&&near.has(e.o))?" hl":" dim"):"");
+    const mx=(a.x+b.x)/2, my=(a.y+b.y)/2, dx=b.x-a.x, dy=b.y-a.y;
+    const cx=mx-dy*0.09, cy=my+dx*0.09;
+    s+='<path class="'+cls+'" marker-end="url(#ar)" d="M'+a.x.toFixed(1)+' '+a.y.toFixed(1)+
+       ' Q'+cx.toFixed(1)+' '+cy.toFixed(1)+' '+b.x.toFixed(1)+' '+b.y.toFixed(1)+'"/>';
+    if(showLab) s+='<text class="gelab" x="'+cx.toFixed(1)+'" y="'+(cy-2).toFixed(1)+'" text-anchor="middle">'+esc(e.p)+'</text>';
+  });
+  GV.vis.forEach(id=>{
+    const n=N[id],p=GV.pos[id],c=ONT.cls[n.t].c,b=nodeBox(id);
+    const dim=near&&!near.has(id)?" dim":"";
+    const sel=GV.sel===id?" sel":"";
+    const lab=n.l.length>17?n.l.slice(0,16)+"…":n.l;
+    s+='<g class="gnode'+dim+sel+'" data-n="'+encodeURIComponent(id)+'" transform="translate('+
+       (p.x-b.w/2).toFixed(1)+','+(p.y-b.h/2).toFixed(1)+')"><title>'+esc(n.l+" ／ "+ONT.cls[n.t].ja+(n.full?"\n"+n.full:""))+'</title>'+
+       '<rect width="'+b.w+'" height="'+b.h+'" rx="7" fill="'+c[0]+'" stroke="'+c[1]+'"/>'+
+       '<text x="'+(b.w/2)+'" y="'+(b.h/2-1)+'" text-anchor="middle" fill="'+c[2]+'">'+esc(lab)+'</text>'+
+       '<text class="sub" x="'+(b.w/2)+'" y="'+(b.h-6)+'" text-anchor="middle" fill="'+c[2]+'">'+esc(ONT.cls[n.t].ja)+'</text></g>';
+  });
+  $("#kgcanvas").innerHTML=s+'</g></svg>';
+  applyVB();
+  $("#kgcount").textContent="表示 "+GV.vis.length+" ノード ／ "+edges.length+" トリプル（全体 "+NIDS.length.toLocaleString()+" ノード・"+E.length.toLocaleString()+" トリプル）";
+  const fn=N[GV.focus];
+  $("#kgkick").textContent=(GV.focus==="bank:KnowledgeGraph"?"ENTERPRISE VIEW":ONT.cls[fn.t].ja.toUpperCase()+" VIEW");
+  $("#kgtitle").textContent=GV.focus==="bank:KnowledgeGraph"?"8業務領域の俯瞰":fn.l;
+  $("#kgpath").innerHTML=GV.path.map((x,i)=>i===GV.path.length-1?"<b>"+esc(x)+"</b>":esc(x)).join(" › ");
+}
+
+/* ---- 詳細パネル ---- */
+function inspect(id){
+  GV.sel=id; drawGraph();
+  const n=N[id],c=ONT.cls[n.t];
+  let h='<div class="kgd"><span class="tb2" style="background:'+c[2]+'">'+c.ja+'</span>'+
+    '<h3>'+esc(n.l)+'</h3>'+(n.d?'<p class="desc">'+esc(n.d)+'</p>':'');
+  const facts=[];
+  if(n.full) facts.push(["物理名",n.full]);
+  if(n.ph) facts.push(["対応カラム",n.ph]);
+  if(n.dom&&N["res:domain/"+n.dom]) facts.push(["業務領域",N["res:domain/"+n.dom].l]);
+  if(n.proc) facts.push(["業務プロセス",n.proc]);
+  if(n.db) facts.push(["データベース",n.db]);
+  if(n.owner) facts.push(["データオーナー",n.owner]);
+  if(n.sch) facts.push(["スキーマ層",{event:"event（明細）",mart:"mart（日次集計）",master:"master（属性）",reference:"reference（共通参照）"}[n.sch]||n.sch]);
+  if(n.key) facts.push(["キー","主キー相当"]);
+  if(n.st) facts.push(["状態",n.st==="candidate"?"candidate（QAから帰納）":n.st]);
+  facts.push(["レイヤ",{business:"業務モデル",data:"データモデル",evidence:"根拠QA"}[c.layer]]);
+  facts.push(["識別子",id]);
+  h+='<dl>'+facts.map(f=>'<dt>'+f[0]+'</dt><dd class="mono" style="font-size:11px">'+esc(f[1])+'</dd>').join("")+'</dl>';
+
+  if(n.q){ h+='<div class="kgqa"><div class="id">'+esc(n.l)+'</div><div class="q">'+esc(n.q)+'</div><div class="a">'+esc(n.a)+'</div></div>'; }
+  if(n.tip){ h+='<div class="tip" style="border:1px solid #e6d3a4;border-radius:7px;margin-bottom:8px">'+
+    '<div class="tipm"><span class="pin">TIPS</span><span class="tid">'+esc(n.by||"ITデスク")+'</span></div>'+
+    '<div class="tb3">'+esc(n.tip)+'</div></div>'; }
+
+  const byProp={};
+  (ADJ[id]||[]).forEach(a=>{
+    const k=(a.dir>0?"→ ":"← ")+a.p;
+    (byProp[k]=byProp[k]||[]).push(a.o);
+  });
+  Object.keys(byProp).sort().forEach(k=>{
+    const list=byProp[k];
+    h+='<div class="kgrel"><div class="rl">'+esc(k.slice(0,2))+'<b>'+esc(k.slice(2))+'</b> ─ '+esc(ONT.props[k.slice(2)].ja)+' <span style="color:var(--tx3)">('+list.length+')</span></div>'+
+      list.slice(0,12).map(o=>'<button class="kgrow" data-go="'+encodeURIComponent(o)+'"><span class="kgdot" style="background:'+ONT.cls[N[o].t].c[2]+'"></span><span class="nm2">'+esc(N[o].l)+'</span><span class="ct">'+esc(ONT.cls[N[o].t].ja)+'</span></button>').join("")+
+      (list.length>12?'<div style="font-size:10.5px;color:var(--tx3);padding:3px 8px">ほか '+(list.length-12)+' 件</div>':'')+'</div>';
+  });
+  h+='<button class="btn-p" style="width:100%;margin-top:14px" data-expand="'+encodeURIComponent(id)+'">このノードを中心に展開</button></div>';
+  $("#kgins").innerHTML=h;
+}
+
+function focusOn(id,pushPath){
+  GV.focus=id; GV.sel=id;
+  const n=N[id];
+  if(pushPath!==false){
+    if(id==="bank:KnowledgeGraph") GV.path=["全社業務俯瞰"];
+    else{
+      const base=["全社業務俯瞰"];
+      if(n.dom&&N["res:domain/"+n.dom]&&n.t!=="BusinessDomain") base.push(N["res:domain/"+n.dom].l);
+      base.push(n.l); GV.path=base;
+    }
+  }
+  drawGraph(); fitView(); inspect(id);
+}
+
+/* ---- 左サイド ---- */
+function renderSide(){
+  $("#kgdoms").innerHTML=DOMSPEC.map(d=>{
+    const id="res:domain/"+d.id;
+    return '<button class="kgrow'+(GV.focus===id?" on":"")+'" data-go="'+encodeURIComponent(id)+'">'+
+      '<span class="kgdot" style="background:#16395c"></span><span class="nm2">'+esc(d.l)+'</span>'+
+      '<span class="ct">'+d.procs.length+'</span></button>';
+  }).join("");
+  const cnt={}; NIDS.forEach(i=>cnt[N[i].t]=(cnt[N[i].t]||0)+1);
+  $("#kgtypes").innerHTML=Object.keys(ONT.cls).filter(t=>cnt[t]).map(t=>
+    '<div class="kgrow" style="cursor:default"><span class="kgdot" style="background:'+ONT.cls[t].c[2]+'"></span>'+
+    '<span class="nm2">'+ONT.cls[t].ja+'</span><span class="ct">'+cnt[t].toLocaleString()+'</span></div>').join("");
+  document.querySelectorAll("#kglayer .kgtb").forEach(b=>b.classList.toggle("off",!GV.layers[b.dataset.layer]));
+}
+function kgSearch(q){
+  const box=$("#kgres");
+  q=(q||"").trim().toLowerCase();
+  if(!q){ box.innerHTML=""; return; }
+  const hit=NIDS.filter(i=>N[i].l.toLowerCase().indexOf(q)>=0||(N[i].full||"").toLowerCase().indexOf(q)>=0)
+    .sort((a,b)=>N[b].deg-N[a].deg).slice(0,40);
+  box.innerHTML=hit.length?hit.map(i=>'<button class="kgrow" data-go="'+encodeURIComponent(i)+'">'+
+    '<span class="kgdot" style="background:'+ONT.cls[N[i].t].c[2]+'"></span><span class="nm2">'+esc(N[i].l)+'</span>'+
+    '<span class="ct">'+ONT.cls[N[i].t].ja+'</span></button>').join(""):'<div style="font-size:11px;color:var(--tx3);padding:6px 8px">該当なし</div>';
+}
+
+/* ---- イベント ---- */
+$("#kgq").addEventListener("input",e=>kgSearch(e.target.value));
+$("#kgfit").addEventListener("click",fitView);
+$("#kgroot").addEventListener("click",()=>focusOn("bank:KnowledgeGraph"));
+$("#kghop").addEventListener("click",()=>{ GV.hop=GV.hop>=3?1:GV.hop+1; $("#kghop").textContent=GV.hop+"ホップ"; drawGraph(); fitView(); });
+document.querySelectorAll("#kgmodel button").forEach(b=>b.addEventListener("click",()=>{
+  document.querySelectorAll("#kgmodel button").forEach(x=>x.classList.remove("on"));
+  b.classList.add("on"); GV.model=b.dataset.m; drawGraph(); fitView();
+}));
+document.querySelectorAll("#kglayer .kgtb").forEach(b=>b.addEventListener("click",()=>{
+  GV.layers[b.dataset.layer]=!GV.layers[b.dataset.layer];
+  b.classList.toggle("off",!GV.layers[b.dataset.layer]); drawGraph(); fitView();
+}));
+document.addEventListener("click",e=>{
+  const g=e.target.closest("[data-n]"); if(g){ inspect(decodeURIComponent(g.dataset.n)); return; }
+  const go=e.target.closest("[data-go]"); if(go){ focusOn(decodeURIComponent(go.dataset.go)); renderSide(); return; }
+  const ex=e.target.closest("[data-expand]"); if(ex){ focusOn(decodeURIComponent(ex.dataset.expand)); renderSide(); return; }
+});
+/* パン・ズーム */
+(function(){
+  const cv=$("#kgcanvas"); let dragging=false,sx=0,sy=0,ox=0,oy=0;
+  cv.addEventListener("mousedown",e=>{ if(e.target.closest("[data-n]"))return;
+    dragging=true;cv.classList.add("drag");sx=e.clientX;sy=e.clientY;ox=GV.vb.x;oy=GV.vb.y; });
+  window.addEventListener("mouseup",()=>{dragging=false;cv.classList.remove("drag");});
+  window.addEventListener("mousemove",e=>{ if(!dragging)return;
+    const r=cv.getBoundingClientRect(), k=GV.vb.w/r.width;
+    GV.vb.x=ox-(e.clientX-sx)*k; GV.vb.y=oy-(e.clientY-sy)*k; applyVB(); });
+  cv.addEventListener("wheel",e=>{ e.preventDefault();
+    const r=cv.getBoundingClientRect(), f=e.deltaY>0?1.12:0.89;
+    const mx=GV.vb.x+(e.clientX-r.left)/r.width*GV.vb.w, my=GV.vb.y+(e.clientY-r.top)/r.height*GV.vb.h;
+    GV.vb.x=mx-(mx-GV.vb.x)*f; GV.vb.y=my-(my-GV.vb.y)*f;
+    GV.vb.w*=f; GV.vb.h*=f; applyVB(); },{passive:false});
+})();
+
+$("#kgins").innerHTML='<div class="kgempty"><div class="o"></div>ノードを選択してください。<br>業務定義・根拠QA・接続先のデータ資産を表示します。</div>';
+renderSide(); drawGraph(); fitView();
+</script>
+</body>
+</html>
