@@ -254,6 +254,38 @@ svg.kg{display:block;width:100%;height:auto}
 .pv.w{background:#fdf3f2;border-color:#eecac6;color:#b91c1c}
 .prole{font-size:11px;color:var(--tx2);background:#f7f9fc;border:1px solid var(--ln2);border-radius:7px;padding:7px 10px;margin:8px 0 0}
 .prole b{color:var(--tx)}
+/* ============ 権限照会：利用者カード／ルール評価／生成AIコメント ============ */
+.idc{border:1px solid var(--ln);border-radius:10px;background:var(--pn);margin-bottom:12px;overflow:hidden}
+.idch{display:flex;align-items:center;gap:9px;flex-wrap:wrap;padding:9px 14px;background:#f6f8fb;border-bottom:1px solid var(--ln2)}
+.idch b{font-size:13.5px;font-family:var(--mono)}
+.idb{font-size:9.5px;font-weight:700;color:#fff;background:var(--tx2);border-radius:4px;padding:1px 7px;letter-spacing:.06em}
+.idsub{font-size:11px;color:var(--tx3)}
+.eng{font-size:10px;font-weight:700;border-radius:11px;padding:1px 10px;border:1px solid;white-space:nowrap}
+.idch .eng{margin-left:auto}
+.eng.r{background:#eef3f8;border-color:#c8d8e8;color:#1b4d7e}
+.eng.a{background:#f3f0fa;border-color:#d3c9ea;color:#5a4a8c}
+.idf{font-size:10.5px;color:var(--tx3);padding:8px 14px;border-top:1px solid var(--ln2);background:#fbfcfd;line-height:1.75}
+.rtb td{vertical-align:top}
+.rid{font-family:var(--mono);font-size:10px;color:#1b4d7e;background:#eef3f8;border:1px solid #d5e2ef;border-radius:3px;padding:0 5px;white-space:nowrap}
+.rcond{display:inline-block;font-family:var(--mono);font-size:10px;color:#4b5563;background:#f6f8fa;border:1px solid var(--ln2);border-radius:3px;padding:0 5px;margin-top:3px;word-break:break-all}
+.rin{font-family:var(--mono);font-size:10.5px;color:var(--tx);word-break:break-all}
+.rout{font-size:11.5px;color:var(--tx2);margin-top:4px;line-height:1.7}
+.rsrc{font-size:10px;color:var(--tx3);margin-top:3px}
+.rms{font-family:var(--mono);font-size:9.5px;color:var(--tx3);margin-top:4px}
+.aicm{border:1px solid #ddd5ef;border-left:3px solid #6a4fa3;border-radius:0 10px 10px 0;background:#fcfbfe;margin-bottom:9px;overflow:hidden}
+.aih{display:flex;align-items:center;gap:9px;flex-wrap:wrap;padding:9px 14px;border-bottom:1px solid #ebe5f6}
+.aih b{font-size:12.5px}
+.aim{margin-left:auto;font-size:10px;color:var(--tx3);font-family:var(--mono)}
+.aib{padding:12px 15px}
+.ais{margin:0;font-size:13px;line-height:1.85}
+.aip{border-top:1px dashed #e3dcf1;padding-top:9px;margin-top:9px}
+.aip>b{font-size:12px;color:#4a3c78;display:block;margin-bottom:2px}
+.aip p b{color:var(--tx)}
+.aip p{margin:2px 0 0;font-size:12px;color:var(--tx2);line-height:1.8}
+.ain{margin-top:12px;background:#fff;border:1px solid #e2dbf1;border-radius:8px;padding:9px 12px;font-size:12.5px;line-height:1.8}
+.ain b.l4{display:block;font-size:10.5px;color:#5a4a8c;letter-spacing:.05em;margin-bottom:2px}
+.aif{font-size:10.5px;color:var(--tx3);padding:8px 14px;border-top:1px solid #ebe5f6;background:#faf8fe;line-height:1.75}
+.aif b{color:var(--tx2);font-weight:600}
 /* ============ ナレッジグラフ タブ ============ */
 .kgpane{display:none;height:calc(100vh - 52px);grid-template-columns:262px minmax(520px,1fr) 312px}
 .kgpane.on{display:grid}
@@ -1283,7 +1315,7 @@ const PERM_Q = [
  sample:"カタログでは見えるのに、SELECTすると ORA-01031 になる",
  question:"データカタログでは DWH_RTL.MART_CREDIT.M_LOAN_DELINQ_MTH というテーブルが見えていて、項目の一覧も確認できるのですが、SQLを実行すると「ORA-01031: insufficient privileges」というエラーになります。見えているのに使えないのはなぜでしょうか。",
  kw:["ORA-01031","insufficient","カタログ","SELECT","見えるのに","権限エラー"],
- verdict:"<b>候補①が該当</b>します。テーブル本体のSELECT権限が付与されていないためです。カタログは「メタデータは公開・実データは制限」設定のため、定義だけが見えている状態です。なお付与後も候補③（行レベルの参照スコープ）が効くため、全店で見るには追加の申請が必要です。",
+ verdict:"<b>ルール①が該当</b>します。テーブル本体のSELECT権限が付与されていないためです。カタログは「メタデータは公開・実データは制限」設定のため、定義だけが見えている状態です。なお付与後もルール③（行レベルの参照スコープ）が効くため、全店で見るには追加の申請が必要です。",
  cands:[
   {name:"オブジェクトSELECT権限の未付与",score:94,fl:["ng","該当"],
    src:"IDM権限マスタ ／ DB の GRANT 実体（リアルタイム照会）",
@@ -1322,23 +1354,65 @@ const PERM_Q = [
    why:"照会対象は実表であり、シノニムやビューを経由していません。参照先の権限不足という構造にはなっていません。",
    detail:"ビュー経由の参照では「ビューのSELECT権限はあるが、参照先の実表の権限がない」ことで同じ ORA-01031 が発生することがあります。今回は実表を直接照会されているため、この構造には該当しませんでした。<b>なお、マスキング済ビュー V_LOAN_DELINQ_MTH_MASKED は定義者権限で作成されており、参照先の権限がなくても利用できます。</b>"}
  ],
- kg:[
-  {cap:"利用者",nodes:[{l:"SATO_T",s:"融資企画部",k:"u"}]},
-  {cap:"is_member_of → 所属・職務",nodes:[{l:"融資企画部 与信管理G",s:"2025-04〜",k:"t"},{l:"職務:企画分析",s:"JOB_PLAN",k:"t"}]},
-  {cap:"has_role → 付与ロール",nodes:[{l:"R_RTL_ANALYST_RO",s:"付与済",k:"ok"},{l:"R_CRD_SENSITIVE_RO",s:"未付与",k:"ng"}]},
-  {cap:"grants → 権限セット",nodes:[{l:"USAGE",s:"MART_CREDIT",k:"ok"},{l:"SELECT",s:"一般マート",k:"ok"},{l:"SELECT",s:"機密Ⅱマート",k:"ng"}]},
-  {cap:"applies_to → 対象オブジェクト",nodes:[{l:"M_LOAN_DELINQ_MTH",s:"要 R_CRD_SENSITIVE_RO",k:"ng"},{l:"V_..._MASKED",s:"参照可",k:"ok"}]}
+ uid:{
+  id:"SATO_T", empno:"E-104882", name:"佐藤（融資企画部 与信管理グループ）",
+  job:"企画分析 ／ JOB_PLAN（2025-04-01〜）",
+  block:"第3ブロック（BLOCK_CD='03'／12ヶ店）",
+  scope:"BLOCK_SCOPE（自ブロック限定）",
+  dbuser:"SATO_T ／ 状態 OPEN ／ PW期限 2026-11-30",
+  target:"DWH_RTL.MART_CREDIT.M_LOAN_DELINQ_MTH（実表・機密Ⅱ）",
+  roles:[
+   ["R_RTL_ANALYST_RO","部署ひも付き","2025-04-01（異動連携で自動付与）","期限なし","ok","有効"],
+   ["R_CRD_SENSITIVE_RO","個別申請","—","—","ng","未付与"]],
+  srcs:["IDM権限マスタ（日次同期 2026-08-21 03:00）","DBカタログ DBA_ROLE_PRIVS／DBA_TAB_PRIVS（リアルタイム照会）","人事マスタ（所属・職務・ブロック）","ポリシー定義リポジトリ（RLS／マスキング）","e-Learning 受講管理"],
+  basis:"チケットの起票者IDから利用者を特定し、本文に記載された3層名をカタログで解決しました。以降の判定は<b>この利用者IDに紐づく実際の付与状態</b>との突合のみで行います（推測は行いません）。"
+ },
+ rules:[
+  {id:"R-TGT-00",t:"照会対象の解決",cond:"catalog.resolve(db.schema.table)",src:"データカタログ",
+   iv:"DWH_RTL.MART_CREDIT.M_LOAN_DELINQ_MTH",res:"ok",
+   out:"実表として解決。データ分類＝機密Ⅱ、オーナー＝リスク統括部 与信管理G。",ms:14},
+  {id:"R-CONN-01",t:"接続経路の到達性",cond:"client_segment ∈ ALLOW(NET_BASTION_ONLY)",src:"ネットワークACL",
+   iv:"接続元＝Bastion 10.42.8.31 ／ CREATE SESSION 付与済",res:"ok",
+   out:"経路は成立しています。ネットワーク要因は否定されます。",ms:8},
+  {id:"R-AUTH-02",t:"DBユーザーの有効性",cond:"DBA_USERS.status='OPEN' AND pw_expiry > sysdate",src:"DBA_USERS",
+   iv:"SATO_T ／ OPEN ／ 2026-11-30",res:"ok",
+   out:"アカウント要因は否定されます（ORA-28000系ではありません）。",ms:6},
+  {id:"R-SCH-04",t:"スキーマ USAGE 権限",cond:"exists(grant(USAGE, schema) ← roles(user))",src:"DBA_SYS_PRIVS ／ IDM権限マスタ",
+   iv:"MART_CREDIT ← R_RTL_ANALYST_RO",res:"ok",
+   out:"USAGE あり。<b>カタログにテーブル名と項目一覧が表示されるのは、この段階まで通過しているためです。</b>",ms:11},
+  {id:"R-OBJ-05",t:"オブジェクト SELECT 権限",cond:"exists(path: user → role → priv(SELECT) → object)",src:"DBA_TAB_PRIVS（リアルタイム）",
+   iv:"SATO_T → {R_RTL_ANALYST_RO} → SELECT → M_LOAN_DELINQ_MTH",res:"hit",
+   out:"<b>経路 0 件。ここで拒否されています（ORA-01031 の直接原因）。</b>",ms:19},
+  {id:"R-REQ-06",t:"必要ロールの逆引き",cond:"roles ← grants(SELECT, object)",src:"DBA_TAB_PRIVS",
+   iv:"M_LOAN_DELINQ_MTH の SELECT 保持ロールを列挙",res:"ok",
+   out:"R_CRD_SENSITIVE_RO の1件のみ。これが不足しているロールです。",ms:9},
+  {id:"R-PRE-07",t:"申請前提条件の充足",cond:"training(DP-201).valid_until >= today",src:"e-Learning 受講管理",
+   iv:"受講 2024-07-01 ／ 有効期限 2025-06-30",res:"wa",
+   out:"<b>失効しています。</b>この状態でロール申請を出しても、承認段階で差し戻されます。",ms:7},
+  {id:"R-RLS-08",t:"行レベルポリシーの適用",cond:"policy(RLS_BRANCH_SCOPE).predicate(user)",src:"ポリシー定義リポジトリ",
+   iv:"USER_BLOCK='03' → 12ヶ店",res:"wa",
+   out:"権限付与後も自ブロック限定です。<b>「支店別（全店比較）」という依頼内容とは一致しません。</b>",ms:10},
+  {id:"R-ALT-09",t:"代替オブジェクトの探索",cond:"objects(same_logic) ∩ readable(roles(user))",src:"カタログ系統情報 ／ DBA_TAB_PRIVS",
+   iv:"同一集計ロジックのオブジェクト3件を評価",res:"ok",
+   out:"V_LOAN_DELINQ_MTH_MASKED が現在のロールで参照可能。必要項目の充足度 92%。",ms:23}
  ],
- qpath:[0,0,1,2,0],
- gql:'<span class="r">MATCH</span> (u:<span class="n">User</span> {id:<span class="v">"SATO_T"</span>})-[:<span class="r">HAS_ROLE</span>]-&gt;(r:<span class="n">Role</span>)\n      -[g:<span class="r">GRANTS</span>]-&gt;(p:<span class="n">Privilege</span>)-[:<span class="r">APPLIES_TO</span>]-&gt;(o:<span class="n">Object</span>)\n<span class="r">WHERE</span> o.name = <span class="v">"MART_CREDIT.M_LOAN_DELINQ_MTH"</span>\n  <span class="r">AND</span> p.action = <span class="v">"SELECT"</span>\n<span class="r">RETURN</span> r, g   <span class="v">// → 0 rows ＝ 経路が存在しない（＝権限なし）</span>\n\n<span class="r">MATCH</span> (r2:<span class="n">Role</span>)-[:<span class="r">GRANTS</span>]-&gt;(:<span class="n">Privilege</span>)-[:<span class="r">APPLIES_TO</span>]-&gt;(o)\n<span class="r">RETURN</span> r2   <span class="v">// → 必要なロール = R_CRD_SENSITIVE_RO</span>',
- steps:[
-  {t:"事象とエラーコードを解釈",d:"ORA-01031（insufficient privileges）は、オブジェクトへの権限不足を示すコードです。接続・認証は成功していると判断できます。",sc:"ORA-01031"},
-  {t:"対象オブジェクトを特定",d:"データカタログでスキーマ・表名を解決し、データ分類（機密Ⅱ）と所管データオーナーを取得。",sc:"1 object"},
-  {t:"権限グラフを利用者から探索",d:"User → Role → Privilege → Object の経路を探索。SELECT に到達する経路が0件であることを確認。",sc:"0 path"},
-  {t:"必要ロールを逆引き",d:"対象オブジェクトから逆方向に探索し、SELECT を保持する唯一のロール R_CRD_SENSITIVE_RO を特定。",sc:"1 role"},
-  {t:"付与の前提条件を確認",d:"当該ロールの申請要件（e-Learning DP-201 の受講）を照会。受講記録が失効していることを検出。",sc:"1 blocker"},
-  {t:"代替経路を探索",d:"同一の集計ロジックを持つ匿名化ビューが、現在のロールで参照可能であることを確認。充足度92%と評価。",sc:"1 alt"}
- ],
+ candRule:["R-OBJ-05","R-SCH-04","R-RLS-08","R-AUTH-02","R-ALT-09"],
+ ai:{
+  model:"行内LLM ／ 閉域・生成AI利用基準 L2",
+  input:"ルールエンジン出力JSON（9ルール）＋利用者属性＋問い合わせ本文",
+  summary:"判定そのものは R-OBJ-05 で確定していますが、実務上の要点は<b>「カタログの設計」と「権限の設計」が別々である</b>という点です。R-SCH-04 が通過して R-OBJ-05 で止まる、というルールの並び自体が、その設計どおりに動いていることを示しています。",
+  points:[
+   ["まず「不具合ではない」と明言する",
+    "「見えているのに使えない」は不具合に見えますが、スキーマまで通過してオブジェクトで拒否という並びは、<b>存在は知らせるが中身は見せない</b>というカタログ設計のとおりの挙動です。回答の冒頭で「カタログで見えること＝参照できること、ではない」と伝えると、以降の説明が通りやすくなります。"],
+   ["申請の前に片付ける順序がある",
+    "R-PRE-07 が受講記録の失効を検出しています。ルール上は R-OBJ-05 と独立した警告ですが、実務では順序があり、<b>DP-201 の再受講が実質的な最初のタスク</b>です。ここを飛ばすと承認段階で差し戻され、1往復増えます。"],
+   ["権限が付いても、この依頼の目的は達成できない",
+    "R-RLS-08 は自ブロック限定を示しています。ご依頼は「支店別に見たい」ですので、<b>SELECT権限だけ付いても目的を満たしません</b>。参照スコープ拡大を同一申請に含めるよう案内してください。ルール上は警告止まりですが、業務要件と突き合わせると必須条件になります。"],
+   ["待たずに着手できる道がある",
+    "R-ALT-09 が代替を検出しています。充足度92%は「支店別×年代別の延滞率」という当初の目的には十分で、<b>承認を待つ3営業日を分析に充てられます</b>。"]],
+  next:"①DP-201 を再受講 → ②ロール申請と参照スコープ拡大を<b>同一申請</b>で提出 → ③承認待ちの間は匿名化ビューで分析に着手、の順でご案内するのが最短です。",
+  json:"{\n  \"user_id\": \"SATO_T\",\n  \"object\": \"DWH_RTL.MART_CREDIT.M_LOAN_DELINQ_MTH\",\n  \"verdict\": \"DENY\",\n  \"denied_at\": \"R-OBJ-05\",\n  \"required_role\": \"R_CRD_SENSITIVE_RO\",\n  \"warnings\": [\n    \"R-PRE-07: training_expired(DP-201, 2025-06-30)\",\n    \"R-RLS-08: scope=BLOCK('03'), request=ALL_BRANCH\"\n  ],\n  \"alternative\": { \"object\": \"MART_CREDIT.V_LOAN_DELINQ_MTH_MASKED\",\n                    \"readable\": true, \"coverage\": 0.92 },\n  \"rules_evaluated\": 9, \"elapsed_ms\": 107, \"llm_used\": false\n}"
+ },
  actions:[
   ["個人情報取扱いe-Learning（DP-201）を受講する",
    "機微情報付ロールの申請には、有効期限内の受講証明が必須です。<b>受講記録が2025-06-30で失効しているため、まずこちらからお願いします。</b>",
@@ -1368,7 +1442,7 @@ const PERM_Q = [
  sample:"データは取れるが、顧客名が ***** で表示されてしまう",
  question:"投信のデータは取得できるのですが、顧客名が「***」、顧客番号も英数字の長い文字列になってしまいます。エラーは出ていません。設定の問題でしょうか？お客さまを特定して営業に使いたいのですが。",
  kw:["マスキング","顧客名","***","伏字","ハッシュ","エラーは出","表示されない"],
- verdict:"<b>候補①が該当</b>します。不具合ではなく、動的データマスキングポリシーによる仕様です。権限自体は正常に付与されています。なお候補⑤のとおり、<b>営業目的での個社特定は利用目的の観点から別ルートをご案内</b>します。",
+ verdict:"<b>ルール①が該当</b>します。不具合ではなく、動的データマスキングポリシーによる仕様です。権限自体は正常に付与されています。なおルール⑤のとおり、<b>営業目的での個社特定は利用目的の観点から別ルートをご案内</b>します。",
  cands:[
   {name:"動的データマスキングの適用",score:96,fl:["ng","該当"],
    src:"ポリシー定義 PII_MASK_L2 ／ 適用ロール一覧",
@@ -1395,7 +1469,7 @@ const PERM_Q = [
   {name:"参照先が匿名化ビューだった",score:34,fl:["wa","一部関連"],
    src:"オブジェクト定義（DBA_VIEWS）",
    why:"今回のSQLは実表を参照しているため直接の原因ではありませんが、BIツールのデータソースが匿名化ビューを向いている可能性は残ります。",
-   detail:"行内には同一ロジックの匿名化ビューが複数存在し、BIツールのデータソースがそちらを向いているケースがあります。<b>今回は実表を直接照会されていることを確認</b>したため、原因は候補①のポリシー適用と判断しました。BIツール経由でも同様の事象が出る場合は、データソース定義もあわせてご確認ください。"},
+   detail:"行内には同一ロジックの匿名化ビューが複数存在し、BIツールのデータソースがそちらを向いているケースがあります。<b>今回は実表を直接照会されていることを確認</b>したため、原因はルール①のポリシー適用と判断しました。BIツール経由でも同様の事象が出る場合は、データソース定義もあわせてご確認ください。"},
 
   {name:"文字コード／クライアント表示の問題",score:8,fl:["n","非該当"],
    src:"接続クライアント設定（NLS_LANG）",
@@ -1407,22 +1481,62 @@ const PERM_Q = [
    why:"技術的な原因ではありませんが、ご依頼の「お客さまを特定して営業に使いたい」という目的自体に、別途の整理が必要です。",
    detail:"分析基盤のデータは<b>統計・傾向分析を目的</b>として整備されています。個社を特定したアプローチリストの作成は、DWHからの手作りではなく<b>CRM（営業支援システム）のターゲットリスト機能</b>を使うのが行内標準です。抽出条件をIT部門へご連携いただければ、CRM側へリスト配信します（5営業日）。これにより利用目的・保管・削除が正規のフローで管理されます。"}
  ],
- kg:[
-  {cap:"利用者",nodes:[{l:"TAKAHASHI_M",s:"リテール推進部",k:"u"}]},
-  {cap:"has_role → 付与ロール",nodes:[{l:"R_RTL_SALES_RO",s:"付与済",k:"ok"},{l:"R_RTL_PII_UNMASK",s:"未付与",k:"ng"}]},
-  {cap:"grants → 権限セット",nodes:[{l:"SELECT",s:"MART_ASSET",k:"ok"},{l:"UNMASK",s:"PII列",k:"ng"}]},
-  {cap:"applies_to → 対象列",nodes:[{l:"取引・金額列",s:"実値",k:"ok"},{l:"CUST_NAME",s:"'***'",k:"ng"},{l:"CUST_NO",s:"ハッシュ",k:"ng"}]}
+ uid:{
+  id:"TAKAHASHI_M", empno:"E-118304", name:"高橋（リテール推進部 資産運用推進グループ）",
+  job:"営業推進 ／ JOB_SALES_PLAN（2024-10-01〜）",
+  block:"第7ブロック（BLOCK_CD='07'／9ヶ店）",
+  scope:"BLOCK_SCOPE（担当ブロック限定）",
+  dbuser:"TAKAHASHI_M ／ 状態 OPEN ／ PW期限 2027-01-31",
+  target:"DWH_RTL.MART_ASSET.M_FUND_TRADE_HIST（実表・PII列を含む）",
+  roles:[
+   ["R_RTL_SALES_RO","部署ひも付き","2024-10-01（異動連携で自動付与）","期限なし","ok","有効"],
+   ["R_RTL_PII_UNMASK","個別申請","—","—","ng","未付与"]],
+  srcs:["IDM権限マスタ（日次同期 2026-08-21 03:00）","DBカタログ DBA_TAB_PRIVS（リアルタイム照会）","ポリシー定義リポジトリ（PII_MASK_L2／RLS_SALES_SCOPE）","データ分類台帳（PII列の指定）","内規リポジトリ（DG-032 利用目的）"],
+  basis:"「エラーは出ていない」という記述から、拒否系ではなく<b>実行時の値変換</b>を評価するルールセットを選択しました。対象列と保有ロールの組み合わせに対してポリシーを順に評価します。"
+ },
+ rules:[
+  {id:"R-TGT-00",t:"照会対象と対象列の解決",cond:"catalog.resolve(table).columns ∩ mentioned(本文)",src:"データカタログ ／ データ分類台帳",
+   iv:"M_FUND_TRADE_HIST ／ 本文の言及＝顧客名・顧客番号",res:"ok",
+   out:"実表として解決。PII指定列4件（CUST_NAME／CUST_NO／TEL／ADDR）を含みます。",ms:13},
+  {id:"R-OBJ-05",t:"オブジェクト SELECT 権限",cond:"exists(path: user → role → priv(SELECT) → object)",src:"DBA_TAB_PRIVS（リアルタイム）",
+   iv:"TAKAHASHI_M → {R_RTL_SALES_RO} → SELECT → M_FUND_TRADE_HIST",res:"ok",
+   out:"経路あり。<b>権限は正常です（エラーが出ないのはこのため）。</b>権限不足の可能性はここで否定されます。",ms:17},
+  {id:"R-MASK-06",t:"列マスキングポリシーの適用",cond:"applies(policy, column) AND NOT exempt(role, policy)",src:"ポリシー定義 PII_MASK_L2",
+   iv:"対象列4件 ／ R_RTL_SALES_RO は除外ロールに含まれない",res:"hit",
+   out:"<b>4列に変換が適用されています。これが今回の事象で、不具合ではありません。</b>",ms:12},
+  {id:"R-MASK-07",t:"変換仕様の取得",cond:"transform(column) for masked_columns",src:"ポリシー定義 PII_MASK_L2",
+   iv:"CUST_NO→SHA256(値||SALT) ／ CUST_NAME→'***' ／ TEL・ADDR→NULL",res:"ok",
+   out:"CUST_NO は<b>決定論的ハッシュ</b>（同一顧客は常に同一値）。結合キーとしては利用可能です。",ms:8},
+  {id:"R-UNMASK-08",t:"解除ロールの逆引き",cond:"roles ← exempt(policy)",src:"IDM権限マスタ",
+   iv:"PII_MASK_L2 の除外ロールを列挙",res:"ok",
+   out:"R_RTL_PII_UNMASK の1件のみ。付与にはCPO室承認（10営業日／付与期間は最大30日）が必要です。",ms:9},
+  {id:"R-RLS-09",t:"行レベルポリシーの適用",cond:"policy(RLS_SALES_SCOPE).predicate(user)",src:"ポリシー定義リポジトリ",
+   iv:"MAIN_BRANCH_CD ∈ 自ブロック9ヶ店",res:"wa",
+   out:"担当ブロック内の顧客のみが返ります。全店の傾向を見る場合はスコープ拡大が別途必要です。",ms:10},
+  {id:"R-PUR-10",t:"利用目的の適合性",cond:"purpose(申告) ⊆ registered_purpose(データ分類)",src:"内規 DG-032 ／ 個人情報保護方針",
+   iv:"申告目的＝個社を特定した営業利用 ／ 登録目的＝統計・傾向分析",res:"hit",
+   out:"<b>登録された利用目的の範囲外です。</b>個社特定のアプローチリストは別ルートが行内標準となります。",ms:15},
+  {id:"R-ALT-11",t:"代替ルートの探索",cond:"route(purpose) ← 標準業務フロー定義",src:"業務フロー定義（CRM連携）",
+   iv:"営業リスト作成の標準ルートを照会",res:"ok",
+   out:"CRMのターゲットリスト機能。抽出条件のIT部門連携で5営業日、利用目的・保管・削除が正規に管理されます。",ms:11}
  ],
- qpath:[0,1,1,1],
- gql:'<span class="r">MATCH</span> (u:<span class="n">User</span> {id:<span class="v">"TAKAHASHI_M"</span>})-[:<span class="r">HAS_ROLE</span>]-&gt;(r)\n      -[:<span class="r">GRANTS</span>]-&gt;(p:<span class="n">Privilege</span>)-[:<span class="r">APPLIES_TO</span>]-&gt;(c:<span class="n">Column</span>)\n<span class="r">MATCH</span> (c)&lt;-[:<span class="r">MASKS</span>]-(mp:<span class="n">MaskingPolicy</span>)\n<span class="r">WHERE NOT</span> (r)-[:<span class="r">EXEMPT_FROM</span>]-&gt;(mp)\n<span class="r">RETURN</span> c.name, mp.transform   <span class="v">// 変換が適用される列を返す</span>',
- steps:[
-  {t:"事象を解釈",d:"「エラーは出ないが値が伏字」という記述から、権限拒否ではなく実行時の値変換が疑われると判断。",sc:"no error"},
-  {t:"SELECT権限の有無を確認",d:"権限グラフ上で SELECT への経路が存在することを確認。権限不足の可能性を排除。",sc:"path OK"},
-  {t:"マスキングポリシーを照会",d:"対象列に MASKS 関係を持つポリシー PII_MASK_L2 を検出。利用者ロールが除外対象でないことを確認。",sc:"1 policy"},
-  {t:"変換仕様を取得",d:"CUST_NO はソルト付きSHA-256、CUST_NAME は固定文字列に変換される仕様を取得。決定論的ハッシュのため結合可能と判定。",sc:"4 cols"},
-  {t:"利用目的との整合を確認",d:"「営業に使いたい」という記述から、内規 DG-032（利用目的の範囲）に照らして別ルートの案内が必要と判定。",sc:"DG-032"},
-  {t:"正規ルートを提示",d:"CRMのターゲットリスト機能を代替として提示。解除申請（R_RTL_PII_UNMASK）は最終手段として案内。",sc:"2 routes"}
- ],
+ candRule:["R-MASK-06","R-OBJ-05","R-TGT-00","R-MASK-07","R-PUR-10"],
+ ai:{
+  model:"行内LLM ／ 閉域・生成AI利用基準 L2",
+  input:"ルールエンジン出力JSON（8ルール）＋利用者属性＋問い合わせ本文",
+  summary:"ルール判定は「権限は正常・値の変換は仕様どおり」で確定しています。実務上の論点は技術面ではなく、<b>この方が実現したいこと（個社を特定した営業）と、このデータの登録目的が食い違っている</b>点にあります。",
+  points:[
+   ["最初に伝えるべきは「壊れていない」こと",
+    "R-OBJ-05 が充足で R-MASK-06 が該当、という並びは<b>権限は正常で、値だけが設計どおり変換されている</b>状態を示します。「設定の問題でしょうか」というお尋ねですので、不具合ではない旨を冒頭で明言してください。"],
+   ["解除申請に進む前に、実値の要否を確認できる",
+    "R-MASK-07 のとおり CUST_NO は決定論的ハッシュです。<b>顧客単位の集計・名寄せ・他マートとのJOINは実値なしで成立します</b>。傾向分析が目的であれば、申請そのものが不要になります。"],
+   ["R-PUR-10 だけは権限の話ではない",
+    "このルールは統制側の判定です。<b>マスキングを解除しても、営業リスト化という目的自体が登録目的の範囲外</b>である状態は変わりません。解除申請を案内しても、CPO室で止まる可能性が高いと考えられます。"],
+   ["代替は妥協案ではなく正規ルート",
+    "R-ALT-11 が示すCRMのターゲットリストは、利用目的・保管・削除が管理される<b>本来の手順</b>です。回答では遠回りではなく正攻法として提示するのが適切です。"]],
+  next:"「傾向分析であればこのまま進められます／個社アプローチが目的でしたらCRMのターゲットリストをご利用ください」と、<b>目的を確認する問い返しから入る</b>のが最も手戻りの少ない進め方です。",
+  json:"{\n  \"user_id\": \"TAKAHASHI_M\",\n  \"object\": \"DWH_RTL.MART_ASSET.M_FUND_TRADE_HIST\",\n  \"verdict\": \"ALLOW_WITH_MASKING\",\n  \"select_privilege\": true,\n  \"masked_columns\": [\"CUST_NAME\", \"CUST_NO\", \"TEL\", \"ADDR\"],\n  \"hash_deterministic\": true,\n  \"warnings\": [\n    \"R-RLS-09: scope=BLOCK('07')\",\n    \"R-PUR-10: purpose_out_of_registered_scope(DG-032)\"\n  ],\n  \"alternative\": { \"route\": \"CRM_TARGET_LIST\", \"lead_time_days\": 5 },\n  \"rules_evaluated\": 8, \"elapsed_ms\": 95, \"llm_used\": false\n}"
+ },
  actions:[
   ["まず、実値が本当に必要か整理する",
    "傾向分析（どんな属性の顧客が解約しやすいか）であれば、ハッシュ値のままで完結します。ハッシュは決定論的なので、顧客単位のGROUP BYや他マートとの結合はそのまま可能です。",
@@ -1448,7 +1562,7 @@ const PERM_Q = [
  sample:"Tableauからは見えるのに、SQL Developerから接続できない",
  question:"同じDWHのデータなのに、Tableauのダッシュボードでは普通に見えるのに、SQL Developerから接続しようとすると認証で弾かれます。どちらも私のIDのはずなのですが、何が違うのでしょうか。",
  kw:["Tableau","SQL Developer","接続","認証","弾かれ","BI","繋がらない"],
- verdict:"<b>候補①②③の複合</b>です。BI経由の参照はサービスアカウントがDWHへ接続しており、DWHから見た接続主体はご本人のIDではありません。SQL Developerからの接続は「個人IDでの直接接続」にあたり、踏み台経由・個人DBユーザーの発行・スキーマ権限の3つがいずれも未整備です。",
+ verdict:"<b>ルール①②③の複合</b>です。BI経由の参照はサービスアカウントがDWHへ接続しており、DWHから見た接続主体はご本人のIDではありません。SQL Developerからの接続は「個人IDでの直接接続」にあたり、踏み台経由・個人DBユーザーの発行・スキーマ権限の3つがいずれも未整備です。",
  cands:[
   {name:"接続経路の制限（踏み台経由が必須）",score:93,fl:["ng","該当"],
    src:"ネットワークACL ／ 内規 SEC-021",
@@ -1483,25 +1597,65 @@ const PERM_Q = [
   {name:"クライアントの接続設定（TNS）の誤り",score:29,fl:["n","非該当"],
    src:"接続試行ログ（リスナー側に記録なし）",
    why:"設定誤りであればリスナー側にエラーが記録されますが、記録自体がありません。ネットワーク層で遮断されていることを示します。",
-   detail:"接続文字列やサービス名の誤りであれば ORA-12514 等がリスナーログに残ります。今回はリスナーに到達記録がないため、経路の問題（候補①）と判断しました。"}
+   detail:"接続文字列やサービス名の誤りであれば ORA-12514 等がリスナーログに残ります。今回はリスナーに到達記録がないため、経路の問題（ルール①）と判断しました。"}
  ],
- kg:[
-  {cap:"利用者",nodes:[{l:"NAKAMURA_S",s:"経営企画部",k:"u"}]},
-  {cap:"connects_via → 接続経路",nodes:[{l:"Tableau",s:"BI経由",k:"ok"},{l:"SQL Developer",s:"直接接続",k:"ng"}]},
-  {cap:"authenticates_as → 接続主体",nodes:[{l:"SVC_TABLEAU_RO",s:"サービスAC",k:"ok"},{l:"NAKAMURA_S",s:"未発行",k:"ng"}]},
-  {cap:"traverses → ネットワーク",nodes:[{l:"BIサーバ",s:"Bastion内",k:"ok"},{l:"執務端末",s:"到達不可",k:"ng"}]},
-  {cap:"applies_to → 対象",nodes:[{l:"公開ダッシュボード",s:"閲覧可",k:"ok"},{l:"DWHスキーマ",s:"直接不可",k:"ng"}]}
+ uid:{
+  id:"NAKAMURA_S", empno:"E-093117", name:"中村（経営企画部 計数管理グループ）",
+  job:"計数管理 ／ JOB_CORP_PLAN（2023-04-01〜）",
+  block:"本部（BLOCK_CD='00'）",
+  scope:"BI_VIEWER（Tableau 側のユーザーフィルタで制御）",
+  dbuser:"<b>未発行</b>（BI閲覧のみの利用者には既定で発行されません）",
+  target:"DWH_RTL ／ DWH_CORP（SQL Developer からの直接接続）",
+  roles:[
+   ["Tableau：預金推移DB 閲覧グループ","BIツール側","2023-05-12","期限なし","ok","有効"],
+   ["SVC_TABLEAU_RO","サービスアカウント","—","—","wa","本人には帰属しません"],
+   ["DB側の分析ロール","個別申請","—","—","ng","未付与（DBユーザー自体が未発行）"]],
+  srcs:["IDM権限マスタ ／ DBA_USERS（個人DBユーザーの有無）","接続ログ（DWHリスナー／BIサーバ）","ネットワークACL ／ 内規 SEC-021","BIデータソース定義（接続主体）","e-Learning 受講管理（DA-101）"],
+  basis:"「どちらも私のIDのはず」という前提を検証するため、<b>接続チャネルごとに接続主体を分けて</b>ルールを評価しました。BI経由と直接接続では、DBから見た主体が異なります。"
+ },
+ rules:[
+  {id:"R-CHN-00",t:"接続チャネルと接続主体の識別",cond:"principal ← channel(接続ログ)",src:"接続ログ（DWHリスナー／BIサーバ）",
+   iv:"Tableau経由＝SVC_TABLEAU_RO ／ SQL Developer＝NAKAMURA_S（試行）",res:"ok",
+   out:"<b>2つのチャネルで接続主体が異なります。</b>以降は直接接続側の経路を評価します。",ms:16},
+  {id:"R-CONN-01",t:"ネットワーク到達性",cond:"client_segment ∈ ALLOW(NET_BASTION_ONLY)",src:"ネットワークACL ／ 内規 SEC-021",
+   iv:"接続元＝執務端末セグメント 10.20.0.0/16 → 1521/tcp",res:"hit",
+   out:"<b>ここで遮断されています。</b>リスナー側に到達記録自体がなく、認証以前の段階です。",ms:9},
+  {id:"R-AUTH-02",t:"個人DBユーザーの存在",cond:"exists(DBA_USERS.username = user_id)",src:"DBA_USERS",
+   iv:"NAKAMURA_S を検索",res:"hit",
+   out:"<b>未発行です。</b>仮に経路が通っても、認証段階で成立しません。",ms:6},
+  {id:"R-ROLE-03",t:"DB側ロールの付与",cond:"roles(db_user)",src:"DBA_ROLE_PRIVS",
+   iv:"評価対象のDBユーザーが存在しない",res:"sk",
+   out:"前段が不成立のため評価対象外。<b>BI側の閲覧グループはDB側のロールとは別管理です。</b>",ms:3},
+  {id:"R-SVC-04",t:"サービスアカウント権限の継承",cond:"inherits(user, principal(BI))",src:"BIデータソース定義",
+   iv:"SVC_TABLEAU_RO の保持権限を評価",res:"ok",
+   out:"<b>個人には継承されません。</b>Tableauでの見える範囲はダッシュボード側のユーザーフィルタで制御されています。",ms:8},
+  {id:"R-PRE-07",t:"申請前提条件の充足",cond:"training(DA-101).completed",src:"e-Learning 受講管理",
+   iv:"SQL研修 DA-101 ／ 受講済 2025-06-18",res:"ok",
+   out:"個人DBユーザー発行の前提条件は充足しています。<b>本日から申請可能な状態です。</b>",ms:7},
+  {id:"R-REQ-08",t:"必要手続きの組み立て",cond:"requirements(direct_access) − current_state(user)",src:"申請メニュー定義（IDM ／ 基盤グループ）",
+   iv:"直接接続に必要な3要件と現状を差分抽出",res:"hit",
+   out:"個人DBユーザー発行・Bastion利用・スキーマSELECTの<b>3件が未整備</b>。並行申請で3〜5営業日です。",ms:12},
+  {id:"R-ALT-09",t:"代替ルートの探索",cond:"features(BI).export ∩ granted(user)",src:"Tableau 権限定義",
+   iv:"公開済ダッシュボードの抽出機能を照会",res:"ok",
+   out:"クロス集計のCSVダウンロードが許可されています（1回10万行上限）。申請完了を待たずに利用できます。",ms:10}
  ],
- qpath:[0,1,1,1,1],
- gql:'<span class="r">MATCH</span> path = (u:<span class="n">User</span> {id:<span class="v">"NAKAMURA_S"</span>})\n      -[:<span class="r">CONNECTS_VIA</span>]-&gt;(ch:<span class="n">Channel</span>)\n      -[:<span class="r">AUTHENTICATES_AS</span>]-&gt;(principal)\n      -[:<span class="r">HAS_ROLE</span>]-&gt;(:<span class="n">Role</span>)-[:<span class="r">GRANTS</span>]-&gt;(:<span class="n">Privilege</span>)\n      -[:<span class="r">APPLIES_TO</span>]-&gt;(o:<span class="n">Object</span> {schema:<span class="v">"DWH_RTL"</span>})\n<span class="r">RETURN</span> ch.name, principal.id, length(path)\n<span class="v">// → Tableau 経由の1経路のみ成立。直接接続の経路は STEP1 で切断</span>',
- steps:[
-  {t:"事象を解釈",d:"「BIでは見えるが直接接続できない」という記述から、権限ではなく接続経路（チャネル）の差分を疑うと判断。",sc:"channel diff"},
-  {t:"接続主体を特定",d:"BI経由の接続ログを照会し、DWHから見た接続主体がサービスアカウント SVC_TABLEAU_RO であることを確認。",sc:"SVC account"},
-  {t:"個人IDの経路を探索",d:"利用者の直接接続経路を権限グラフで探索。ネットワークACLの段階で経路が切断されていることを検出。",sc:"cut at hop1"},
-  {t:"DBユーザーの存在を確認",d:"個人DBユーザーが未発行であることを確認。認証段階でも成立しないと判定。",sc:"no user"},
-  {t:"前提条件の充足を確認",d:"個人DBユーザー発行の要件（SQL研修 DA-101）の受講記録を照会。受講済のため申請可能と判定。",sc:"prereq OK"},
-  {t:"必要な申請を組み立て",d:"3件の申請（DBユーザー発行・踏み台利用・スキーマ権限）が並行して必要と整理し、順序と所要日数を算出。",sc:"3 requests"}
- ],
+ candRule:["R-CONN-01","R-AUTH-02","R-SVC-04","R-AUTH-02","R-CONN-01"],
+ ai:{
+  model:"行内LLM ／ 閉域・生成AI利用基準 L2",
+  input:"ルールエンジン出力JSON（8ルール・チャネル別）＋利用者属性＋問い合わせ本文",
+  summary:"本件は<b>ルールが評価している「主体」がチャネルごとに違う</b>という一点に集約されます。R-CHN-00 と R-SVC-04 を先に説明しないと、そのあとの権限の話がかみ合いません。",
+  points:[
+   ["「どちらも私のID」という前提が成り立っていない",
+    "R-CHN-00 のとおり、DWHから見た接続主体はダッシュボード閲覧時には <b>SVC_TABLEAU_RO</b>（Tableau専用のサービスアカウント）です。<b>Tableauで見えていることはDB権限の証拠になりません</b>。ここを最初に伝えてください。"],
+   ["自覚症状と、実際の停止点がずれている",
+    "「認証で弾かれる」と受け取られていますが、R-CONN-01 はネットワーク層での遮断を示しており、リスナーへの到達記録すらありません。<b>認証以前で止まっています</b>。エラー表示に引きずられると、パスワード再設定など不要な作業に向かいがちです。"],
+   ["3件は順番待ちではなく並行して出せる",
+    "R-REQ-08 が検出した3件はいずれも独立した申請です。<b>直列だと8営業日、並行なら3〜5営業日</b>で済みますので、回答では並行申請である旨を明示してください。"],
+   ["前提条件はすでに満たしている",
+    "R-PRE-07 が受講済を確認しています。<b>研修の順番待ちは発生しません</b>ので、本日から申請いただけます。"]],
+  next:"①「BIはサービスアカウント接続である」ことの説明 → ②3件の並行申請の案内 → ③申請完了まではTableauのCSV抽出（1回10万行）で代替、の順が最短です。",
+  json:"{\n  \"user_id\": \"NAKAMURA_S\",\n  \"channels\": {\n    \"tableau\":       { \"principal\": \"SVC_TABLEAU_RO\", \"result\": \"ALLOW\" },\n    \"sql_developer\": { \"principal\": \"NAKAMURA_S\",     \"result\": \"DENY\"  }\n  },\n  \"denied_at\": [\"R-CONN-01\", \"R-AUTH-02\"],\n  \"db_user_exists\": false,\n  \"privilege_inherited_from_service_account\": false,\n  \"missing_requests\": [\"DB_USER_ISSUE\", \"BASTION_ACCESS\", \"SCHEMA_SELECT\"],\n  \"prerequisite\": { \"training\": \"DA-101\", \"status\": \"completed\" },\n  \"rules_evaluated\": 8, \"elapsed_ms\": 71, \"llm_used\": false\n}"
+ },
  actions:[
   ["分析用DBユーザーの発行を申請する",
    "IDM ＞ 分析基盤 ＞ 個人DBユーザー発行。SQLをご自身で書く分析業務であることの記載が必要です。前提のSQL研修 DA-101 は受講済です。",
@@ -1529,7 +1683,7 @@ const PERM_Q = [
  sample:"異動したのに、前の部署のデータがまだ見えている",
  question:"4月に市場国際部へ異動したのですが、前にいたリスク統括部のときに使っていた与信系のデータが今でも見えています。使う予定はないのですが、このままで問題ないでしょうか。",
  kw:["異動","前の部署","まだ見えて","残って","権限","返上"],
- verdict:"<b>候補①が該当</b>します。人事異動で自動剥奪されるのは「部署ひも付きロール」のみで、個別申請で取得した期間限定ロールは対象外のためです。<b>最小権限の原則（内規 SEC-003）に照らして不適合</b>のため、速やかな返上をお願いします。ご自身から申告いただいた点は、内部統制上たいへん適切な対応です。",
+ verdict:"<b>ルール①が該当</b>します。人事異動で自動剥奪されるのは「部署ひも付きロール」のみで、個別申請で取得した期間限定ロールは対象外のためです。<b>最小権限の原則（内規 SEC-003）に照らして不適合</b>のため、速やかな返上をお願いします。ご自身から申告いただいた点は、内部統制上たいへん適切な対応です。",
  cands:[
   {name:"個別申請ロールは異動で自動剥奪されない",score:95,fl:["ng","該当"],
    src:"IDM権限マスタ ／ ロールライフサイクル定義",
@@ -1567,23 +1721,63 @@ const PERM_Q = [
    why:"当該ロールは利用者へ直接付与されており、上位ロールからの継承ではありません。",
    detail:"間接付与の場合は、上位ロール側を外さないと解決しません。今回は直接付与のため、IDMからの返上操作のみで即時に解消できます。"}
  ],
- kg:[
-  {cap:"利用者",nodes:[{l:"KIMURA_Y",s:"市場国際部",k:"u"}]},
-  {cap:"is_member_of → 所属の変遷",nodes:[{l:"市場国際部",s:"2026-04〜 現在",k:"ok"},{l:"リスク統括部",s:"〜2026-03",k:"ng"}]},
-  {cap:"has_role → 付与ロール",nodes:[{l:"R_MKT_ANALYST_RO",s:"部署ひも付き・適正",k:"ok"},{l:"R_CRD_SENSITIVE_RO",s:"個別申請・過剰",k:"ng"}]},
-  {cap:"grants → 権限セット",nodes:[{l:"SELECT",s:"市場系マート",k:"ok"},{l:"SELECT",s:"与信系マート 12件",k:"ng"}]},
-  {cap:"applies_to → 対象オブジェクト",nodes:[{l:"市場系データ",s:"職務に適合",k:"ok"},{l:"与信系データ",s:"職務外・未使用138日",k:"ng"}]}
+ uid:{
+  id:"KIMURA_Y", empno:"E-076550", name:"木村（市場国際部 市場運用グループ）",
+  job:"市場運用 ／ JOB_MARKET（2026-04-01〜／前：リスク統括部 与信管理G）",
+  block:"本部（BLOCK_CD='00'）",
+  scope:"HQ_SCOPE（市場系のみ）",
+  dbuser:"KIMURA_Y ／ 状態 OPEN ／ PW期限 2026-12-15",
+  target:"保有ロール全件（オブジェクト単位ではなく棚卸し観点で評価）",
+  roles:[
+   ["R_MKT_ANALYST_RO","部署ひも付き","2026-04-01（異動連携で自動付与）","期限なし","ok","適正"],
+   ["R_RISK_ANALYST_RO","部署ひも付き","2026-04-01 に自動剥奪","—","ok","剥奪済（正常）"],
+   ["R_CRD_SENSITIVE_RO","個別申請","2025-04-10（2025-10-14 に期限延長）","2026-10-31","ng","残存・職務外"]],
+  srcs:["IDM権限マスタ（付与種別・期限）","人事マスタ（異動・兼務）","IDM 連携ジョブ実行ログ","DB監査ログ（利用実績・90日保持）","標準ロールセット定義 ／ 内規 SEC-003"],
+  basis:"本件は特定オブジェクトの可否ではなく<b>保有ロールの棚卸し</b>にあたるため、利用者IDを起点に保有ロール全件へ統制ルールを適用しました。"
+ },
+ rules:[
+  {id:"R-HR-00",t:"所属の変遷を取得",cond:"hr.assignments(user_id)",src:"人事マスタ",
+   iv:"2026-04-01 リスク統括部 → 市場国際部 ／ 兼務登録なし",res:"ok",
+   out:"異動1件を確認。兼務がないため、旧部署の標準ロールを保持する正当性はありません。",ms:9},
+  {id:"R-SYNC-01",t:"異動連携の実行結果",cond:"job(HR_SYNC, 2026-04-01).status = 'SUCCESS'",src:"IDM 連携ジョブ実行ログ",
+   iv:"2026-04-01 02:00 正常終了（剥奪1件／付与1件）",res:"ok",
+   out:"<b>連携自体は正常です。</b>部署ひも付きロールの付け替えは完了しています。",ms:7},
+  {id:"R-ROLE-02",t:"ロール付与種別の分類",cond:"classify(grant_type) for roles(user)",src:"IDM権限マスタ",
+   iv:"部署ひも付き2件 ／ 個別申請1件 ／ 上位ロールからの継承なし",res:"ok",
+   out:"個別申請ロールは<b>異動連携の対象外</b>（期限まで有効）という仕様です。直接付与のため返上のみで解消します。",ms:8},
+  {id:"R-RESID-03",t:"残存ロールの検出",cond:"grant_type='個別申請' AND expires > today AND role ∉ 標準ロールセット(現部署)",src:"IDM権限マスタ ／ 標準ロールセット定義",
+   iv:"R_CRD_SENSITIVE_RO ／ 有効期限 2026-10-31",res:"hit",
+   out:"<b>1件検出。現在の職務に不要なロールが有効なまま残っています。</b>",ms:11},
+  {id:"R-USE-04",t:"利用実績の評価",cond:"last_used_days >= 90",src:"DB監査ログ（90日保持＋月次アーカイブ）",
+   iv:"最終利用 138日前（2026-04-05）",res:"hit",
+   out:"未使用138日。<b>自動検出ルールの「返上推奨」条件に合致します。</b>",ms:13},
+  {id:"R-SCOPE-05",t:"影響範囲の算出",cond:"objects ← grants(role)",src:"DBA_TAB_PRIVS",
+   iv:"与信系マート12テーブル（うち機密Ⅱ 8件）",res:"hit",
+   out:"職務外のデータ12テーブルが参照可能な状態です。",ms:14},
+  {id:"R-GOV-06",t:"統制基準との照合",cond:"least_privilege(SEC-003) AND review(IDM-REV).approver = 現所属長",src:"内規 SEC-003 ／ 棚卸し履歴",
+   iv:"2026-06-30 締めの棚卸しで「継続」承認（承認者＝旧所属長）",res:"hit",
+   out:"<b>最小権限の原則に不適合。</b>承認者が旧所属長のまま処理された形跡があります。",ms:10},
+  {id:"R-XCHK-07",t:"横展開の要否",cond:"count(similar: 同日異動 AND 個別申請ロール保有)",src:"IDM権限マスタ（全社）",
+   iv:"2026-04-01付 異動者412名を評価",res:"hit",
+   out:"同様の残存が<b>他に37名</b>いる可能性。一括点検の起票が妥当と判定しました。",ms:21}
  ],
- qpath:[0,1,1,1,1],
- gql:'<span class="r">MATCH</span> (u:<span class="n">User</span> {id:<span class="v">"KIMURA_Y"</span>})-[h:<span class="r">HAS_ROLE</span>]-&gt;(r:<span class="n">Role</span>)\n<span class="r">MATCH</span> (u)-[:<span class="r">IS_MEMBER_OF</span>]-&gt;(d:<span class="n">Dept</span>)\n<span class="r">WHERE NOT</span> (d)-[:<span class="r">STANDARD_ROLE</span>]-&gt;(r)\n  <span class="r">AND</span> h.last_used_days &gt; 90\n<span class="r">RETURN</span> r.id, h.granted_at, h.expires_at, h.grant_type\n<span class="v">// → R_CRD_SENSITIVE_RO / 個別申請 / 未使用138日 ＝ 返上推奨</span>',
- steps:[
-  {t:"事象を解釈",d:"「異動後も前部署のデータが見える」という申告から、権限の残存（過剰権限）の可能性を検証。",sc:"over-privilege"},
-  {t:"所属の変遷を確認",d:"人事マスタから 2026-04-01 付の異動を確認。兼務登録がないことも併せて確認。",sc:"1 transfer"},
-  {t:"ロールの付与種別を判定",d:"保有ロールを「部署ひも付き」と「個別申請」に分類。部署ひも付きは正常に付け替え済であることを確認。",sc:"2 types"},
-  {t:"残存ロールを特定",d:"個別申請ロール R_CRD_SENSITIVE_RO が 2026-10-31 まで有効な状態で残存していることを検出。",sc:"1 role"},
-  {t:"利用実績と統制基準を照合",d:"直近90日の利用実績0件（最終利用138日前）。最小権限の原則（SEC-003）に照らして不適合と判定。",sc:"unused 138d"},
-  {t:"影響範囲と横展開を評価",d:"与信系マート12テーブルが対象。同時期異動者にも同様の残存がある可能性が高いと判断し、一括点検を起票。",sc:"12 objects"}
- ],
+ candRule:["R-RESID-03","R-SYNC-01","R-HR-00","R-GOV-06","R-ROLE-02"],
+ ai:{
+  model:"行内LLM ／ 閉域・生成AI利用基準 L2",
+  input:"ルールエンジン出力JSON（8ルール）＋保有ロール一覧＋問い合わせ本文",
+  summary:"ルール判定は<b>「システムは仕様どおり動いており、それでも過剰権限が残る」</b>という結果です。ご本人の操作ミスでも連携障害でもないため、回答はまず<b>申告いただいたことへの謝意</b>から入るのが適切です。",
+  points:[
+   ["利用者の不安に先に答える",
+    "「このままで問題ないでしょうか」というお尋ねです。R-SYNC-01 が正常終了を示すとおり<b>異常ではなく仕様</b>で、ご本人に落ち度はありません。そのうえで R-GOV-06 の不適合判定を根拠に返上をお願いする流れが自然です。"],
+   ["返上のハードルが低いことを強調できる",
+    "R-ROLE-02 が直接付与（上位ロールからの継承ではない）と分類しているため、<b>IDMからの返上操作だけで即時に解消</b>します。承認も不要です。「3分で終わる」ことを明記すると実行率が上がります。"],
+   ["個人の問題として閉じない",
+    "R-GOV-06 は棚卸しの承認者が旧所属長のまま処理された形跡を、R-XCHK-07 は同条件の異動者が他に37名いることを検出しています。<b>運用設計側の課題</b>として、一括点検と改善要望をIT部門で引き取る旨を添えるのが誠実です。"],
+   ["放置しても自動では消えない",
+    "R-RESID-03 の有効期限は 2026-10-31 です。<b>9月末の棚卸しでフラグされるのを待つより、本日返上いただくほうが統制上望ましい</b>という点を、期日つきで示すと動機づけになります。"]],
+  next:"「ご申告への謝意／不具合ではない／IDMから3分で返上できる／同時期異動者はIT部門で一括点検する」の4点を、この順で返すのが最も収まりの良い構成です。",
+  json:"{\n  \"user_id\": \"KIMURA_Y\",\n  \"check_type\": \"ROLE_REVIEW\",\n  \"transfer\": { \"date\": \"2026-04-01\", \"from\": \"risk\", \"to\": \"market\",\n                 \"concurrent_post\": false },\n  \"hr_sync\": \"SUCCESS\",\n  \"residual_roles\": [\n    { \"role\": \"R_CRD_SENSITIVE_RO\", \"grant_type\": \"individual\",\n      \"expires\": \"2026-10-31\", \"unused_days\": 138, \"objects\": 12 }\n  ],\n  \"violation\": \"SEC-003_LEAST_PRIVILEGE\",\n  \"revoke\": { \"approval_required\": false, \"effective\": \"immediate\" },\n  \"similar_users\": 37,\n  \"rules_evaluated\": 8, \"elapsed_ms\": 93, \"llm_used\": false\n}"
+ },
  actions:[
   ["IDM から権限返上を申請する（推奨・即日）",
    "IDM ＞ 保有権限一覧 ＞ 該当ロール ＞「返上」。<b>返上は承認不要で即時反映されます。</b>棚卸しを待たずにご対応いただくのが最も望ましい形です。",
@@ -1614,7 +1808,7 @@ const PERM_Q = [
  sample:"同じSQLなのに、自分と同僚で件数が違う",
  question:"同じSQLを実行しているはずなのに、私が実行すると1,200件、同僚が実行すると3,500件になります。どちらが正しいのでしょうか。エラーは出ていません。",
  kw:["件数が違う","件数が合わない","同僚","同じSQL","1,200","3,500","違う結果"],
- verdict:"<b>候補①が該当</b>します。行レベルセキュリティ（RLS）により、利用者ごとに参照できる範囲が異なるためです。<b>どちらも「その利用者にとっては正しい」結果</b>です。全店の数値が必要な場合は参照スコープの拡大申請が必要です。",
+ verdict:"<b>ルール①が該当</b>します。行レベルセキュリティ（RLS）により、利用者ごとに参照できる範囲が異なるためです。<b>どちらも「その利用者にとっては正しい」結果</b>です。全店の数値が必要な場合は参照スコープの拡大申請が必要です。",
  cands:[
   {name:"行レベルセキュリティによる参照スコープの差",score:91,fl:["ng","該当"],
    src:"ポリシー定義 RLS_BRANCH_SCOPE ／ 両名の所属属性",
@@ -1652,23 +1846,66 @@ const PERM_Q = [
    why:"実行されたSQLの絞り込み条件にマスキング対象列は含まれていませんでした。",
    detail:"マスキング対象列を WHERE 句で使うと、変換後の値と比較されるため意図せず0件になることがあります。今回のSQLは店番と年月のみを条件にしており、この構造には該当しません。"}
  ],
- kg:[
-  {cap:"利用者（比較）",nodes:[{l:"KOBAYASHI_R",s:"審査部（ブロック担当）",k:"u"},{l:"同僚",s:"審査部（本部担当）",k:"u"}]},
-  {cap:"has_role → 付与ロール",nodes:[{l:"R_CRD_REVIEW_RO",s:"両名とも同一",k:"ok"}]},
-  {cap:"has_attribute → スコープ属性",nodes:[{l:"BLOCK_SCOPE",s:"自ブロック 12ヶ店",k:"ng"},{l:"HQ_SCOPE",s:"全店 35ヶ店",k:"ok"}]},
-  {cap:"filtered_by → 行レベルポリシー",nodes:[{l:"RLS_BRANCH_SCOPE",s:"BLOCK_CD='05'",k:"ng"},{l:"RLS_BRANCH_SCOPE",s:"1=1（全件）",k:"ok"}]},
-  {cap:"applies_to → 実行結果",nodes:[{l:"1,200件",s:"小林さま",k:"ng"},{l:"3,500件",s:"同僚の方",k:"ok"}]}
+ uid:{
+  id:"KOBAYASHI_R", empno:"E-131209", name:"小林（審査部 第2審査グループ）",
+  job:"与信審査 ／ JOB_REVIEW（2025-04-01〜）",
+  block:"第5ブロック（BLOCK_CD='05'／12ヶ店）",
+  scope:"BLOCK_SCOPE（自ブロック限定）",
+  dbuser:"KOBAYASHI_R ／ 状態 OPEN ／ PW期限 2026-10-20",
+  target:"DWH_RTL.MART_CREDIT.M_REVIEW_CASE（比較対象：同僚 SUZUKI_H）",
+  roles:[
+   ["R_CRD_REVIEW_RO","部署ひも付き","2025-04-01","期限なし","ok","有効（両名とも同一）"],
+   ["スコープ属性 BLOCK_SCOPE","属性付与","2025-04-01","—","wa","小林さま＝自ブロック12ヶ店"],
+   ["スコープ属性 HQ_SCOPE","属性付与","2024-04-01","—","ok","同僚（本部担当）＝全店35ヶ店"]],
+  srcs:["DB監査ログ（SQL_ID・返却行数・実行時刻）","IDM 属性マスタ（スコープ属性）","DBA_ROLE_PRIVS ／ DBA_TAB_PRIVS","ポリシー定義 RLS_BRANCH_SCOPE","バッチ実行ログ（日次連携）"],
+  basis:"「同じSQLなのに結果が違う」という申告のため、<b>2名分のユーザーIDに同一のルールセットを並行して適用し、差分を抽出</b>しました。"
+ },
+ rules:[
+  {id:"R-SQL-00",t:"実行SQLの同一性",cond:"sql_id(user_a) = sql_id(user_b) AND objects(a) = objects(b)",src:"DB監査ログ",
+   iv:"両名とも SQL_ID=8f2c1a9d3 ／ 参照先も一致（ともに実表）",res:"ok",
+   out:"SQLは同一です。<b>書き方の違いも、実表とビューの取り違えも否定されます。</b>",ms:15},
+  {id:"R-ROLE-03",t:"ロール差分",cond:"roles(user_a) △ roles(user_b)",src:"DBA_ROLE_PRIVS ／ IDM権限マスタ",
+   iv:"差分0件（ともに R_CRD_REVIEW_RO）",res:"ok",
+   out:"ロールレベルでは差がありません。<b>権限の有無では件数差を説明できません。</b>",ms:9},
+  {id:"R-OBJ-05",t:"オブジェクト SELECT 権限",cond:"exists(path) for each user",src:"DBA_TAB_PRIVS",
+   iv:"両名とも経路あり",res:"ok",
+   out:"両名とも参照可能です。エラーが出ないのはこのためです。",ms:8},
+  {id:"R-ATTR-06",t:"スコープ属性の差分",cond:"attr(user_a).scope △ attr(user_b).scope",src:"IDM 属性マスタ",
+   iv:"BLOCK_SCOPE（'05'／12ヶ店） ／ HQ_SCOPE（全店35ヶ店）",res:"hit",
+   out:"<b>ここに差があります。</b>行レベルポリシーへ渡される属性が異なります。",ms:11},
+  {id:"R-RLS-07",t:"適用述語の展開",cond:"policy(RLS_BRANCH_SCOPE).predicate(user) for each user",src:"ポリシー定義リポジトリ",
+   iv:"BRANCH_CD IN (12ヶ店) ／ 1=1（全件）",res:"hit",
+   out:"同一SQLでも<b>DBが実行時に付与する絞り込み条件が異なります</b>。エラーは発生しません。",ms:12},
+  {id:"R-VAL-08",t:"件数比の整合検証",cond:"|rows_a/rows_b − branches_a/branches_b| < 0.05",src:"DB監査ログ（返却行数）",
+   iv:"1,200／3,500＝0.343 ／ 12／35＝0.343",res:"ok",
+   out:"<b>差分 0.000。件数差はスコープ差で説明できます。</b>",ms:10},
+  {id:"R-BATCH-09",t:"参照断面の一致",cond:"batch(daily).finished_at < min(exec_time)",src:"バッチ実行ログ",
+   iv:"日次連携 06:12 正常終了 ／ 実行 09:12・09:14",res:"ok",
+   out:"同一断面を参照しています。反映タイミングの差は否定されます。",ms:7},
+  {id:"R-MSK-11",t:"条件句とマスキング対象列",cond:"where_columns(sql) ∩ masked_columns(object) = ∅",src:"ポリシー定義 ／ 実行SQL",
+   iv:"条件列＝BRANCH_CD, YM ／ マスキング対象＝CUST_NO ほか",res:"ok",
+   out:"条件句にマスキング対象列は含まれません。変換による意図しない除外は起きていません。",ms:6},
+  {id:"R-BIND-10",t:"バインド変数の検証可否",cond:"audit.bind_values IS NOT NULL",src:"DB監査ログ",
+   iv:"バインド値は記録対象外",res:"wa",
+   out:"<b>対象期間の相違だけは完全には排除できません。</b>実行条件の突き合わせを併せてご依頼ください。",ms:5}
  ],
- qpath:[0,0,0,0,0],
- gql:'<span class="r">MATCH</span> (u:<span class="n">User</span>)-[:<span class="r">HAS_ATTRIBUTE</span>]-&gt;(a:<span class="n">ScopeAttr</span>)\n      &lt;-[:<span class="r">EVALUATES</span>]-(rls:<span class="n">RowPolicy</span> {id:<span class="v">"RLS_BRANCH_SCOPE"</span>})\n      -[:<span class="r">APPLIES_TO</span>]-&gt;(o:<span class="n">Object</span>)\n<span class="r">WHERE</span> u.id <span class="r">IN</span> [<span class="v">"KOBAYASHI_R"</span>, <span class="v">"SUZUKI_H"</span>]\n<span class="r">RETURN</span> u.id, a.scope_type, rls.predicate, count_visible(o,u)\n<span class="v">// → 同一ロール・同一SQLでも predicate が異なる ＝ 件数差の説明</span>',
- steps:[
-  {t:"事象を解釈",d:"「エラーなし・同一SQL・件数のみ相違」という条件から、権限拒否ではなく行レベルの絞り込みを最有力と設定。",sc:"row-level"},
-  {t:"両名のSQLを突合",d:"DB監査ログから両名の SQL_ID を取得し、同一であることを確認。参照先オブジェクトも一致。",sc:"same SQL"},
-  {t:"ロール差分を確認",d:"両名の保有ロールを比較。差分なし（ともに R_CRD_REVIEW_RO）と判定し、ロール要因を排除。",sc:"no diff"},
-  {t:"スコープ属性を比較",d:"IDM のスコープ属性を比較し、BLOCK_SCOPE と HQ_SCOPE の差を検出。適用述語の違いを特定。",sc:"scope diff"},
-  {t:"件数比で妥当性を検証",d:"件数の比（1,200／3,500）が、対象となる店舗数の比（12／35ヶ店）とほぼ一致することを確認しました。RLSによる差であることの裏付けになります。"},
-  {t:"残せる可能性を提示",d:"バインド変数は監査ログに残らないため、対象期間の相違が完全には排除できません。候補②として併記しています。"}
- ],
+ candRule:["R-ATTR-06","R-BIND-10","R-BATCH-09","R-SQL-00","R-MSK-11"],
+ ai:{
+  model:"行内LLM ／ 閉域・生成AI利用基準 L2",
+  input:"ルールエンジン出力JSON（9ルール・2利用者分）＋両名の属性＋問い合わせ本文",
+  summary:"ルールは<b>「どちらの数値も、その利用者の権限範囲では正しい」</b>と判定しています。R-VAL-08 で件数比と店舗数比が小数第3位まで一致したため、説明としての確度は高い状態です。",
+  points:[
+   ["「どちらが正しいか」への答え方",
+    "二者択一のお尋ねですが、判定は<b>両方とも正しい</b>です。R-RLS-07 のとおりDBが実行時に別々の絞り込み条件を付けており、<b>エラーが出ないため利用者側からは見分けがつきません</b>。この見えなさが混乱の原因である点まで添えると納得が得られます。"],
+   ["数字で裏づけられている点は強い",
+    "R-VAL-08 の一致（0.343 対 0.343）は、他の原因では説明しにくい水準です。<b>回答にこの比較を含めておくと、追加調査の依頼を防げます</b>。"],
+   ["未確定の点を隠さない",
+    "R-BIND-10 のとおり、対象期間の相違だけは監査ログから検証できません。<b>ここだけはご本人同士で突き合わせてくださいと限界を明示する</b>ほうが、後の食い違いを防げます。"],
+   ["再発防止は申請ではなく運用で足りる",
+    "スコープ拡大申請の前に、<b>集計資料へ対象範囲を明記する運用</b>で解決する場面が大半です。全店比較そのものが業務要件である場合に限って、申請をご案内ください。"]],
+  next:"「どちらも正しい／理由はRLS／件数比が一致する／資料には範囲を明記／期間だけご確認を」の5点で、追加の申請なしに完結できる見込みです。",
+  json:"{\n  \"check_type\": \"RESULT_DIFF\",\n  \"users\": [\n    { \"id\": \"KOBAYASHI_R\", \"scope\": \"BLOCK('05')\", \"branches\": 12, \"rows\": 1200 },\n    { \"id\": \"SUZUKI_H\",    \"scope\": \"HQ\",          \"branches\": 35, \"rows\": 3500 }\n  ],\n  \"sql_identical\": true,\n  \"role_diff\": [],\n  \"cause\": \"R-ATTR-06 / R-RLS-07 (row_level_scope)\",\n  \"ratio_check\": { \"rows\": 0.343, \"branches\": 0.343, \"delta\": 0.000 },\n  \"unverifiable\": [\"bind_values (not audited)\"],\n  \"rules_evaluated\": 9, \"elapsed_ms\": 83, \"llm_used\": false\n}"
+ },
  actions:[
   ["自分に適用されているスコープを確認する",
    "SYS_CONTEXT で現在のスコープを確認できます。数値を資料に使う際、根拠として添えておくと後の齟齬を防げます。",
@@ -1695,160 +1932,6 @@ const PERM_Q = [
 }
 /*__MORE_P__*/];
 
-/* ==== 権限照会：過去インシデントとTipsの検索結果を PERM_Q に付与 ==== */
-/* ==== 権限照会の診断ステップも「過去履歴RAG主導 → 権限グラフで裏取り」に差し替え ==== */
-(function rewritePSteps(){
-const S={
-"INC-0248315":[
- {t:"過去の同種インシデントを検索",d:"「カタログに見える」「ORA-01031」を含む過去1,940件と照合しました。ほぼ同じ事象（INC-0239412）が見つかり、原因も回答も確定しています。"},
- {t:"サポートデスクTipsを検索",d:"「スコープ拡大とセットで確認する」「e-Learningの受講期限を先に確認する」の2件を取得しました。過去に手戻りが起きたパターンです。"},
- {t:"権限グラフで実際の経路を確認",d:"利用者からオブジェクトまでの経路を辿り、SELECT に到達する経路が存在しないことを確認しました。過去事例の判断と一致します。"},
- {t:"不足しているロールを逆引き",d:"対象オブジェクトから逆方向に探索し、SELECT を保持する唯一のロールを特定しました。"},
- {t:"Tipsに沿って前提条件を先回り確認",d:"e-Learningの受講記録が失効していること、行レベルポリシーで自ブロック限定になることを、申請前に検出しました。"},
- {t:"代替経路を確認",d:"同一の集計ロジックを持つ匿名化ビューが現在のロールで参照可能であることを確認しました。"}],
-"INC-0248341":[
- {t:"過去の同種インシデントを検索",d:"「顧客名」「***」「マスキング」を含む過去事例と照合し、ほぼ同じ事象（INC-0237905）を特定しました。不具合ではなく仕様であることが確定しています。"},
- {t:"続きの依頼まで含めて検索",d:"同じ利用者層から「営業リストを作りたい」という続きの依頼（INC-0240930）が過去にあり、その際の回答も取得しました。"},
- {t:"サポートデスクTipsを検索",d:"「まず実値が本当に必要か聞く」という切り分けのTipsを取得しました。これで解除申請の大半が不要になるとされています。"},
- {t:"権限グラフで裏取り",d:"SELECT 権限は正常に付与されており、エラーが出ない理由と整合することを確認しました。"},
- {t:"適用ポリシーを特定",d:"対象列に紐づくマスキングポリシーと、利用者ロールが除外対象でないことを確認。変換仕様（決定論的ハッシュ）まで取得しました。"},
- {t:"正規ルートを提示",d:"利用目的の観点から、営業リスト化はCRMのターゲットリスト機能を代替として提示しました。"}],
-"INC-0248358":[
- {t:"過去の同種インシデントを検索",d:"「BIでは見える」「SQLクライアント」を含む過去事例と照合し、ほぼ同じ事象（INC-0233077）を特定しました。必要な申請3件まで確定しています。"},
- {t:"申請手順の事例も検索",d:"DBユーザー発行の申請手順を尋ねた事例（INC-0245660）から、申請先と前提条件を取得しました。"},
- {t:"サポートデスクTipsを検索",d:"「接続主体の違いから説明する」というTipsを取得しました。ここを先に説明しないと権限の話がかみ合わない、とされています。"},
- {t:"接続ログで接続主体を確認",d:"BI経由の接続主体がサービスアカウントであることを確認しました。過去事例の説明と一致します。"},
- {t:"権限グラフで個人経路を確認",d:"個人IDでの直接接続経路が、ネットワークACLの段階で切断されていることを検出しました。個人DBユーザーも未発行です。"},
- {t:"前提条件の充足を確認",d:"個人DBユーザー発行の前提であるSQL研修の受講記録を確認し、申請可能と判定しました。"}],
-"INC-0248377":[
- {t:"過去の同種インシデントを検索",d:"「異動」「前部署のデータが見える」を含む過去事例と照合し、ほぼ同じ事象（INC-0228140）を特定しました。原因と対処が確定しています。"},
- {t:"関連する監査案件も検索",d:"内部監査部からの「未使用権限が大量に検出された」という依頼（INC-0243550）がヒットし、これが構造的な課題であることが分かりました。"},
- {t:"サポートデスクTipsを検索",d:"「まずロールの付与種別を見る」というTipsを取得しました。自主申告した利用者には統制上望ましい対応である旨を添えるよう書かれています。"},
- {t:"権限グラフで付与種別を判定",d:"保有ロールを部署ひも付きと個別申請に分類し、部署ひも付きは正常に付け替え済であることを確認しました。"},
- {t:"残存ロールと影響範囲を特定",d:"個別申請ロールが有効なまま残存し、現在の職務に不要な与信系データが参照可能な状態であることを検出しました。"},
- {t:"横展開の要否を判断",d:"過去の監査案件との照合から、同時期異動者にも同様の残存がある可能性が高いと判断し、一括点検を起票しました。"}],
-"INC-0248392":[
- {t:"過去の同種インシデントを検索",d:"「同じSQLなのに件数が違う」を含む過去事例と照合し、直近のほぼ同じ事象（INC-0246101）を特定しました。原因も回答も確定しています。"},
- {t:"サポートデスクTipsを検索",d:"「件数比と対象店舗数比を見比べる」という切り分け手順のTipsを取得しました。今回もこの手順をそのまま適用します。"},
- {t:"両者のSQLを突合",d:"監査ログから両名のクエリを取得し、同一であることを確認しました。参照先オブジェクトも一致しています。"},
- {t:"権限グラフでスコープ属性を比較",d:"保有ロールに差はなく、行レベルポリシーに渡されるスコープ属性のみが異なることを検出しました。"},
- {t:"Tipsの手順で妥当性を検証",d:"件数の比（1,200／3,500）が対象店舗数の比（12／35ヶ店）とほぼ一致することを確認しました。RLSによる差である裏付けになります。"},
- {t:"残る可能性を提示",d:"バインド変数は監査ログに残らないため、対象期間の相違が完全には排除できません。候補②として併記しています。"}]
-};
-PERM_Q.forEach(q=>{ if(S[q.tkt]) q.steps=S[q.tkt]; });
-})();
-(function attachRagP(){
-const R={
-"INC-0248315":{
- pool:"1,940",
- hits:[
-  {id:"INC-0239412",rel:"a",dept:"審査部",date:"2026-02-05",by:"ITデスク 岡田",
-   q:"カタログには出ているのに、SELECTすると<b>ORA-01031</b>になる。",
-   a:"カタログは「メタデータ公開／データ制限」設定のため、定義だけが見える状態。機密Ⅱのマートは専用ロールが必要である旨を説明し、IDMからの申請を案内。",
-   tables:["機密Ⅱマート全般"]},
-  {id:"INC-0242208",rel:"a",dept:"融資企画部",date:"2026-03-27",by:"ITデスク 佐々木",
-   q:"権限をもらったのに、<b>件数が想定より少ない</b>。全店分が見られない。",
-   a:"行レベルポリシーにより自ブロック限定になっていた。権限申請と参照スコープ拡大は別項目のため、同時申請しないと二度手間になる旨を回答。",
-   tables:["VDB_RETAIL_ANALYTICS.mart.S_HOUSING_LOAN_DAILY"]},
-  {id:"INC-0234880",rel:"b",dept:"リテール企画部",date:"2025-11-28",by:"ITデスク 岡田",
-   q:"機微情報のロールを申請したが<b>差し戻された</b>。",
-   a:"利用目的の記載が「分析のため」と抽象的だったことが理由。具体的な業務名と期間を記載するよう助言し、再申請で承認。",
-   tables:[]}],
- tips:[
-  {id:"TIP-041",by:"ITデスク 佐々木",date:"2026-03-28",
-   title:"権限申請は「スコープ拡大」と必ずセットで確認する",
-   body:"オブジェクト権限が付いても、行レベルポリシーで自ブロック限定のままというケースが多発しています。依頼内容が全店比較なら、最初から同一申請にスコープ拡大を含めてください。別々に出すと承認が二往復します。",
-   tables:[],from:"INC-0242208"},
-  {id:"TIP-016",by:"ITデスク 岡田",date:"2025-11-29",
-   title:"機微ロールの申請前に、e-Learningの受講期限を確認する",
-   body:"DP-201 は有効期限があり、失効していると申請自体が受け付けられません。申請フォームでは弾かれないのに承認段階で差し戻されるため、先に受講状況を確認してあげると1往復減らせます。",
-   tables:[],from:"INC-0234880"}],
- role:"<b>ほぼ同じ事象（INC-0239412）が過去にあり</b>、原因も回答も確定しています。さらに Tips に「スコープ拡大とセットで確認」「e-Learningの受講期限を先に確認」とあるため、今回はこの2点を先回りして確認したうえでご案内します。",
- gap:"<b>候補①の判定は過去事例でほぼ確定</b>していますが、実際にどのロールが不足しているかは事案ごとに異なります。ここは権限グラフを利用者から辿って特定しました。候補③（スコープ）も、Tipsの指摘を受けて権限グラフ上で先回りして確認しています。"
-},
-"INC-0248341":{
- pool:"1,940",
- hits:[
-  {id:"INC-0237905",rel:"a",dept:"マーケティング部",date:"2026-01-15",by:"ITデスク 佐々木",
-   q:"顧客名が<b>「***」で表示される</b>。設定の問題か。",
-   a:"不具合ではなくマスキングポリシーの適用であることを説明。ハッシュは決定論的なので結合・名寄せはそのまま可能である旨を補足し、解除申請は最終手段として案内。",
-   tables:[]},
-  {id:"INC-0240930",rel:"b",dept:"リテール推進部",date:"2026-02-26",by:"ITデスク 岡田",
-   q:"抽出したデータで<b>営業リストを作りたい</b>。個社を特定したい。",
-   a:"分析基盤のデータは統計・傾向分析が利用目的のため、営業リスト化はCRMのターゲットリスト機能を使うよう案内。抽出条件をIT部門へ連携するフローを説明。",
-   tables:[]}],
- tips:[
-  {id:"TIP-009",by:"ITデスク 佐々木",date:"2026-01-16",
-   title:"「マスキングされている」の問い合わせは、まず実値が本当に必要か聞く",
-   body:"傾向分析であればハッシュのままで完結します。ハッシュは決定論的なのでGROUP BYもJOINも通ります。実値が必要なのは個社アプローチのときだけで、その場合はDWHではなくCRM側が正攻法です。この切り分けで解除申請の8割は不要になります。",
-   tables:[],from:"INC-0237905"}],
- role:"<b>ほぼ同じ事象（INC-0237905）が過去にあり</b>、不具合ではなく仕様であることが確定しています。加えて過去には「営業リストを作りたい」という続きの依頼（INC-0240930）もあり、Tipsでも同じ切り分けが推奨されています。今回もその想定で回答を組み立てます。",
- gap:"事象の切り分けは過去事例でほぼ確定しました。<b>どの列にどのポリシーが適用されているか</b>は利用者のロールによって変わるため、この部分は権限グラフとポリシー定義から特定しています。"
-},
-"INC-0248358":{
- pool:"1,940",
- hits:[
-  {id:"INC-0233077",rel:"a",dept:"経営企画部",date:"2025-10-22",by:"ITデスク 岡田",
-   q:"BIでは見えるのに、<b>SQLクライアントから接続できない</b>。",
-   a:"BIはサービスアカウントで接続しており、DWHから見た接続主体が本人IDではないことを説明。個人DBユーザー発行・踏み台利用・スキーマ権限の3件が必要である旨を案内。",
-   tables:[]},
-  {id:"INC-0245660",rel:"b",dept:"データ活用推進室",date:"2026-07-08",by:"ITデスク 佐々木",
-   q:"分析用のDBユーザーを発行してほしい。<b>どこから申請すればよいか</b>。",
-   a:"IDM ＞ 分析基盤 ＞ 個人DBユーザー発行から。SQL研修DA-101の受講が前提であることを案内。踏み台利用申請は基盤グループへ別途必要。",
-   tables:[]}],
- tips:[
-  {id:"TIP-024",by:"ITデスク 岡田",date:"2025-10-23",
-   title:"「BIでは見えるのに」と言われたら、接続主体の違いから説明する",
-   body:"利用者は自分のIDでDWHにつながっていると思っています。BIはサービスアカウント経由で、権限は個人に引き継がれません。ここを先に説明しないと、権限の話が延々かみ合いません。申請が3件必要になることも同時に伝えてください。",
-   tables:[],from:"INC-0233077"}],
- role:"<b>ほぼ同じ事象（INC-0233077）が過去にあり</b>、原因と必要な申請3件まで確定しています。Tipsにも「接続主体の違いから説明する」と書き残されているため、その順序で回答します。",
- gap:"必要な申請は過去事例で確定しています。<b>そのうちどれが未整備で、前提条件（研修受講）を満たしているか</b>は利用者ごとに異なるため、権限グラフとネットワークACLから個別に判定しました。"
-},
-"INC-0248377":{
- pool:"1,940",
- hits:[
-  {id:"INC-0228140",rel:"a",dept:"市場国際部",date:"2025-09-12",by:"ITデスク 佐々木",
-   q:"異動したのに<b>前部署のデータが見えている</b>。問題ないか。",
-   a:"部署ひも付きロールは異動連携で自動剥奪されるが、個別申請ロールは対象外である旨を説明。IDMからの返上（承認不要・即時）を案内。",
-   tables:[]},
-  {id:"INC-0243550",rel:"b",dept:"内部監査部",date:"2026-05-14",by:"ITデスク 岡田",
-   q:"四半期の権限棚卸しで、<b>未使用の権限が大量に検出</b>された。",
-   a:"異動者の個別申請ロールが残存していたケースが大半。異動時の一括点検を運用として追加すべきと起票。",
-   tables:[]}],
- tips:[
-  {id:"TIP-033",by:"ITデスク 佐々木",date:"2025-09-13",
-   title:"異動関連の権限問い合わせは、まずロールの付与種別を見る",
-   body:"部署ひも付きか個別申請かで挙動が正反対です。前者は自動で付け替わり、後者は期限まで残ります。利用者は「異動したら全部消える」と思っているので、この違いを説明するのが最初の一歩です。自主申告してくれた方には、統制上望ましい対応である旨を必ず添えてください。",
-   tables:[],from:"INC-0228140"}],
- role:"<b>ほぼ同じ事象（INC-0228140）が過去にあり</b>、原因と対処（IDMからの返上・承認不要）が確定しています。また監査部からの類似依頼（INC-0243550）から、これが個別事象ではなく運用上の構造的な課題であることも分かっています。",
- gap:"事象の説明は過去事例で確定しました。<b>実際にどのロールが残存し、どの範囲のデータが見えているか</b>は権限グラフから特定しています。横展開（同時期異動者の一括点検）は、過去の監査部案件との照合から必要と判断しました。"
-},
-"INC-0248392":{
- pool:"1,940",
- hits:[
-  {id:"INC-0242208",rel:"a",dept:"融資企画部",date:"2026-03-27",by:"ITデスク 佐々木",
-   q:"権限をもらったのに<b>件数が想定より少ない</b>。全店分が見られない。",
-   a:"行レベルポリシーにより自ブロック限定になっていた。エラーは出ず件数だけが変わるため気づきにくい旨を説明し、スコープ拡大申請を案内。",
-   tables:[]},
-  {id:"INC-0246101",rel:"a",dept:"審査部",date:"2026-07-30",by:"ITデスク 岡田",
-   q:"同じSQLなのに<b>人によって件数が違う</b>。どちらが正しいのか。",
-   a:"参照スコープの差によるもので、どちらもその利用者にとっては正しい結果。資料には対象範囲を明記するよう助言。",
-   tables:[]}],
- tips:[
-  {id:"TIP-018",by:"ITデスク 岡田",date:"2026-07-31",
-   title:"「件数が合わない」は、まず件数比と対象店舗数比を見比べる",
-   body:"RLSによる差であれば、件数の比が対象店舗数の比とほぼ一致します。ここが一致すれば、抽出条件の違いを疑う前にスコープ差だと切り分けられます。監査ログには件数が残るので、その場で確認できます。",
-   tables:[],from:"INC-0246101"},
-  {id:"TIP-029",by:"ITデスク 佐々木",date:"2026-03-28",
-   title:"集計資料には対象範囲を明記してもらう",
-   body:"行内では同じ指標名でスコープ違いの数値が併存します。「自ブロック12ヶ店ベース」等の注記がないと、後工程で必ず食い違います。スコープ拡大申請を勧める前に、まず注記で足りないかを確認してください。",
-   tables:[],from:"INC-0242208"}],
- role:"<b>ほぼ同じ事象（INC-0246101）が直近にあり</b>、原因も回答も確定しています。Tips（TIP-018）にある「件数比と対象店舗数比を見比べる」という切り分け手順を、今回もそのまま適用しました。",
- gap:"原因の特定は過去事例とTipsでほぼ確定しました。<b>両者のスコープ属性が実際にどう異なるか</b>は権限グラフから取得し、件数比との整合まで確認しています。"
-}
-};
-PERM_Q.forEach(q=>{ const r=R[q.tkt]; if(r) q.rag=r; });
-})();
 /* ===================== 共通ユーティリティ ===================== */
 const $=(s,r=document)=>r.querySelector(s);
 const esc=s=>String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
@@ -2143,61 +2226,140 @@ function dataFollow(k){
   },700);
 }
 
-/* ===================== 画面2：権限照会 ===================== */
+/* =====================================================================
+   画面2：権限照会
+   ① ユーザーIDを起点にした「ルールベース探索」（決定論的・生成AI不使用）
+   ② その判定結果に対する「生成AIの解釈コメント」
+   ※ 権限照会ではオントロジー／ナレッジグラフは使用しません。
+   ===================================================================== */
+const RRES={ok:["ok","充足"],hit:["ng","検出"],wa:["wa","要注意"],sk:["n","評価対象外"]};
+
+/* ---- 利用者プロファイル（ユーザーIDで権限マスタを照会した結果） ---- */
+function idCard(q){
+  const u=q.uid;
+  return '<div class="idc">'+
+    '<div class="idch"><span class="idb">USER ID</span><b>'+u.id+'</b>'+
+      '<span class="idsub">'+u.empno+' ／ '+u.name+'</span>'+
+      '<span class="eng r">ルールベース照会</span></div>'+
+    '<dl class="kv" style="padding:11px 14px 4px">'+
+      '<dt>所属・職務</dt><dd>'+u.job+'</dd>'+
+      '<dt>参照ブロック</dt><dd>'+u.block+'</dd>'+
+      '<dt>スコープ属性</dt><dd>'+u.scope+'</dd>'+
+      '<dt>DBユーザー</dt><dd class="mono">'+u.dbuser+'</dd>'+
+      '<dt>照会対象</dt><dd class="mono">'+u.target+'</dd></dl>'+
+    '<div style="padding:8px 14px 12px"><table class="tb">'+
+      '<tr><th>保有ロール・属性</th><th>付与種別</th><th>付与</th><th>有効期限</th><th>状態</th></tr>'+
+      u.roles.map(r=>'<tr><td class="m">'+r[0]+'</td><td>'+r[1]+'</td><td>'+r[2]+'</td><td>'+r[3]+'</td>'+
+        '<td><span class="fl '+r[4]+'">'+r[5]+'</span></td></tr>').join("")+'</table></div>'+
+    '<div class="idf">参照した権限マスタ：'+u.srcs.join(' ／ ')+'</div></div>';
+}
+/* ---- ルール評価トレース（上から順に評価した結果） ---- */
+function ruleTable(q){
+  const ms=q.rules.reduce((a,r)=>a+r.ms,0);
+  return '<div class="ragwrap"><div class="raghd"><span class="n4">RULE</span>権限ルールの評価トレース'+
+    '<span class="cnt">'+q.rules.length+' ルール ／ '+ms+' ms ／ 生成AI不使用</span></div>'+
+    '<table class="tb rtb"><tr><th>#</th><th>ルール</th><th>評価した値と結果</th><th>判定</th></tr>'+
+    q.rules.map((r,i)=>{
+      const v=RRES[r.res]||RRES.ok;
+      return '<tr><td>'+(i+1)+'</td>'+
+        '<td style="min-width:150px"><span class="rid">'+r.id+'</span><br><b>'+r.t+'</b>'+
+        '<br><span class="rcond">'+esc(r.cond)+'</span></td>'+
+        '<td><span class="rin">'+r.iv+'</span><div class="rout">'+r.out+'</div>'+
+        '<div class="rsrc">参照：'+r.src+'</div></td>'+
+        '<td style="white-space:nowrap"><span class="fl '+v[0]+'">'+v[1]+'</span><div class="rms">'+r.ms+' ms</div></td></tr>';
+    }).join("")+'</table></div>';
+}
+/* ---- ルール定義そのもの（固定ロジックであることの提示） ---- */
+function ruleDefs(q){
+  return '<p style="font-size:11.5px;color:var(--tx2);margin:0 0 10px">'+
+    '権限ルールは、行内の権限管理標準（SEC-003／SEC-021）と各ポリシー定義から作成された<b>固定ロジック</b>です。'+
+    '同じユーザーID・同じ照会対象であれば、常に同じ判定になります。順序も固定で、前段が不成立の場合は以降を評価対象外とします。</p>'+
+    '<table class="tb"><tr><th>ルール</th><th>判定条件</th><th>参照マスタ</th></tr>'+
+    q.rules.map(r=>'<tr><td><span class="rid">'+r.id+'</span><br>'+r.t+'</td>'+
+      '<td class="m">'+esc(r.cond)+'</td><td>'+r.src+'</td></tr>').join("")+'</table>';
+}
+/* ---- 生成AIによる解釈コメント（判定結果のみを入力とする） ---- */
+function aiBlock(q){
+  const a=q.ai;
+  return '<div class="aicm">'+
+    '<div class="aih"><span class="eng a">生成AI</span><b>ルール判定の解釈コメント</b>'+
+      '<span class="aim">'+a.model+'</span></div>'+
+    '<div class="aib"><p class="ais">'+a.summary+'</p>'+
+      a.points.map(p=>'<div class="aip"><b>'+p[0]+'</b><p>'+p[1]+'</p></div>').join("")+
+      '<div class="ain"><b class="l4">次の一手</b>'+a.next+'</div></div>'+
+    '<div class="aif">入力：'+a.input+'　／　<b>判定はルールエンジンの出力をそのまま採用しています。'+
+      '生成AIは解釈と文章化のみを担当し、判定結果の書き換えは行いません。</b></div></div>'+
+    acc("生成AIに渡した入力（ルールエンジンの出力JSON）",'<pre class="code">'+esc(a.json)+'</pre>',
+        "判定結果のみ・自然文の推測は含みません");
+}
+
 function askPerm(q){
   cur.p2=q;
-  think("過去の同種インシデントとサポートデスクTipsを検索しています…",()=>{
-    addAI('<p>まず、<b>過去の同種インシデント</b>と<b>サポートデスクのTips</b>を検索しました。'+
-      'この種の事象は再発が多く、当時の切り分けと回答がそのまま使えることがあります。</p>'+
-      hitsBlock(q)+tipsBlock(q)+
-      '<div class="prole">'+q.rag.role+'</div>');
+  think("問い合わせ元のユーザーIDを特定し、権限マスタを照会しています…",()=>{
+    addAI('<p>まず問い合わせ元の<b>ユーザーID</b>を特定し、IDM権限マスタ・DBカタログ・ポリシー定義から'+
+      '現在の付与状態を取得しました。</p>'+
+      idCard(q)+'<div class="prole">'+q.uid.basis+'</div>');
     setTimeout(()=>{
-      think("過去事例の切り分けを、権限グラフと監査ログで裏取りしています…",()=>{
-        let h='<p>過去事例で示された原因を起点に、<b>この利用者の実際の権限経路</b>を確認しました。'+
-          '考えられる原因 <b>'+q.cands.length+'件</b> の検証結果です。</p>'+
+      think("ユーザーIDを起点に、権限ルールを上から順に評価しています…",()=>{
+        addAI('<p>このユーザーIDに紐づく実際の値に対して、権限ルールを<b>定義された順序で評価</b>しました。'+
+          'すべてマスタとの突合による判定で、確率的な推定は含みません。</p>'+
+          ruleTable(q)+
+          '<div class="intent" style="margin-bottom:12px"><div class="lb">ルールエンジンの判定</div>'+
+          '<div style="font-size:12.5px;margin-top:3px">'+q.verdict+'</div></div>'+
+          '<p>原因として定義されているルール <b>'+q.cands.length+'件</b> の判定結果です。'+
+          '行をクリックすると、評価に使った値と権限チェーンを表示します。</p>'+
           '<div class="cands">'+q.cands.map((c,i)=>
             '<button class="cd'+(c.fl[0]==="ng"?" top":"")+'" data-pcand="'+i+'">'+
             '<span class="no">'+(i+1)+'</span><span class="mid">'+
             '<span class="t1">'+c.name+' <span class="fl '+c.fl[0]+'">'+c.fl[1]+'</span></span>'+
             '<span class="wy">'+c.why+'</span>'+
-            '<span class="tr"><b>確認元</b>　'+c.src+'</span>'+
+            '<span class="tr"><b>適用ルール</b>　<span class="rid">'+(q.candRule[i]||"—")+'</span>'+
+            '　<b>確認元</b>　'+c.src+'</span>'+
             '</span><span class="rt"><span class="go">詳細 →</span></span></button>').join("")+'</div>'+
-          '<p><b>結論：</b>'+q.verdict+'</p>'+
-          '<div class="prole">'+q.rag.gap+'</div>'+
-          acc("どうやって切り分けたか（検索と裏取りの内訳）",
-            '<h5 class="sh">診断ステップ</h5>'+stepsBlock(q)+
-            '<h5 class="sh">権限グラフ（過去事例の裏取りに使用）</h5>'+kgBlock(q),
-            "過去履歴 → Tips → 権限グラフ")+
-          fu([["act","対応手順を教えて"],["alt","すぐ使える代替手段は？"],["log","監査ログを見たい"]]);
-        addAI(h);
-      },1000);
+          acc("ルール定義と参照マスタ（判定ロジックの内訳）",ruleDefs(q),q.rules.length+" ルール・固定ロジック"));
+        setTimeout(()=>{
+          think("ルール判定の結果を、生成AIが解釈しています…",()=>{
+            addAI('<p>ここから先は<b>生成AI</b>です。上のルール判定の結果だけを入力として、'+
+              '利用者への伝え方と、判定表からは読み取りにくい実務上の含意を補います。</p>'+
+              aiBlock(q)+
+              fu([["act","対応手順を教えて"],["alt","すぐ使える代替手段は？"],["log","監査ログを見たい"]]));
+          },1150);
+        },560);
+      },1050);
     },520);
-  },1000);
+  },950);
 }
 function pcandDetail(i){
   const q=cur.p2,c=q.cands[i];
   const hit=c.fl[0]==="ng";
-  let body=
-    '<div class="dwsc"><div style="flex:1"><div class="l3">'+(hit?"この仮説が該当すると判断した理由":"この仮説を否定した理由")+'</div>'+
+  const rid=q.candRule[i];
+  const r=q.rules.filter(x=>x.id===rid)[0];
+  const v=r?(RRES[r.res]||RRES.ok):null;
+  const body=
+    '<div class="dwsc"><div style="flex:1"><div class="l3">'+
+      (hit?"このルールが該当と判定された理由":"このルールが非該当と判定された理由")+'</div>'+
       '<div style="font-size:12.5px;margin-top:2px">'+c.why+'</div></div></div>'+
     '<div class="intent" style="margin-bottom:12px"><div style="font-size:12.5px">'+c.detail+'</div></div>'+
-    acc("権限グラフ上の経路（データマップ）",
-      '<p style="font-size:12px;color:var(--tx2);margin:0 0 8px">'+
-      (hit?'この仮説が示す経路です。<b>赤いノードが不足している段階</b>で、そこから先の経路が成立していません。'
-          :'参考として、実際に成立している／切断されている権限経路を表示します。本仮説は上記のとおり<b>否定されています</b>。')+
-      '</p>'+renderKG(q.kg,{path:q.qpath})+
-      '<div class="kglg"><span><i></i>実際に評価された経路</span><span><s></s>その他の枝</span></div>'+
-      '<h5 class="sh">確認元</h5><p style="font-size:11.5px;color:var(--tx2);margin:0">'+c.src+'</p>',
-      hit?"該当経路":"参考", true)+
-    (c.chain?acc("権限チェーン（どこで止まっているか）",'<ul class="chain">'+c.chain.map(x=>
+    (r?acc("このルールの評価内容（ユーザーIDに対する実際の突合）",
+      '<dl class="kv"><dt>ルールID</dt><dd class="mono">'+r.id+' ／ '+r.t+'</dd>'+
+      '<dt>判定条件</dt><dd class="mono" style="word-break:break-all">'+esc(r.cond)+'</dd>'+
+      '<dt>評価した値</dt><dd class="mono">'+r.iv+'</dd>'+
+      '<dt>参照マスタ</dt><dd>'+r.src+'</dd>'+
+      '<dt>判定</dt><dd><span class="fl '+v[0]+'">'+v[1]+'</span>　<span class="mono" style="font-size:11px">'+r.ms+' ms</span></dd></dl>'+
+      '<div class="note" style="border-left-color:var(--ac);background:#f4f7fb;border-color:#dde7f2">'+r.out+'</div>',
+      r.id,true):"")+
+    (c.chain?acc("権限チェーン（どの段階で止まっているか）",'<ul class="chain">'+c.chain.map(x=>
       '<li><span class="st '+x[0]+'">'+(x[0]==="ok"?"✓":x[0]==="ng"?"✕":"!")+'</span><span style="flex:1">'+
-      '<span class="lb">'+x[1]+'</span><b>'+x[2]+'</b><p>'+x[3]+'</p></span></li>').join("")+'</ul>',"5 段階"):"")+
+      '<span class="lb">'+x[1]+'</span><b>'+x[2]+'</b><p>'+x[3]+'</p></span></li>').join("")+'</ul>',
+      c.chain.length+" 段階"):"")+
     (c.pol?acc("適用されているポリシー定義",c.pol.map(p=>
       '<h5 class="sh">'+p[0]+'</h5><p style="font-size:12px;color:var(--tx2);margin:0 0 6px">'+p[1]+'</p>'+
-      (p[2]?'<pre class="code">'+esc(p[2]).replace(/\n/g,"<br>")+'</pre>':'')).join(""),c.pol.length+" 件"):"");
-  openDrawer({kicker:"候補 "+(i+1)+" ／ "+q.cands.length+"　原因仮説の検証結果",
+      (p[2]?'<pre class="code">'+esc(p[2]).replace(/\n/g,"<br>")+'</pre>':'')).join(""),c.pol.length+" 件"):"")+
+    '<h5 class="sh">確認元（このルールが参照したマスタ）</h5>'+
+    '<p style="font-size:11.5px;color:var(--tx2);margin:0">'+c.src+'</p>';
+  openDrawer({kicker:"ルール "+(i+1)+" ／ "+q.cands.length+"　判定結果の内訳",
     title:esc(c.name)+' <span class="fl '+c.fl[0]+'">'+c.fl[1]+'</span>',
-    sub:"", body, cta:"この内容で回答案を作る"});
+    sub:rid||"", body, cta:"この内容で回答案を作る"});
 }
 function permFollow(k){
   const q=cur.p2; if(!q) return;
@@ -2206,18 +2368,20 @@ function permFollow(k){
   think("確認しています…",()=>{
     let h="";
     if(k==="act"){
-      h='<p>この順にお進みください。所要は合計 <b>'+q.lead+'</b> の見込みです。</p><div class="cands" style="padding:13px 15px">'+
+      h='<p>ルール判定にもとづく手順です。所要は合計 <b>'+q.lead+'</b> の見込みです。</p><div class="cands" style="padding:13px 15px">'+
         q.actions.map((a,i)=>'<div class="act"><div class="n3">'+(i+1)+'</div><div style="flex:1"><b>'+a[0]+'</b><p>'+a[1]+'</p>'+
         '<div class="mt">'+a[2].map(m=>'<span>'+m+'</span>').join("")+'</div></div></div>').join("")+'</div>';
     }else if(k==="alt"){
       h='<p>'+q.alt+'</p>';
     }else if(k==="log"){
-      h='<p>この利用者の直近イベントです。</p><div class="cands" style="padding:10px 14px"><table class="tb">'+
+      h='<p>ユーザーID <span class="mono">'+q.uid.id+'</span> の直近イベントです（DB監査ログをそのまま表示しています）。</p>'+
+        '<div class="cands" style="padding:10px 14px"><table class="tb">'+
         '<tr><th>日時</th><th>操作</th><th>対象</th><th>結果</th></tr>'+
         q.audit.map(a=>'<tr><td class="m">'+a[0]+'</td><td class="m">'+a[1]+'</td><td class="m">'+a[2]+'</td>'+
         '<td class="m" style="color:'+(a[3].indexOf("DENY")===0?"var(--ng)":"var(--ok)")+';font-weight:700">'+a[3]+'</td></tr>').join("")+'</table></div>';
     }else{
-      h='<p>回答案を作成しました。</p><div class="intent" style="font-size:12.5px;white-space:pre-wrap">'+esc(q.reply)+'</div>'+
+      h='<p><b>生成AI</b>が回答案を作成しました。記載している判定内容は、すべて上のルール評価の結果に基づいています。</p>'+
+        '<div class="intent" style="font-size:12.5px;white-space:pre-wrap">'+esc(q.reply)+'</div>'+
         '<p style="font-size:12px;color:var(--tx3)">※ 本モックでは実際の送信・権限付与は行われません。</p>';
     }
     addAI(h+fu([["act","対応手順を教えて"],["alt","代替手段は？"],["log","監査ログを見たい"]]));
@@ -2261,9 +2425,10 @@ function renderIntro(){
     'そのうえで<b>業務オントロジー</b>（業務概念→業務領域→業務プロセス→業務対象→指標→物理データ）を辿り、<br>'+
     '過去事例の裏取りと、履歴に無い要件の補完を行います。行をクリックすると根拠・注意点・SQLまで展開します。</p></div>';
   if(!p2.innerHTML) p2.innerHTML='<div class="intro"><h1>権限に関する事象を入力してください</h1>'+
-    '<p>「データは見えるのにSELECTできない」といった事象は再発が多く、まず<b>過去の同種インシデント</b>と<b>Tips</b>を検索します。<br>'+
-    'そのうえで<b>権限グラフ</b>（利用者→ロール→権限→オブジェクト→ポリシー）でこの利用者の実際の経路を裏取りし、<br>'+
-    '原因の候補・どこで止まっているか・ネクストアクションまでご案内します。</p></div>';
+    '<p>まず問い合わせ元の<b>ユーザーID</b>を特定し、IDM権限マスタ・DBカタログ・ポリシー定義を照会します。<br>'+
+    'そのうえで<b>権限ルール</b>（接続経路 → 認証 → ロール → スキーマ → オブジェクト → 行・列ポリシー → 統制基準）を<br>'+
+    '上から順に評価し、<b>どのルールで止まっているか</b>を確定させます。判定はマスタとの突合による決定論的な処理です。<br>'+
+    'そのうえで<b>生成AI</b>が判定結果を解釈し、利用者への伝え方と実務上の含意をコメントします。</p></div>';
 }
 
 $("#ta").addEventListener("input",e=>{
