@@ -326,6 +326,12 @@ body.kgmode .wrap,body.kgmode .cmp{display:none}
 .kgqa .id{font-family:var(--mono);font-size:9.5px;color:var(--tx3)}
 .kgempty{padding:40px 20px;text-align:center;color:var(--tx3);font-size:12px;line-height:1.9}
 .kgempty .o{width:44px;height:44px;border-radius:50%;border:2px dashed #cfd8e2;margin:0 auto 12px}
+
+/* 探索計画（縦3ステップ） */
+.search-plan{border:1px solid var(--ln);border-radius:10px;background:var(--pn);margin-bottom:14px;overflow:hidden}.search-plan-hd{padding:10px 13px;background:#f8fafc;border-bottom:1px solid var(--ln2);font-size:12.5px;font-weight:700}.search-plan-list{padding:7px 14px 9px}.search-plan-step{display:flex;gap:10px;padding:10px 0;border-bottom:1px dashed var(--ln2);align-items:flex-start}.search-plan-step:last-child{border-bottom:0}.search-plan-no{width:21px;height:21px;border-radius:50%;display:grid;place-items:center;background:var(--ac);color:#fff;font-size:10px;font-weight:700;flex:none;margin-top:1px}.search-plan-step strong{display:block;font-size:12.5px;color:var(--tx);line-height:1.55}.search-plan-step span{display:block;font-size:11px;color:var(--tx3);margin-top:1px}
+.phase{border:1px solid var(--ln);border-radius:11px;background:var(--pn);margin-bottom:13px;overflow:hidden}.phase-hd{padding:10px 13px;background:#f6f8fb;border-bottom:1px solid var(--ln2);font-weight:700}.phase-body{padding:12px 14px}.phase-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}.fact{border:1px solid var(--ln);border-left:4px solid var(--ac);border-radius:8px;padding:9px 11px}.fact.ok{border-left-color:var(--ok);background:#f4faf6}.fact.wa{border-left-color:var(--wa);background:#fffaf0}.fact.purple{border-left-color:#7c3aed;background:#f7f4ff}.integrated{border:1px solid #bfd8cc;background:#f2faf5;border-radius:9px;padding:10px 12px;margin-bottom:12px}.path-em{margin-top:10px}.path-em .kg .hot{stroke:var(--ac);stroke-width:2.2;opacity:1}
+@media(max-width:760px){.phase-grid{grid-template-columns:1fr}}
+@media(prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:.01ms!important;transition-duration:.01ms!important;scroll-behavior:auto!important}}
 </style>
 </head>
 <body>
@@ -1926,7 +1932,7 @@ document.addEventListener("toggle",e=>{
 
 function kgBlock(q){
   const svg=renderKG(q.kg).replace("<svg ",'<svg data-tiers="'+q.kg.length+'" ');
-  return svg+'<h5 class="sh">実行されたグラフクエリ</h5><pre class="code">'+q.gql+'</pre>';
+  return svg;
 }
 function stepsBlock(q){
   return '<div>'+q.steps.map((s,i)=>'<div class="stp"><div class="n2">'+(i+1)+'</div><div style="flex:1"><b>'+s.t+'</b><p>'+s.d+'</p></div></div>').join("")+'</div>';
@@ -2000,47 +2006,18 @@ function provBlock(c){
   }).join("")+'</span>';
 }
 
-function askData(q){
-  cur.p1=q;
-  think("過去の問い合わせ履歴とサポートデスクTipsを検索しています…",()=>{
-    addAI('<p>まず、<b>過去の問い合わせ履歴</b>と<b>サポートデスクのTips</b>を検索しました。'+
-      '同種のご依頼に、当時どのデータを案内したかが残っています。</p>'+
-      hitsBlock(q)+tipsBlock(q)+
-      '<div class="prole">'+q.rag.role+'</div>');
-    setTimeout(()=>{
-      think("過去事例で案内されたデータを、オントロジーで検証・補完しています…",()=>{
-        let h='<p>過去事例で実際に案内されたデータを起点に、<b>オントロジーで検証と補完</b>を行いました。'+
-          '今回のご依頼は次の業務領域・分析テーマに対応します。</p>'+
-          '<div class="intent"><div class="lb">業務領域</div><div class="dm">'+q.dom.full+'</div>'+
-          (q.dom.alt?'<div style="font-size:11px;color:var(--tx3);margin-top:3px">隣接する業務領域：'+q.dom.alt+'</div>':'')+
-          '<hr><div class="lb">分析テーマ</div><div class="th">'+q.intent.theme+'</div>'+
-          '<div style="font-size:12px;color:var(--tx2);margin-bottom:6px">'+q.intent.oneline+'</div>'+
-          q.intent.metrics.map(m=>'<span class="cp m">'+m+'</span>').join("")+
-          q.intent.dims.map(m=>'<span class="cp d">'+m+'</span>').join("")+
-          '<div class="dmnote">'+q.dom.note+'</div></div>'+
-          '<p>過去事例とオントロジーを突き合わせて、候補を <b>'+q.cands.length+'件</b> に整理しました。行をクリックすると詳細をご案内します。</p>'+
-          '<div class="cands">'+q.cands.map((c,i)=>
-            '<button class="cd'+(i===0?' top':'')+'" data-cand="'+i+'">'+
-            '<span class="no">'+(i+1)+'</span><span class="mid">'+
-            '<span class="t1">'+c.name+' <span class="fl '+c.fl[0]+'">'+c.fl[1]+'</span></span>'+
-            '<span class="pth">'+c.path+'</span>'+
-            provBlock(c)+
-            '<span class="wy">'+c.why+'</span>'+
-            '<span class="tr"><b>探索経路</b>　'+fullTrace(q,c).join(" › ")+'</span>'+
-            '</span><span class="rt"><span class="go">詳細 →</span></span></button>').join("")+'</div>'+
-          '<div class="prole">'+q.rag.gap+'</div>'+
-          acc("どうやって探したか（検索と検証の内訳）",
-              '<h5 class="sh">探索ステップ</h5>'+stepsBlock(q)+
-              '<h5 class="sh">同名の指標でも、業務領域が変われば定義が変わります</h5>'+
-              '<p style="font-size:11.5px;color:var(--tx2);margin:0 0 8px">'+q.dom.why+'</p>'+defsBlock(q)+
-              '<h5 class="sh">ナレッジグラフ探索パス（過去事例の裏取りに使用）</h5>'+kgBlock(q),
-              "過去履歴 → Tips → オントロジー検証")+
-          fu([["cmp","候補の違いを比べたい"],["perm","私の権限で参照できる？"],["cau","分析上の注意点は？"]]);
-        addAI(h);
-      },1000);
-    },520);
-  },1000);
+
+function explorationPlan(kind){
+ const middle=kind==="perm"?"権限グラフによる実経路の確認":"オントロジーによる検証・補完";
+ return '<section class="search-plan" aria-labelledby="search-plan-title"><div class="search-plan-hd" id="search-plan-title">探索計画</div><div class="search-plan-list">'+
+ '<div class="search-plan-step"><div class="search-plan-no">1</div><div><strong>RAGによる過去知見の探索</strong><span>過去の問い合わせとTipsを確認します</span></div></div>'+
+ '<div class="search-plan-step"><div class="search-plan-no">2</div><div><strong>'+middle+'</strong><span>候補と経路の妥当性を確認します</span></div></div>'+
+ '<div class="search-plan-step"><div class="search-plan-no">3</div><div><strong>探索結果の統合</strong><span>確認結果をまとめて回答します</span></div></div></div></section>';
 }
+function dataSummary(q){const c=q.cands[0],j=c.detail&&c.detail.joins&&c.detail.joins[0];return {v:c.path+' が今回の業務領域と指標に適合する最推奨データだと確認しました。',c:j?j[0].split('.').pop()+' を '+j[1]+' で結合して不足する切り口を補完できます。':'既存の関連データから不足する切り口を補完できます。'};}
+function dataCandidateList(q){return '<div class="cands">'+q.cands.map((c,i)=>'<button class="cd'+(i===0?' top':'')+'" data-cand="'+i+'"><span class="no">'+(i+1)+'</span><span class="mid"><span class="t1">'+c.name+' <span class="fl '+c.fl[0]+'">'+c.fl[1]+'</span></span><span class="pth">'+c.path+'</span>'+provBlock(c)+'<span class="wy">'+c.why+'</span><span class="tr"><b>探索経路</b>　'+c.trace.join(' › ')+'</span></span><span class="rt"><span class="go">詳細 →</span></span></button>').join('')+'</div>';}
+function permCandidateList(q){return '<div class="cands">'+q.cands.map((c,i)=>'<button class="cd'+(c.fl[0]==="ng"?' top':'')+'" data-pcand="'+i+'"><span class="no">'+(i+1)+'</span><span class="mid"><span class="t1">'+c.name+' <span class="fl '+c.fl[0]+'">'+c.fl[1]+'</span></span><span class="wy">'+c.why+'</span><span class="tr"><b>確認元</b>　'+c.src+'</span></span><span class="rt"><span class="go">詳細 →</span></span></button>').join('')+'</div>';}
+function askData(q){cur.p1=q;const sm=dataSummary(q);addAI(explorationPlan("data"));setTimeout(()=>think("RAGで過去の問い合わせ履歴とTipsを探索しています…",()=>{addAI('<section class="phase"><div class="phase-hd">STEP 1　RAGによる過去知見の探索</div><div class="phase-body"><div class="phase-grid"><div class="fact ok"><b>過去事例で分かったこと</b><div>'+q.rag.role+'</div></div><div class="fact wa"><b>過去事例では未解決だったこと</b><div>'+q.rag.gap+'</div></div></div>'+acc('過去問い合わせ・Tipsの詳細',hitsBlock(q)+tipsBlock(q),q.rag.hits.length+q.rag.tips.length+' 件')+'</div></section>');setTimeout(()=>think("ナレッジグラフで候補の妥当性と補完経路を確認しています…",()=>{addAI('<section class="phase"><div class="phase-hd">STEP 2　オントロジーによる検証・補完</div><div class="phase-body"><div class="phase-grid"><div class="fact ok"><b>検証できたこと</b><div>'+esc(sm.v)+'</div></div><div class="fact purple"><b>新たに補完したこと</b><div>'+esc(sm.c)+'</div></div></div>'+'</div></section>');setTimeout(()=>think("RAGとナレッジグラフの結果を統合して回答をまとめています…",()=>{addAI('<div class="integrated"><b>STEP 3　探索結果の統合</b><br>'+esc(sm.v)+' '+esc(sm.c)+'</div><p>候補を <b>'+q.cands.length+'件</b> に整理しました。</p>'+dataCandidateList(q)+fu([["cmp","候補の違いを比べたい"],["perm","私の権限で参照できる？"],["cau","分析上の注意点は？"]]));},800),300);},900),300);},900),120);}
 /* ---- 右スライドオーバー（詳細） ---- */
 let dwCtx=null;
 function openDrawer(o){
@@ -2144,36 +2121,7 @@ function dataFollow(k){
 }
 
 /* ===================== 画面2：権限照会 ===================== */
-function askPerm(q){
-  cur.p2=q;
-  think("過去の同種インシデントとサポートデスクTipsを検索しています…",()=>{
-    addAI('<p>まず、<b>過去の同種インシデント</b>と<b>サポートデスクのTips</b>を検索しました。'+
-      'この種の事象は再発が多く、当時の切り分けと回答がそのまま使えることがあります。</p>'+
-      hitsBlock(q)+tipsBlock(q)+
-      '<div class="prole">'+q.rag.role+'</div>');
-    setTimeout(()=>{
-      think("過去事例の切り分けを、権限グラフと監査ログで裏取りしています…",()=>{
-        let h='<p>過去事例で示された原因を起点に、<b>この利用者の実際の権限経路</b>を確認しました。'+
-          '考えられる原因 <b>'+q.cands.length+'件</b> の検証結果です。</p>'+
-          '<div class="cands">'+q.cands.map((c,i)=>
-            '<button class="cd'+(c.fl[0]==="ng"?" top":"")+'" data-pcand="'+i+'">'+
-            '<span class="no">'+(i+1)+'</span><span class="mid">'+
-            '<span class="t1">'+c.name+' <span class="fl '+c.fl[0]+'">'+c.fl[1]+'</span></span>'+
-            '<span class="wy">'+c.why+'</span>'+
-            '<span class="tr"><b>確認元</b>　'+c.src+'</span>'+
-            '</span><span class="rt"><span class="go">詳細 →</span></span></button>').join("")+'</div>'+
-          '<p><b>結論：</b>'+q.verdict+'</p>'+
-          '<div class="prole">'+q.rag.gap+'</div>'+
-          acc("どうやって切り分けたか（検索と裏取りの内訳）",
-            '<h5 class="sh">診断ステップ</h5>'+stepsBlock(q)+
-            '<h5 class="sh">権限グラフ（過去事例の裏取りに使用）</h5>'+kgBlock(q),
-            "過去履歴 → Tips → 権限グラフ")+
-          fu([["act","対応手順を教えて"],["alt","すぐ使える代替手段は？"],["log","監査ログを見たい"]]);
-        addAI(h);
-      },1000);
-    },520);
-  },1000);
-}
+function askPerm(q){cur.p2=q;addAI(explorationPlan("perm"));setTimeout(()=>think("RAGで過去の同種インシデントとTipsを探索しています…",()=>{addAI('<section class="phase"><div class="phase-hd">STEP 1　RAGによる過去知見の探索</div><div class="phase-body"><div class="phase-grid"><div class="fact ok"><b>過去事例で想定された原因・対応</b><div>'+q.rag.role+'</div></div><div class="fact wa"><b>追加確認が必要な点</b><div>'+q.rag.gap+'</div></div></div>'+acc('過去インシデント・Tipsの詳細',hitsBlock(q)+tipsBlock(q),q.rag.hits.length+q.rag.tips.length+' 件')+'</div></section>');setTimeout(()=>think("権限グラフで実際のロール・権限・ポリシー経路を確認しています…",()=>{addAI('<section class="phase"><div class="phase-hd">STEP 2　権限グラフによる実経路の確認</div><div class="phase-body">'+acc('診断ステップ・権限グラフ',stepsBlock(q)+'<div class="path-em">'+renderKG(q.kg,{path:q.qpath})+'</div>','評価経路をハイライト')+'</div></section>');setTimeout(()=>think("RAGと権限グラフの結果を統合して回答をまとめています…",()=>{addAI('<div class="integrated"><b>STEP 3　探索結果の統合</b><br>'+q.verdict+'</div><p>原因候補 <b>'+q.cands.length+'件</b> の検証結果です。</p>'+permCandidateList(q)+fu([["act","対応手順を教えて"],["alt","すぐ使える代替手段は？"],["log","監査ログを見たい"]]));},800),300);},900),300);},900),120);}
 function pcandDetail(i){
   const q=cur.p2,c=q.cands[i];
   const hit=c.fl[0]==="ng";
