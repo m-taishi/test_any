@@ -298,6 +298,48 @@ svg.kg{display:block;width:100%;height:auto}
 .ain b.l4{display:block;font-size:10.5px;color:#5a4a8c;letter-spacing:.05em;margin-bottom:2px}
 .aif{font-size:10.5px;color:var(--tx3);padding:8px 14px;border-top:1px solid #ebe5f6;background:#faf8fe;line-height:1.75}
 .aif b{color:var(--tx2);font-weight:600}
+
+/* ============ 権限照会：回答カード（初期出力） ============ */
+.ansc{border-radius:10px;padding:14px 16px;margin-bottom:12px;border:1px solid}
+.ansc.ng{background:#fdf4f3;border-color:#f0cfc9}
+.ansc.wa{background:#fffbf2;border-color:#eddfbe}
+.ansc.ok{background:#f2f9f4;border-color:#c9e3d2}
+.ansc .hd2{display:flex;gap:11px;align-items:flex-start}
+.ansc .ic2{width:26px;height:26px;border-radius:7px;display:grid;place-items:center;color:#fff;font-size:14px;flex:none;margin-top:1px}
+.ansc.ng .ic2{background:var(--ng)}.ansc.wa .ic2{background:var(--wa)}.ansc.ok .ic2{background:var(--ok)}
+.ansc h3{margin:0;font-size:15px;line-height:1.55;font-weight:700}
+.ansc.ng h3{color:#96271a}.ansc.wa h3{color:#8a5205}.ansc.ok h3{color:#136b3c}
+.ansc .basis{font-size:11px;color:var(--tx2);margin-top:4px}
+.ansc .basis b{font-weight:600}
+.ansec{margin-top:13px}
+.ansec .lb3{font-size:10px;letter-spacing:.08em;color:var(--tx3);font-weight:700;margin-bottom:6px}
+ol.pts{margin:0;padding-left:19px}
+ol.pts li{font-size:12.5px;margin:5px 0;line-height:1.8}
+.nxt{background:#fff;border:1px solid var(--ln);border-radius:8px;padding:9px 12px}
+.nxt .row{display:flex;gap:9px;font-size:12.5px;padding:4px 0;line-height:1.75}
+.nxt .row i{width:17px;height:17px;border-radius:5px;background:var(--ac);color:#fff;font-size:9.5px;font-weight:700;display:grid;place-items:center;flex:none;margin-top:4px;font-style:normal}
+.nxt .row em{font-style:normal;color:var(--ng);font-weight:600}
+.nxt .lead{font-size:11px;color:var(--tx3);margin-top:7px;padding-top:7px;border-top:1px dashed var(--ln2)}
+.quick{background:#f1f9f4;border:1px solid #c9e3d2;border-left:3px solid var(--ok);border-radius:0 7px 7px 0;padding:9px 12px;font-size:12px;margin-top:11px;line-height:1.8}
+.quick b{color:#136b3c}
+ul.causel{margin:0;padding:0;list-style:none}
+ul.causel li{position:relative;padding:4px 0 4px 15px;font-size:12.5px;line-height:1.85}
+ul.causel li::before{content:"";position:absolute;left:2px;top:12px;width:5px;height:5px;border-radius:50%;background:#b9c5d2}
+.xlbar{display:flex;align-items:center;gap:9px;flex-wrap:wrap;background:#f2f7f3;border:1px solid #cfe0d4;border-radius:7px;padding:7px 11px;margin-bottom:10px;font-size:11.5px}
+.xlic{font-size:9.5px;font-weight:700;color:#fff;background:#1d7044;border-radius:3px;padding:1px 6px;letter-spacing:.04em}
+.xlbar b{font-size:12.5px}
+.xlv{color:var(--tx2);font-size:10.5px}
+.xlp{margin-left:auto;font-family:var(--mono);font-size:9.5px;color:var(--tx3)}
+.xlsheet{display:inline-block;font-size:10.5px;font-weight:600;color:#1d7044;background:#eef6f0;border:1px solid #cfe0d4;border-radius:3px;padding:1px 6px}
+.xlrow{font-family:var(--mono);font-size:10px;color:var(--tx2);margin:3px 0 2px}
+.xlnote{font-size:10.5px;color:var(--tx3);line-height:1.8;margin:9px 0 0}
+ul.factl{margin:0;padding:0;list-style:none}
+ul.factl li{display:flex;gap:9px;align-items:flex-start;padding:5px 0;font-size:12.5px;line-height:1.75}
+ul.factl li .rid2{font-family:var(--mono);font-size:9.5px;color:var(--tx3);background:#fff;border:1px solid var(--ln);border-radius:3px;padding:1px 5px;flex:none;margin-top:3px}
+ul.factl li .ft{flex:1;min-width:0}
+ul.factl li .ft b{font-weight:600}
+.nxt .row .mt2{font-size:10.5px;color:var(--tx3);margin-top:1px}
+.replybox{background:#f7f9fc;border:1px solid var(--ln);border-radius:7px;padding:11px 13px;font-size:12px;white-space:pre-wrap;line-height:1.85}
 /* ============ ナレッジグラフ タブ ============ */
 .kgpane{display:none;height:calc(100vh - 52px);grid-template-columns:262px minmax(520px,1fr) 312px}
 .kgpane.on{display:grid}
@@ -1322,46 +1364,6 @@ DATA_Q.forEach(q=>{
 });
 })();
 /* ==== 探索ステップを「過去履歴RAG主導 → オントロジーで検証・補完」の順に差し替え ==== */
-(function rewriteSteps(){
-const S={
-"INC-0248172":[
- {t:"過去の問い合わせ履歴を検索",d:"発話をベクトル化し、過去4,180件の問い合わせと照合しました。「住宅ローン」「延滞」「店別」を含む依頼が上位に並び、うち2件はほぼ同じ内容でした。"},
- {t:"当時の回答からデータ資産を抽出",d:"ヒットした事例の回答本文から、実際に案内された物理テーブルを抽出しました。S_HOUSING_LOAN_DAILY が2件で第一候補として案内されています。"},
- {t:"サポートデスクTipsを検索",d:"担当者が書き残した運用ナレッジから、該当テーブルに紐づく2件を取得しました（metric_code の指定漏れ、組織マスターの時点結合）。"},
- {t:"オントロジーで裏取り",d:"過去事例で案内されたテーブルが、業務指標「延滞率」から computedFrom で正しく接続していることを確認しました。指標定義がリテール領域のものであることも併せて検証しています。"},
- {t:"過去事例に無い要件をオントロジーで補完",d:"「年代別」は過去の問い合わせ履歴に該当がありませんでした。業務対象「顧客」→ 業務属性 → 物理カラム（age_band_code）を辿り、共通参照層を補完候補として追加しています。"},
- {t:"権限グラフと突合",d:"照会者のロールで参照できるかを判定しました。共通参照層は付与済、リテール領域の3表は申請が必要です。"}],
-"INC-0248206":[
- {t:"過去の問い合わせ履歴を検索",d:"「投資信託」「解約」「提案」を含む依頼と照合しました。解約側・提案側それぞれに、ほぼ同じ依頼と近い依頼が見つかっています。"},
- {t:"当時の回答からデータ資産を抽出",d:"解約は S_WEALTH_DAILY、提案は S_CAMPAIGN_DAILY が案内されていました。ただし両者を突き合わせた事例はありません。"},
- {t:"サポートデスクTipsを検索",d:"「解約の定義を最初に確認する」「別プロセスのマートは共通参照層を介して結合する」という2件を取得しました。今回の回答の骨格になります。"},
- {t:"オントロジーで裏取り",d:"解約と提案が別の業務プロセスに属することを確認。それぞれの業務指標が mart 層へ computedFrom で接続していることを検証しました。"},
- {t:"結合経路をオントロジーで補完",d:"過去に前例のない「2つのマートの結合」について、両者が共通参照層と joinsWith で接続していることを確認し、結合キーを回答に含めました。"},
- {t:"権限グラフと突合",d:"リテール領域の資産は参照可能ですが、行レベルポリシーにより担当部店内に限定されます。"}],
-"INC-0248233":[
- {t:"過去の問い合わせ履歴を検索",d:"「法人」「預金」「業種」「企業グループ」を含む依頼と照合しました。業種別・グループ名寄せのそれぞれについて、ほぼ同じ依頼が見つかっています。"},
- {t:"当時の回答からデータ資産を抽出",d:"S_CORP_DEPOSIT_DAILY と M_CORP_CUSTOMER の組み合わせが、いずれの事例でも案内されていました。"},
- {t:"サポートデスクTipsを検索",d:"「group_priority=1 を付け忘れると二重計上になる」「預金残高は法人と個人で計算式が違う」という2件を取得しました。いずれも数字が合わない問い合わせの典型パターンです。"},
- {t:"オントロジーで裏取り",d:"業務プロセス「法人預金」と「法人顧客管理」が同一の業務領域に属し、月中平残の定義がホールセール領域のものであることを確認しました。"},
- {t:"追加候補をオントロジーで確認",d:"日次の明細層と共通参照層の組織マスターを、必要に応じて足せる候補として抽出しています。"},
- {t:"権限グラフと突合",d:"照会者のロールで4件すべて参照可能です。追加申請は不要です。"}],
-"INC-0248251":[
- {t:"過去の問い合わせ履歴を検索",d:"「AML」「アラート」「部店別」「当局」を含む依頼と照合しました。当局提出用の同種依頼（INC-0238771）がほぼ一致しています。"},
- {t:"当時の回答からデータ資産を抽出",d:"S_AML_MONITORING_DAILY と M_AML_MONITORING、組織マスターの組み合わせが案内されていました。真陽性率の分母の扱いも回答に含まれています。"},
- {t:"サポートデスクTipsを検索",d:"「集計で足りるかを最初に確認する」「件数の増減はまずシナリオ改定を疑う」という2件を取得しました。今回は運用モニタリング目的のため、集計層で足りると判断しています。"},
- {t:"オントロジーで裏取り",d:"業務領域に紐づく規制制約（漏えい禁止）を確認し、個票を含むイベント層を候補から除外しました。過去事例の判断と一致しています。"},
- {t:"追加候補をオントロジーで確認",d:"同一領域の隣接プロセス（KYC/CDD）を、必要に応じて足せる候補として抽出しました。"},
- {t:"権限グラフと突合",d:"照会者のロールで集計層は参照可能です。個票は対象外ですが、本件の目的では申請不要です。"}],
-"INC-0248288":[
- {t:"過去の問い合わせ履歴を検索",d:"「窓口」「待ち時間」「手続き」を含む依頼と照合しました。混雑側と所要時間側で、別々の部署からの依頼が見つかっています。"},
- {t:"当時の回答からデータ資産を抽出",d:"S_BRANCH_CONTACT_DAILY と S_ONBOARDING_DAILY がそれぞれ案内されていました。捕捉できない来店の範囲についても回答済みです。"},
- {t:"サポートデスクTipsを検索",d:"「待ち時間と所要時間は別指標で、両方聞かれていることが多い」「取れていない範囲を先に伝える」という2件を取得しました。今回の回答の構成をこれに合わせています。"},
- {t:"オントロジーで裏取り",d:"待ち時間と所要時間が別の業務プロセスに属する別指標であることを確認しました。両者は部店と営業日で突合できます。"},
- {t:"要因分解のための候補を補完",d:"Tipsが指摘する「来店増か窓口不足か」の判別には体制情報が必要ですが、過去事例には含まれていません。共通参照層の組織マスターを補完しました。"},
- {t:"権限グラフと突合",d:"上位4件は個人情報を含まない区分のため、申請すれば翌営業日に参照可能と判定しました。"}]
-};
-DATA_Q.forEach(q=>{ if(S[q.tkt]) q.steps=S[q.tkt]; });
-})();
 const PERM_Q = [
 {
  tkt:"INC-0248315", dept:"融資企画部", user:"佐藤",
@@ -1985,6 +1987,82 @@ const PERM_Q = [
 }
 /*__MORE_P__*/];
 
+/* ==== 権限照会：過去インシデントとTipsの検索結果を PERM_Q に付与 ==== */
+/* ==== 権限照会の診断ステップも「過去履歴RAG主導 → 権限グラフで裏取り」に差し替え ==== */
+/* ==== 権限照会：サポートデスク担当者が回答に必要な要点だけを定義 ==== */
+/* ==== 権限ルールは行内で運用中のルールブック（Excel）を参照している、という位置づけ ==== */
+const RULEBOOK={
+  file:"権限判定ルール一覧.xlsx",
+  ver:"v3.2",
+  updated:"2026-07-31",
+  owner:"ITシステム部 ID管理グループ",
+  path:"\\\\fileserver\\itsm\\権限管理\\権限判定ルール一覧.xlsx",
+  note:"行内の権限管理標準（SEC-003／SEC-021）と各ポリシー定義をもとに、ID管理グループが維持しているルールブックです。"+
+       "AIはこのブックの行をそのまま評価しており、ルールの追加・変更はブック側の改訂で反映されます。"
+};
+/* ルールIDの接頭辞 → ルールブックのシート名 */
+const XLSHEET={
+  "R-TGT":"01_照会対象の解決", "R-CHN":"02_接続チャネル", "R-CONN":"03_接続経路",
+  "R-AUTH":"04_認証・アカウント", "R-SVC":"05_サービスアカウント", "R-SCH":"06_スキーマ権限",
+  "R-OBJ":"07_オブジェクト権限", "R-ROLE":"08_ロール付与", "R-RESID":"09_ロール残存",
+  "R-MASK":"10_列マスキング", "R-MSK":"10_列マスキング", "R-UNMASK":"11_マスキング解除",
+  "R-RLS":"12_行レベルポリシー", "R-ATTR":"13_スコープ属性", "R-PUR":"14_利用目的",
+  "R-PRE":"15_申請前提条件", "R-REQ":"16_申請ルート", "R-ALT":"17_代替オブジェクト",
+  "R-USE":"18_利用実績", "R-SCOPE":"19_影響範囲", "R-GOV":"20_統制基準",
+  "R-XCHK":"21_横展開", "R-HR":"22_人事連携", "R-SYNC":"22_人事連携",
+  "R-SQL":"23_実行SQL照合", "R-VAL":"24_件数整合", "R-BATCH":"25_参照断面", "R-BIND":"26_監査ログ検証"
+};
+/* 各ルールにシート名と行番号を割り当てる（同じIDには常に同じ行が対応する） */
+(function attachXl(){
+  const hash=s=>{let h=0;for(let i=0;i<s.length;i++)h=(h*31+s.charCodeAt(i))>>>0;return h;};
+  const rowOf={}, sheetRows={};
+  PERM_Q.forEach(q=>q.rules.forEach(r=>{
+    if(rowOf[r.id]) return;
+    const sh=XLSHEET[r.id.replace(/-\d+$/,"")]||"99_その他";
+    const hv=hash(r.id);
+    const row=5+hv%38;                                   /* 見出し行を除いた本文行 */
+    sheetRows[sh]=Math.max(sheetRows[sh]||0,row+3+hv%19); /* シートの総行数 */
+    rowOf[r.id]={sheet:sh,row};
+  }));
+  RULEBOOK.total=Object.keys(sheetRows).reduce((a,k)=>a+sheetRows[k]-4,0);
+  RULEBOOK.sheets=Object.keys(sheetRows).length;
+  PERM_Q.forEach(q=>{
+    q.rulebook=RULEBOOK;
+    q.rules.forEach(r=>{ r.xl={sheet:rowOf[r.id].sheet,row:rowOf[r.id].row,of:sheetRows[rowOf[r.id].sheet]}; });
+  });
+})();
+
+/* ==== 原因詳細：ルールブックの該当行と、この利用者の実際の値から組み立てた事実 ==== */
+(function attachCause(){
+const C={
+"INC-0248315":[
+ "ルールブックのシート <b>07_オブジェクト権限</b> には「データ分類が機密Ⅱ以上の資産は、SELECT を指定ロールにのみ付与する」と定義されています。",
+ "照会対象 <span class='mono'>M_LOAN_DELINQ_MTH</span> は機密Ⅱ、指定ロールは <span class='mono'>R_CRD_SENSITIVE_RO</span> です。照会者 <span class='mono'>SATO_T</span> の保有ロールは <span class='mono'>R_RTL_ANALYST_RO</span> のみで、これを保有していません。",
+ "そのため SELECT への経路が成立せず、<b>ORA-01031</b> が返っています。",
+ "カタログに定義と項目一覧が表示されるのは、シート <b>06_スキーマ権限</b> の USAGE 判定を通過しているためです。ルールブック上、カタログ表示とデータ参照は別々の行で判定されます。"],
+"INC-0248341":[
+ "ルールブックのシート <b>10_列マスキング</b> には「分析利用者ロールに対しては、個人識別列へ既定の変換を適用する」と定義されています。",
+ "照会者 <span class='mono'>TAKAHASHI_M</span> は解除ロール <span class='mono'>R_RTL_PII_UNMASK</span> を保有しないため、既定の変換対象となり、顧客名は固定文字列、顧客番号はハッシュに置き換わって返ります。",
+ "SELECT 権限そのものは付与されているため、エラーは発生しません。<b>表示されている値は仕様どおりの結果です。</b>",
+ "あわせてシート <b>14_利用目的</b> の判定で、個社を特定したアプローチリストの作成が登録済みの利用目的の範囲外である旨が返っています。"],
+"INC-0248358":[
+ "ルールブックのシート <b>03_接続経路</b> には「分析基盤への接続は踏み台セグメントからのみ許可する」と定義されています。執務端末からの直接接続はこの行で遮断され、リスナー側に到達記録が残りません。",
+ "続くシート <b>04_認証・アカウント</b> の判定で、<span class='mono'>NAKAMURA_S</span> の個人DBユーザーが未発行であることが確認されています。経路が通ったとしても認証段階で成立しません。",
+ "一方でシート <b>05_サービスアカウント</b> の判定により、BI経由の接続主体が <span class='mono'>SVC_TABLEAU_RO</span> であることが分かります。<b>BIで見えていることは、ご本人のIDにDB権限があることを意味しません。</b>",
+ "シート <b>16_申請ルート</b> の判定では、個人DBユーザー発行・踏み台利用・スキーマSELECTの3件が未整備と返っています。"],
+"INC-0248377":[
+ "ルールブックのシート <b>08_ロール付与</b> には「部署ひも付きロールは人事異動連携で自動剥奪、個別申請ロールは申請時に設定した期限まで有効」と定義されています。",
+ "シート <b>22_人事連携</b> の判定では、異動連携そのものは正常終了しており、部署ひも付きロールの付け替えは完了しています。",
+ "残っているのは個別申請ロール <span class='mono'>R_CRD_SENSITIVE_RO</span> で、<b>ルールブックの定義どおり、異動では剥奪されません。</b>シート <b>09_ロール残存</b> がこれを検出しています。",
+ "シート <b>18_利用実績</b>・<b>19_影響範囲</b>・<b>20_統制基準</b> の判定により、未使用138日・職務外の12テーブルが参照可能・最小権限の原則に不適合、と返っています。"],
+"INC-0248392":[
+ "ルールブックのシート <b>13_スコープ属性</b> には「行レベルポリシーへ渡すスコープ属性は、利用者の職務区分に応じて決定する」と定義されています。",
+ "小林さまは <span class='mono'>BLOCK_SCOPE</span>（自ブロック限定・12ヶ店）、同僚の方は <span class='mono'>HQ_SCOPE</span>（全店・35ヶ店）が設定されています。保有ロールには差がありません。",
+ "シート <b>12_行レベルポリシー</b> の判定により、同一SQLでも実行時に付与される絞り込み条件が異なることが確認されています。<b>行レベルポリシーはエラーを返さず行を除外するため、件数の差としてのみ表面化します。</b>",
+ "シート <b>24_件数整合</b> の判定では、件数の比が対象店舗数の比とほぼ一致しており、スコープ差による結果であることが裏付けられています。"]
+};
+PERM_Q.forEach(q=>{ if(C[q.tkt]) q.cause=C[q.tkt]; });
+})();
 /* ===================== 共通ユーティリティ ===================== */
 const $=(s,r=document)=>r.querySelector(s);
 const esc=s=>String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
@@ -2355,36 +2433,59 @@ function aiBlock(q){
         "判定結果のみ・自然文の推測は含みません");
 }
 
+/* ---- 事象の重さ（回答カードの見た目に反映） ---- */
+const PLV={"INC-0248315":["ng","✕"],"INC-0248341":["wa","◐"],"INC-0248358":["wa","◐"],
+           "INC-0248377":["wa","!"],"INC-0248392":["wa","◐"]};
+
+/* ---- 該当したルールを、ルールブック（Excel）の該当行として表示する ---- */
+function hitRuleBlock(q){
+  const b=q.rulebook, hr=q.rules.filter(r=>r.res==="hit");
+  return '<div class="xlbar"><span class="xlic">XLS</span>'+
+    '<b>'+b.file+'</b><span class="xlv">'+b.ver+' ／ '+b.updated+' 更新 ／ 管理：'+b.owner+'</span>'+
+    '<span class="xlp">'+b.path+'</span></div>'+
+    '<table class="tb rtb"><tr><th>参照した行</th><th>ルールの定義</th><th>照会した値と判定</th><th>結果</th></tr>'+
+    hr.map(r=>{
+      const v=RRES[r.res]||RRES.ok;
+      return '<tr><td style="min-width:132px"><span class="xlsheet">'+r.xl.sheet+'</span>'+
+        '<div class="xlrow">'+r.xl.row+' 行目 <span style="color:var(--tx3)">／ 全'+r.xl.of+'行</span></div>'+
+        '<span class="rid">'+r.id+'</span></td>'+
+        '<td style="min-width:150px"><b>'+r.t+'</b><br><span class="rcond">'+esc(r.cond)+'</span>'+
+        '<div class="rsrc">照合先：'+r.src+'</div></td>'+
+        '<td><span class="rin">'+r.iv+'</span><div class="rout">'+r.out+'</div></td>'+
+        '<td style="white-space:nowrap"><span class="fl '+v[0]+'">'+v[1]+'</span><div class="rms">'+r.ms+' ms</div></td></tr>';
+    }).join("")+'</table>'+
+    '<p class="xlnote">'+b.note+'</p>';
+}
+
 function askPerm(q){
   cur.p2=q;
-  addAI(explorationPlan("perm"));
-  setTimeout(()=>think("問い合わせ元のユーザーIDを特定し、権限マスタを照会しています…",()=>{
-    addAI('<section class="phase"><div class="phase-hd">STEP 1　ユーザーIDによる権限マスタの照会</div>'+
-      '<div class="phase-body">'+idCard(q)+
-      '<div class="fact ok"><b>この照会で確定したこと</b><div>'+q.uid.basis+'</div></div>'+
-      '</div></section>');
-    setTimeout(()=>think("ユーザーIDを起点に、権限ルールを上から順に評価しています…",()=>{
-      addAI('<section class="phase"><div class="phase-hd">STEP 2　権限ルールの評価（決定論的・生成AI不使用）</div>'+
-        '<div class="phase-body">'+
-        '<p style="margin:0 0 11px;font-size:12.5px;color:var(--tx2)">このユーザーIDに紐づく実際の値に対して、'+
-        '権限ルールを<b>定義された順序で評価</b>しました。すべてマスタとの突合による判定で、確率的な推定は含みません。</p>'+
-        ruleTable(q)+
-        '<div class="intent" style="margin-bottom:12px"><div class="lb">ルールエンジンの判定</div>'+
-        '<div style="font-size:12.5px;margin-top:3px">'+q.verdict+'</div></div>'+
-        '<p style="margin:0 0 9px">原因として定義されているルール <b>'+q.cands.length+'件</b> の判定結果です。'+
-        '行をクリックすると、評価に使った値と権限チェーンを表示します。</p>'+
-        permCandidateList(q)+
-        acc("ルール定義と参照マスタ（判定ロジックの内訳）",ruleDefs(q),q.rules.length+" ルール・固定ロジック")+
-        '</div></section>');
-      setTimeout(()=>think("ルール判定の結果を、生成AIが解釈しています…",()=>{
-        addAI('<div class="integrated"><b>STEP 3　生成AIによる解釈</b><br>'+
-          'ここから先は<b>生成AI</b>です。上のルール判定の結果だけを入力として、'+
-          '利用者への伝え方と、判定表からは読み取りにくい実務上の含意を補います。</div>'+
-          aiBlock(q)+
-          fu([["act","対応手順を教えて"],["alt","すぐ使える代替手段は？"],["log","監査ログを見たい"]]));
-      },800),300);
-    },900),300);
-  },900),120);
+  think("ルールブック（"+q.rulebook.file+"）を参照し、ユーザーIDの権限状態と突合しています…",()=>{
+    const hit=q.cands.filter(c=>c.fl[0]==="ng");
+    const hr=q.rules.filter(r=>r.res==="hit");
+    const lv=PLV[q.tkt]||["wa","◐"];
+    const ms=q.rules.reduce((a,r)=>a+r.ms,0);
+    const b=q.rulebook;
+
+    /* ========== 初期出力：原因と原因詳細のみ ========== */
+    let h='<div class="ansc '+lv[0]+'"><div class="hd2"><div class="ic2">'+lv[1]+'</div><div style="flex:1">'+
+      '<div class="lb3" style="margin-bottom:3px">原因</div>'+
+      '<h3>'+(hit.length>2?hit[0].name+'　ほか '+(hit.length-1)+'件':hit.map(c=>c.name).join(' ／ '))+'</h3>'+
+      '</div></div>'+
+      '<div class="ansec"><div class="lb3">原因詳細</div>'+
+      '<ul class="causel">'+q.cause.map(c=>'<li>'+c+'</li>').join("")+'</ul></div>'+
+      '<div class="basis" style="margin-top:12px">'+
+      '<b>'+b.file+'</b>（'+b.ver+' ／ '+b.updated+' 更新・'+b.sheets+'シート 全'+b.total+'行）から、'+
+      '本件の照会対象に適用される <b>'+q.rules.length+'行</b>を抽出して評価しました（'+ms+' ms）。'+
+      '該当は '+hr.map(r=>'<b class="mono">'+r.id+'</b>（'+r.xl.sheet+' '+r.xl.row+'行目）').join('・')+'。'+
+      'AIはルールブックの行をそのまま評価しており、判定内容の書き換えは行いません。</div>'+
+      '</div>';
+
+    /* ========== ドリルダウン：利用者プロファイルと該当ルールのみ ========== */
+    h+=acc("この利用者の権限プロファイル（ユーザーIDでの照会結果）",idCard(q),q.uid.id)+
+       acc("該当したルール（"+b.file+" ／ "+hr.length+"行）",hitRuleBlock(q),
+           hr.map(r=>r.xl.sheet+" "+r.xl.row+"行目").join(" ／ "));
+    addAI(h);
+  },1100);
 }
 function pcandDetail(i){
   const q=cur.p2,c=q.cands[i];
