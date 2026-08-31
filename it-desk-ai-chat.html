@@ -254,6 +254,18 @@ svg.kg{display:block;width:100%;height:auto}
 .pv.w{background:#fdf3f2;border-color:#eecac6;color:#b91c1c}
 .prole{font-size:11px;color:var(--tx2);background:#f7f9fc;border:1px solid var(--ln2);border-radius:7px;padding:7px 10px;margin:8px 0 0}
 .prole b{color:var(--tx)}
+/* ============ データ照会：要件カバレッジ／補完経路 ============ */
+.reqcov{border:1px solid var(--ln);border-radius:9px;background:#fbfcfd;padding:9px 12px;margin-top:10px}
+.reqcov>b{font-size:10.5px;color:var(--tx3);letter-spacing:.04em;display:block;margin-bottom:7px;font-weight:600}
+.reqs{display:flex;flex-wrap:wrap;gap:6px}
+.req{display:inline-flex;align-items:center;gap:6px;font-size:11.5px;border:1px solid;border-radius:14px;padding:2px 11px;background:#fff}
+.req i{font-style:normal;font-size:10.5px;font-weight:700}
+.req em{font-style:normal;font-size:10px;opacity:.85}
+.req.r{border-color:#bfe0c9;color:#15803d}
+.req.o{border-color:#d0c6e8;color:#5a4a8c}
+.req.g{border-color:#e2e7ec;color:var(--tx3)}
+.ontpath{margin-top:10px;font-size:11.5px;color:var(--tx2);background:#f7f4ff;border:1px solid #e0d8f3;border-radius:8px;padding:8px 11px;line-height:1.7;font-family:var(--mono)}
+.ontpath b{display:block;font-family:var(--sans);font-size:10px;color:#5a4a8c;letter-spacing:.05em;margin-bottom:3px}
 /* ============ 権限照会：利用者カード／ルール評価／生成AIコメント ============ */
 .idc{border:1px solid var(--ln);border-radius:10px;background:var(--pn);margin-bottom:12px;overflow:hidden}
 .idch{display:flex;align-items:center;gap:9px;flex-wrap:wrap;padding:9px 14px;background:#f6f8fb;border-bottom:1px solid var(--ln2)}
@@ -480,6 +492,13 @@ const DATA_Q = [
   ["ホールセール ＞ 法人融資","延滞率","延滞先数 ÷ 与信先数。債務者区分（要管理先以下）と併せて評価するため母数の取り方が異なる"],
   ["リスク ＞ 信用リスク","予想損失","PD×LGD×EAD。バーゼル規制の定義に準拠し、延滞率とは別系統の指標として管理"]
  ],
+ flow:{
+  req:[["住宅ローンの延滞状況","rag"],["支店別（部店軸）","rag"],["年代別（顧客属性軸）","ont"],["直近1年の月次推移","rag"]],
+  v:"過去事例で案内された <span class='mono'>S_HOUSING_LOAN_DAILY</span> が、業務指標「延滞率」から computedFrom で正しく接続していることを確認しました。指標定義がリテール領域のものであること（リスク領域のバーゼル定義ではないこと）も検証済みです。部店軸は organization_id から組織マスターへ接続しており、<b>支店別はこのまま集計できます</b>。",
+  c:"STEP 1 で唯一残っていた<b>「年代別」</b>を補完しました。業務対象「顧客」→ 業務属性「年代区分」→ 物理カラム <span class='mono'>age_band_code</span> を辿り、共通参照層の <span class='mono'>T_CUSTOMER_GOLDEN</span> を候補④として追加しています。過去の問い合わせ履歴には該当がなく、<b>RAGだけでは落ちていた候補</b>です。",
+  path:"業務対象:顧客 → 業務属性:年代区分 → 物理カラム age_band_code（T_CUSTOMER_GOLDEN）",
+  s3:"過去事例から<b>延滞率の本体データ（候補①）と部店軸</b>が確定し、オントロジーで<b>年代別の切り口（候補④）</b>を補完しました。この2つを <span class='mono'>customer_id</span> で結合すれば、ご依頼の「支店別 × 年代別 × 直近1年」がそのまま算出できます。<span class='mono'>age_band_code</span> は基準日時点の年代のため、時点結合を忘れると年代がずれる点だけご注意ください。"
+ },
  cands:[
   {name:"住宅ローン 日次スナップショット",path:"VDB_RETAIL_ANALYTICS.mart.S_HOUSING_LOAN_DAILY",sys:"リテール分析基盤（mart層）",
    fl:["ok","最推奨"],
@@ -601,8 +620,15 @@ const DATA_Q = [
  defs:[
   ["リテール ＞ 資産運用","解約率","全部解約の件数 ÷ 期首保有顧客数。スイッチングは資金流出ではないため除外"],
   ["リテール ＞ 個人預金","解約率","口座解約件数 ÷ 期首口座数。休眠口座は解約に含めない"],
-  ["リテール ＞ カード・Olive","解約率","カード契約の中途解約件数 ÷ 有効会員数。年会費更新月の影響を受ける"]
+  ["リテール ＞ カード・決済","解約率","カード契約の中途解約件数 ÷ 有効会員数。年会費更新月の影響を受ける"]
  ],
+ flow:{
+  req:[["解約したお客さまの特定","rag"],["解約前の提案・接触の履歴","rag"],["顧客セグメント・年代の切り口","ont"],["解約と提案の突き合わせ（結合）","ont"]],
+  v:"解約側の <span class='mono'>S_WEALTH_DAILY</span>、提案側の <span class='mono'>S_CAMPAIGN_DAILY</span> は、いずれも過去事例どおり<b>単独では利用できる</b>ことを確認しました。両者が別の業務プロセス（資産運用／キャンペーン）に属し、それぞれの業務指標が mart 層へ computedFrom で接続している点も検証しています。",
+  c:"STEP 1 で残っていた<b>「解約と提案の突き合わせ」と「年代・顧客セグメント」</b>を補完しました。両マートが共通参照層 <span class='mono'>T_CUSTOMER_GOLDEN</span> と joinsWith で接続していることをオントロジー上で確認し、候補④として追加しています。<b>過去に前例のない結合ですが、経路は成立します。</b>",
+  path:"業務プロセス:資産運用／キャンペーン → 共通参照層:顧客 → 物理カラム customer_id・age_band_code（T_CUSTOMER_GOLDEN）",
+  s3:"過去事例から<b>解約側・提案側それぞれのデータ（候補①②）</b>が確定し、オントロジーで<b>両者を結ぶ経路（候補④）</b>を補完しました。<span class='mono'>customer_id</span> を介して3表を結べば、「解約されたお客さまが、その前にどんな提案を受けていたか」を年代・セグメント別に追えます。着手前に、解約の定義（スイッチングを含むか）を依頼元とすり合わせてください。"
+ },
  cands:[
   {name:"資産運用 日次スナップショット",path:"VDB_RETAIL_ANALYTICS.mart.S_WEALTH_DAILY",sys:"リテール分析基盤（mart層）",
    fl:["ok","最推奨"],
@@ -721,6 +747,13 @@ const DATA_Q = [
   ["リテール ＞ 個人預金","月中平残","日々残の月中平均だが、総合口座の当座貸越（マイナス残）を控除して算出"],
   ["市場 ＞ ポジション・損益","残高","時価評価ベース（約定日基準）。取得原価ではなく評価額を用いる"]
  ],
+ flow:{
+  req:[["業種別の預金残高の動き","rag"],["企業グループでの名寄せ","rag"],["部店軸での内訳","ont"],["2点を1つのクエリで集計","ont"]],
+  v:"業種別・グループ名寄せは、過去事例どおり <span class='mono'>S_CORP_DEPOSIT_DAILY</span> と <span class='mono'>M_CORP_CUSTOMER</span> の組み合わせで実現できることを確認しました。業務プロセス「法人預金」と「法人顧客管理」が同一の業務領域に属し、月中平残の定義がホールセール領域のものであることも検証済みです。",
+  c:"STEP 1 では<b>別々の事例だった2点を、1つのクエリにまとめられるか</b>をオントロジーで確認し、成立することを確かめました。あわせて<b>部店軸</b>を補完し、共通参照層の組織マスター（候補④）を追加しています。",
+  path:"業務プロセス:法人預金／法人顧客管理 → 業務対象:法人顧客 → 企業グループ属性・組織マスター（T_ORGANIZATION）",
+  s3:"過去事例から<b>業種別とグループ名寄せの両方（候補①②）</b>が確定し、オントロジーで<b>同時集計の成立と部店軸（候補④）</b>を補完しました。この構成で、業種別×企業グループ単位の残高推移を1つのクエリで出せます。<span class='mono'>group_priority=1</span> の条件は必ず付けてください。落とすと親会社と子会社が二重計上され、過去に「数字が合わない」という問い合わせが繰り返されています。"
+ },
  cands:[
   {name:"法人預金 日次スナップショット",path:"VDB_WHOLESALE_ANALYTICS.mart.S_CORP_DEPOSIT_DAILY",sys:"ホールセール分析基盤（mart層）",
    fl:["ok","最推奨"],
@@ -835,9 +868,16 @@ const DATA_Q = [
   why:"AML/CFT領域は、指標定義に加えて<b>規制上の制約が業務領域の単位で紐づく</b>点が他と異なります。領域を確定させた時点で、個票を含むイベント層が候補から自動的に外れます。"},
  defs:[
   ["コンプライアンス・AML ＞ AML取引モニタリング","真陽性率","届出件数 ÷ 当月クローズ件数。調査完了ベースで評価する"],
-  ["リテール ＞ カード・Olive","不正検知率","不正確定件数 ÷ アラート件数。即時判定のため発生月ベースで評価する"],
+  ["リテール ＞ カード・決済","不正検知率","不正確定件数 ÷ アラート件数。即時判定のため発生月ベースで評価する"],
   ["リスク ＞ 信用リスク","的中率","スコアモデルの予測精度を指す別系統の指標。上記2つとは体系が異なる"]
  ],
+ flow:{
+  req:[["部店別・月別のアラート件数","rag"],["届出に至った割合（真陽性率）","rag"],["クローズまでの日数","rag"],["検知シナリオ別の内訳","ont"]],
+  v:"過去事例（INC-0238771）で案内された <span class='mono'>S_AML_MONITORING_DAILY</span> が、業務指標「アラート件数」「真陽性率」「平均クローズ日数」の<b>3つすべてから computedFrom で接続している</b>ことを確認しました。当局対応の資料であれば集計層で充足する点も、業務領域に紐づく規制上の制約から裏付けています。",
+  c:"STEP 1 で残っていた<b>「検知シナリオ別の内訳」</b>を補完しました。シナリオマスター（候補②）が同一プロセス配下で接続していること、隣接プロセスの KYC/CDD（候補④）も必要に応じて足せることを、オントロジー上で確認しています。",
+  path:"業務プロセス:AML取引モニタリング → 業務対象:検知シナリオ → 物理テーブル M_AML_MONITORING（隣接プロセス:KYC/CDD）",
+  s3:"過去事例から<b>3指標の集計データ（候補①）</b>がそのまま確定し、オントロジーで<b>シナリオ別の内訳（候補②）</b>を補完しました。<span class='mono'>S_AML_MONITORING_DAILY</span> に組織マスターを結合すれば、部店別・月別・シナリオ別まで当局資料の形で出せます。個票を含むイベント層は利用目的の範囲外のため、候補⑤として除外しています。"
+ },
  cands:[
   {name:"AML取引モニタリング 日次スナップショット",path:"VDB_COMPLIANCE_AML.mart.S_AML_MONITORING_DAILY",sys:"コンプライアンス分析基盤（mart層）",
    fl:["ok","最推奨"],
@@ -955,6 +995,13 @@ const DATA_Q = [
   ["リテール ＞ 口座開設","所要時間","呼出から手続完了までの時間。待ち時間は含まない。標準時間との比較で事務改善に用いる"],
   ["リテール ＞ デジタルチャネル","応答時間","アプリの操作からレスポンス完了まで。有人チャネルとは体系が異なる"]
  ],
+ flow:{
+  req:[["店舗別・時間帯別の混雑","rag"],["手続種類別の所要時間","rag"],["曜日・時間帯の粒度","rag"],["来店増か窓口不足かの要因分解","ont"]],
+  v:"「混雑」と「所要時間」は別々の依頼として過去に届いていましたが、<b>いずれも <span class='mono'>S_BRANCH_CONTACT_DAILY</span> で扱える</b>ことを確認しました。業務イベント「発券・呼出」から業務指標「平均待ち時間」へ measuredBy で接続しており、時間帯・手続種類・曜日の粒度も保持されています。",
+  c:"Tips（TIP-011）が指摘していた<b>「来店が増えたのか、窓口が足りていないのか」の要因分解</b>を補完しました。過去事例には体制情報が含まれていなかったため、共通参照層の組織マスター（候補④／稼働窓口数）をオントロジーから追加しています。",
+  path:"業務対象:来店・受付 → 業務指標:平均待ち時間 ／ 共通参照層:組織 → 稼働窓口数（T_ORGANIZATION）",
+  s3:"過去事例から<b>混雑と所要時間の両方（候補①③）</b>が確定し、オントロジーで<b>要因分解に必要な体制情報（候補④）</b>を補完しました。まず日次スナップショットで店舗×時間帯×手続種類の傾向を掴み、粒度が足りない場合のみイベント明細に降りる構成が、過去事例でも定着しています。"
+ },
  cands:[
   {name:"店頭・コンタクト 日次スナップショット",path:"VDB_RETAIL_ANALYTICS.mart.S_BRANCH_CONTACT_DAILY",sys:"リテール分析基盤（mart層）",
    fl:["ok","最推奨"],
@@ -2102,10 +2149,43 @@ function explorationPlan(kind){
  steps.map((s,i)=>'<div class="search-plan-step"><div class="search-plan-no">'+(i+1)+'</div><div><strong>'+s[0]+'</strong><span>'+s[1]+'</span></div></div>').join("")+
  '</div></section>';
 }
-function dataSummary(q){const c=q.cands[0],j=c.detail&&c.detail.joins&&c.detail.joins[0];return {v:c.path+' が今回の業務領域と指標に適合する最推奨データだと確認しました。',c:j?j[0].split('.').pop()+' を '+j[1]+' で結合して不足する切り口を補完できます。':'既存の関連データから不足する切り口を補完できます。'};}
+/* ---- ご依頼の要件と、それがどの経路で満たされたか（STEP 1 → 2 の連結） ---- */
+function reqCov(q,ph){
+  const lb={rag:["r","過去事例で確定"],ont:ph===2?["o","オントロジーで補完"]:["g","過去事例に該当なし"]};
+  return '<div class="reqcov"><b>'+(ph===2?"補完後の充足状況":"ご依頼の要件と、過去事例での充足状況")+'</b><div class="reqs">'+
+    q.flow.req.map(r=>{const v=lb[r[1]];
+      return '<span class="req '+v[0]+'"><i>'+(v[0]==="g"?"…":"✓")+'</i>'+r[0]+'<em>'+v[1]+'</em></span>';}).join("")+
+    '</div></div>';
+}
 function dataCandidateList(q){return '<div class="cands">'+q.cands.map((c,i)=>'<button class="cd'+(i===0?' top':'')+'" data-cand="'+i+'"><span class="no">'+(i+1)+'</span><span class="mid"><span class="t1">'+c.name+' <span class="fl '+c.fl[0]+'">'+c.fl[1]+'</span></span><span class="pth">'+c.path+'</span>'+provBlock(c)+'<span class="wy">'+c.why+'</span><span class="tr"><b>探索経路</b>　'+c.trace.join(' › ')+'</span></span><span class="rt"><span class="go">詳細 →</span></span></button>').join('')+'</div>';}
 function permCandidateList(q){return '<div class="cands">'+q.cands.map((c,i)=>'<button class="cd'+(c.fl[0]==="ng"?' top':'')+'" data-pcand="'+i+'"><span class="no">'+(i+1)+'</span><span class="mid"><span class="t1">'+c.name+' <span class="fl '+c.fl[0]+'">'+c.fl[1]+'</span></span><span class="wy">'+c.why+'</span><span class="tr"><b>適用ルール</b>　<span class="rid">'+(q.candRule[i]||'—')+'</span>　<b>確認元</b>　'+c.src+'</span></span><span class="rt"><span class="go">詳細 →</span></span></button>').join('')+'</div>';}
-function askData(q){cur.p1=q;const sm=dataSummary(q);addAI(explorationPlan("data"));setTimeout(()=>think("RAGで過去の問い合わせ履歴とTipsを探索しています…",()=>{addAI('<section class="phase"><div class="phase-hd">STEP 1　RAGによる過去知見の探索</div><div class="phase-body"><div class="phase-grid"><div class="fact ok"><b>過去事例で分かったこと</b><div>'+q.rag.role+'</div></div><div class="fact wa"><b>過去事例では未解決だったこと</b><div>'+q.rag.gap+'</div></div></div>'+acc('過去問い合わせ・Tipsの詳細',hitsBlock(q)+tipsBlock(q),q.rag.hits.length+q.rag.tips.length+' 件')+'</div></section>');setTimeout(()=>think("ナレッジグラフで候補の妥当性と補完経路を確認しています…",()=>{addAI('<section class="phase"><div class="phase-hd">STEP 2　オントロジーによる検証・補完</div><div class="phase-body"><div class="phase-grid"><div class="fact ok"><b>検証できたこと</b><div>'+esc(sm.v)+'</div></div><div class="fact purple"><b>新たに補完したこと</b><div>'+esc(sm.c)+'</div></div></div>'+'</div></section>');setTimeout(()=>think("RAGとナレッジグラフの結果を統合して回答をまとめています…",()=>{addAI('<div class="integrated"><b>STEP 3　探索結果の統合</b><br>'+esc(sm.v)+' '+esc(sm.c)+'</div><p>候補を <b>'+q.cands.length+'件</b> に整理しました。</p>'+dataCandidateList(q)+fu([["cmp","候補の違いを比べたい"],["perm","私の権限で参照できる？"],["cau","分析上の注意点は？"]]));},800),300);},900),300);},900),120);}
+function askData(q){
+  cur.p1=q;
+  addAI(explorationPlan("data"));
+  setTimeout(()=>think("RAGで過去の問い合わせ履歴とTipsを探索しています…",()=>{
+    addAI('<section class="phase"><div class="phase-hd">STEP 1　RAGによる過去知見の探索</div><div class="phase-body">'+
+      '<div class="fact ok"><b>過去事例で分かったこと</b><div>'+q.rag.role+'</div></div>'+
+      reqCov(q,1)+
+      acc('過去問い合わせ・Tipsの詳細',hitsBlock(q)+tipsBlock(q),q.rag.hits.length+q.rag.tips.length+' 件')+
+      '</div></section>');
+    setTimeout(()=>think("STEP 1 で満たせなかった要件を、オントロジーで検証・補完しています…",()=>{
+      addAI('<section class="phase"><div class="phase-hd">STEP 2　オントロジーによる検証・補完</div><div class="phase-body">'+
+        '<div class="phase-grid">'+
+        '<div class="fact ok"><b>STEP 1 の内容を検証できたこと</b><div>'+q.flow.v+'</div></div>'+
+        '<div class="fact purple"><b>STEP 1 に無かった要件を補完したこと</b><div>'+q.flow.c+'</div></div></div>'+
+        '<div class="ontpath"><b>補完に使った探索経路</b>'+esc(q.flow.path)+'</div>'+
+        reqCov(q,2)+
+        '</div></section>');
+      setTimeout(()=>think("STEP 1 と STEP 2 の結果を統合して回答をまとめています…",()=>{
+        addAI('<div class="integrated"><b>STEP 3　探索結果の統合</b><br>'+q.flow.s3+'</div>'+
+          '<p>過去事例で確定した分と、オントロジーで補完した分を合わせて候補を <b>'+q.cands.length+'件</b> に整理しました。'+
+          '各候補の出典バッジが、どちらの経路で出てきたかを示します。</p>'+
+          dataCandidateList(q)+
+          fu([["cmp","候補の違いを比べたい"],["perm","私の権限で参照できる？"],["cau","分析上の注意点は？"]]));
+      },800),300);
+    },900),300);
+  },900),120);
+}
 /* ---- 右スライドオーバー（詳細） ---- */
 let dwCtx=null;
 function openDrawer(o){
@@ -2494,7 +2574,7 @@ const DOMSPEC=[
  {id:"consumer_loan",l:"消費性ローン",t:"CONSUMER_LOAN",ent:"カードローン契約",ev:"借入・返済",met:"貸出残高",cc:["カードローン","与信枠"],role:"融資企画部"},
  {id:"wealth",l:"資産運用",t:"WEALTH",ent:"投資信託保有",ev:"購入・解約",met:"解約率",cc:["投資信託","解約","預り資産"],role:"リテール推進部"},
  {id:"nisa",l:"NISA",t:"NISA",ent:"NISA口座",ev:"買付・非課税枠利用",met:"買付額",cc:["NISA","非課税枠"],role:"リテール推進部"},
- {id:"olive_card",l:"カード・Olive",t:"OLIVE_CARD",ent:"カード契約",ev:"決済",met:"決済件数",cc:["カード","決済"],role:"決済事業部"},
+ {id:"card_payment",l:"カード・決済",t:"CARD_PAYMENT",ent:"カード契約",ev:"決済",met:"決済件数",cc:["カード","決済"],role:"決済事業部"},
  {id:"transfer",l:"振込・決済",t:"TRANSFER",ent:"振込取引",ev:"振込実行",met:"振込件数",cc:["振込","手数料"],role:"決済事業部"},
  {id:"digital_channel",l:"デジタルチャネル",t:"DIGITAL_CHANNEL",ent:"アプリ利用",ev:"ログイン・操作",met:"アクティブ利用者数",cc:["アプリ","ログイン"],role:"デジタル戦略部"},
  {id:"branch_contact",l:"店頭・コンタクト",t:"BRANCH_CONTACT",ent:"来店・受付",ev:"発券・呼出",met:"平均待ち時間",cc:["窓口","待ち時間","来店"],role:"チャネル戦略部"},
