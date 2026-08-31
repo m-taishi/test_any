@@ -600,10 +600,11 @@ const DATA_Q = [
   {name:"統合顧客マスター",path:"VDB_ENTERPRISE_REFERENCE.reference.T_CUSTOMER_GOLDEN",sys:"全社共通 参照基盤（reference層）",
    fl:["ok","名寄せの要"],
    why:"ご要望の「年代別」を実現する唯一の共通マスターです。age_band_code を持つため、生年月日そのものを参照せずに年代集計ができます。",
-   trace:["顧客属性","全社共通","参照データ管理","顧客","顧客を識別する仮想項目","T_CUSTOMER_GOLDEN"],
+   trace:["顧客属性","全社共通","参照データ管理","顧客","年代区分","T_CUSTOMER_GOLDEN"],
    grain:"顧客 × 有効期間",fresh:"日次 03:00",acc:"参照可（現在の権限のまま）",
    evid:[["業務オントロジー","全ドメインの業務プロセスから usesData で参照される共通資産"],
-         ["接続オントロジー","業務属性:顧客識別項目 －mappedToColumn→ customer_id"]],
+         ["接続オントロジー","業務属性:年代区分 －mappedToColumn→ age_band_code（今回の補完箇所）"],
+         ["接続オントロジー","業務属性:顧客を識別する仮想項目 －mappedToColumn→ customer_id（結合キー）"]],
    detail:{desc:"全社で名寄せ済の顧客マスターです。リテール・ホールセール・グローバルの各領域から共通に参照され、customer_id が全社横断の結合キーになります。",
     attrs:[["customer_id","k"],["party_id",""],["customer_type_code",""],["age_band_code",""],["organization_id",""],["status_code",""],["effective_from",""],["effective_to",""]],
     joins:[["VDB_RETAIL_ANALYTICS.mart.S_HOUSING_LOAN_DAILY","customer_id","年代区分の付与"]],
@@ -631,7 +632,7 @@ const DATA_Q = [
   {cap:"② mentionedInProcess ＋ belongsToDomain → 業務領域（BusinessDomain）",nodes:[{l:"リテール",s:"Domain",k:"dm"},{l:"ホールセール",s:"対象外",k:"dm"},{l:"リスク",s:"隣接",k:"dm"},{l:"全社共通",s:"参照",k:"dm"}]},
   {cap:"③ 業務領域配下の業務プロセス（BusinessProcess）",nodes:[{l:"住宅ローン",s:"Process",k:"pr"},{l:"消費性ローン",s:"隣接",k:"pr"},{l:"参照データ管理",s:"共通",k:"pr"}]},
   {cap:"④ handlesEntity → 業務対象（BusinessEntity）",nodes:[{l:"住宅ローン契約",s:"Entity",k:"en"},{l:"顧客",s:"Entity",k:"en"}]},
-  {cap:"⑤ measuredBy／hasEvent／hasAttribute → 指標・イベント・属性",nodes:[{l:"延滞率",s:"Metric",k:"me"},{l:"実行・返済・延滞",s:"Event",k:"ev"},{l:"住宅ローン契約を識別・管理する仮想項目",s:"Attribute",k:"at",m:"住宅ローン契約を識別・管理する仮想項目"},{l:"顧客を識別する仮想項目",s:"Attribute",k:"at"}]},
+  {cap:"⑤ measuredBy／hasEvent／hasAttribute → 指標・イベント・属性",nodes:[{l:"延滞率",s:"Metric",k:"me"},{l:"実行・返済・延滞",s:"Event",k:"ev"},{l:"住宅ローン契約を識別・管理する仮想項目",s:"Attribute",k:"at",m:"住宅ローン契約を識別・管理する仮想項目"},{l:"年代区分",s:"Attribute",k:"at"}]},
   {cap:"⑥ computedFrom／backedBy／mappedToColumn → 物理データ（Table）",nodes:[{l:"S_HOUSING_LOAN_DAILY",s:"mart",k:"tb"},{l:"F_HOUSING_LOAN_EVENT",s:"event",k:"tb"},{l:"M_HOUSING_LOAN",s:"master",k:"tb"},{l:"T_CUSTOMER_GOLDEN",s:"reference",k:"tb"},{l:"HOST_ACCT.LNMST",s:"カタログ外",k:"ng"}]}
  ],
  gql:'<span class="r">MATCH</span> (c:<span class="n">BusinessConcept</span> {name:<span class="v">"延滞"</span>})\n      -[:<span class="r">mentionedInProcess</span>]-&gt;(p:<span class="n">BusinessProcess</span>)\n      -[:<span class="r">belongsToDomain</span>]-&gt;(d:<span class="n">BusinessDomain</span> {name:<span class="v">"リテール"</span>})\n<span class="r">MATCH</span> (p)-[:<span class="r">handlesEntity</span>]-&gt;(e:<span class="n">BusinessEntity</span>)\n<span class="r">MATCH</span> (e)-[:<span class="r">measuredBy</span>]-&gt;(m:<span class="n">BusinessMetric</span>)-[:<span class="r">computedFrom</span>]-&gt;(t:<span class="n">Table</span>)\n<span class="r">OPTIONAL MATCH</span> (e)-[:<span class="r">hasEvent</span>]-&gt;(v:<span class="n">BusinessEvent</span>)-[:<span class="r">backedBy</span>]-&gt;(t2:<span class="n">Table</span>)\n<span class="r">RETURN</span> d.name, p.name, m.name, t.full, t2.full\n<span class="v">// 指標の定義は業務領域ごとに保持されるため、領域を先に確定させる</span>',
@@ -668,7 +669,7 @@ const DATA_Q = [
   req:[["解約したお客さまの特定","rag"],["解約前の提案・接触の履歴","rag"],["顧客セグメント・年代の切り口","ont"],["解約と提案の突き合わせ（結合）","ont"]],
   v:"解約側の <span class='mono'>S_WEALTH_DAILY</span>、提案側の <span class='mono'>S_CAMPAIGN_DAILY</span> は、いずれも過去事例どおり<b>単独では利用できる</b>ことを確認しました。両者が別の業務プロセス（資産運用／キャンペーン）に属し、それぞれの業務指標が mart 層へ computedFrom で接続している点も検証しています。",
   c:"STEP 1 で残っていた<b>「解約と提案の突き合わせ」と「年代・顧客セグメント」</b>を補完しました。両マートが共通参照層 <span class='mono'>T_CUSTOMER_GOLDEN</span> と joinsWith で接続していることをオントロジー上で確認し、候補④として追加しています。<b>過去に前例のない結合ですが、経路は成立します。</b>",
-  path:"業務プロセス:資産運用／キャンペーン → 共通参照層:顧客 → 物理カラム customer_id・age_band_code（T_CUSTOMER_GOLDEN）",
+  path:"業務プロセス:資産運用／キャンペーン → 業務対象:顧客（全社共通）→ 業務属性:顧客を識別する仮想項目／年代区分 → 物理カラム customer_id・age_band_code（T_CUSTOMER_GOLDEN）",
   s3:"過去事例から<b>解約側・提案側それぞれのデータ（候補①②）</b>が確定し、オントロジーで<b>両者を結ぶ経路（候補④）</b>を補完しました。<span class='mono'>customer_id</span> を介して3表を結べば、「解約されたお客さまが、その前にどんな提案を受けていたか」を年代・セグメント別に追えます。着手前に、解約の定義（スイッチングを含むか）を依頼元とすり合わせてください。"
  },
  cands:[
@@ -730,7 +731,8 @@ const DATA_Q = [
    trace:["顧客属性","全社共通","参照データ管理","顧客","顧客を識別する仮想項目","T_CUSTOMER_GOLDEN"],
    grain:"顧客 × 有効期間",fresh:"日次 03:00",acc:"参照可（現在の権限のまま）",
    evid:[["業務オントロジー","全プロセスから usesData で参照される共通資産"],
-         ["接続オントロジー","業務属性:顧客識別項目 －mappedToColumn→ customer_id"]],
+         ["接続オントロジー","業務属性:顧客を識別する仮想項目 －mappedToColumn→ customer_id（結合キー）"],
+         ["接続オントロジー","業務属性:年代区分 －mappedToColumn→ age_band_code"]],
    detail:{desc:"全社で名寄せ済の顧客マスターです。資産運用とキャンペーンという別プロセスの資産を突き合わせる際の共通キーになります。",
     attrs:[["customer_id","k"],["party_id",""],["customer_type_code",""],["age_band_code",""],["organization_id",""],["effective_from",""],["effective_to",""]],
     joins:[["VDB_RETAIL_ANALYTICS.mart.S_WEALTH_DAILY","customer_id","年代・顧客区分の付与"]],
@@ -756,7 +758,7 @@ const DATA_Q = [
   {cap:"② mentionedInProcess ＋ belongsToDomain → 業務領域（BusinessDomain）",nodes:[{l:"リテール",s:"Domain",k:"dm"},{l:"全社共通",s:"参照",k:"dm"},{l:"ホールセール",s:"対象外",k:"dm"}]},
   {cap:"③ 業務領域配下の業務プロセス（BusinessProcess）",nodes:[{l:"資産運用",s:"Process",k:"pr"},{l:"キャンペーン",s:"Process",k:"pr"},{l:"参照データ管理",s:"共通",k:"pr"},{l:"NISA",s:"隣接",k:"pr"}]},
   {cap:"④ handlesEntity → 業務対象（BusinessEntity）",nodes:[{l:"投資信託保有",s:"Entity",k:"en"},{l:"キャンペーン対象",s:"Entity",k:"en"},{l:"顧客",s:"Entity",k:"en"}]},
-  {cap:"⑤ measuredBy／hasEvent／hasAttribute → 指標・イベント・属性",nodes:[{l:"解約率",s:"Metric",k:"me"},{l:"反応率",s:"Metric",k:"me"},{l:"購入・解約",s:"Event",k:"ev"},{l:"顧客を識別する仮想項目",s:"Attribute",k:"at"}]},
+  {cap:"⑤ measuredBy／hasEvent／hasAttribute → 指標・イベント・属性",nodes:[{l:"解約率",s:"Metric",k:"me"},{l:"反応率",s:"Metric",k:"me"},{l:"購入・解約",s:"Event",k:"ev"},{l:"顧客を識別する仮想項目",s:"Attribute",k:"at"},{l:"年代区分",s:"Attribute",k:"at"}]},
   {cap:"⑥ computedFrom／backedBy／mappedToColumn → 物理データ（Table）",nodes:[{l:"S_WEALTH_DAILY",s:"mart",k:"tb"},{l:"S_CAMPAIGN_DAILY",s:"mart",k:"tb"},{l:"F_WEALTH_EVENT",s:"event",k:"tb"},{l:"T_CUSTOMER_GOLDEN",s:"reference",k:"tb"},{l:"CRM_PRD.T_ACTIVITY_LOG",s:"カタログ外",k:"ng"}]}
  ],
  gql:'<span class="r">MATCH</span> (c:<span class="n">BusinessConcept</span>)-[:<span class="r">mentionedInProcess</span>]-&gt;(p:<span class="n">BusinessProcess</span>)\n      -[:<span class="r">belongsToDomain</span>]-&gt;(:<span class="n">BusinessDomain</span> {name:<span class="v">"リテール"</span>})\n<span class="r">WHERE</span> c.name <span class="r">IN</span> [<span class="v">"解約"</span>,<span class="v">"提案"</span>]\n<span class="r">MATCH</span> (p)-[:<span class="r">handlesEntity</span>]-&gt;(e)-[:<span class="r">measuredBy</span>]-&gt;(m)-[:<span class="r">computedFrom</span>]-&gt;(t:<span class="n">Table</span>)\n<span class="r">MATCH</span> (t)-[:<span class="r">joinsWith</span>*1..2]-&gt;(:<span class="n">Table</span> {name:<span class="v">"T_CUSTOMER_GOLDEN"</span>})\n<span class="r">RETURN</span> <span class="r">DISTINCT</span> p.name, m.name, t.full\n<span class="v">// 別プロセスの資産どうしは共通参照層を介して結合する</span>',
@@ -793,7 +795,7 @@ const DATA_Q = [
   req:[["業種別の預金残高の動き","rag"],["企業グループでの名寄せ","rag"],["部店軸での内訳","ont"],["2点を1つのクエリで集計","ont"]],
   v:"業種別・グループ名寄せは、過去事例どおり <span class='mono'>S_CORP_DEPOSIT_DAILY</span> と <span class='mono'>M_CORP_CUSTOMER</span> の組み合わせで実現できることを確認しました。業務プロセス「法人預金」と「法人顧客管理」が同一の業務領域に属し、月中平残の定義がホールセール領域のものであることも検証済みです。",
   c:"STEP 1 では<b>別々の事例だった2点を、1つのクエリにまとめられるか</b>をオントロジーで確認し、成立することを確かめました。あわせて<b>部店軸</b>を補完し、共通参照層の組織マスター（候補④）を追加しています。",
-  path:"業務プロセス:法人預金／法人顧客管理 → 業務対象:法人顧客 → 企業グループ属性・組織マスター（T_ORGANIZATION）",
+  path:"業務対象:法人顧客 → 業務属性:企業グループ識別／業種区分 → 物理カラム group_id・industry_code（M_CORP_CUSTOMER）／業務対象:組織 → T_ORGANIZATION",
   s3:"過去事例から<b>業種別とグループ名寄せの両方（候補①②）</b>が確定し、オントロジーで<b>同時集計の成立と部店軸（候補④）</b>を補完しました。この構成で、業種別×企業グループ単位の残高推移を1つのクエリで出せます。<span class='mono'>group_priority=1</span> の条件は必ず付けてください。落とすと親会社と子会社が二重計上され、過去に「数字が合わない」という問い合わせが繰り返されています。"
  },
  cands:[
@@ -821,10 +823,11 @@ const DATA_Q = [
   {name:"法人顧客マスター",path:"VDB_WHOLESALE_ANALYTICS.master.M_CORP_CUSTOMER",sys:"ホールセール分析基盤（master層）",
    fl:["ok","名寄せの要"],
    why:"ご要望の「親子をまとめて見たい」を実現する中心データです。業種コードと企業グループコードの双方を保持します。",
-   trace:["企業グループ","ホールセール","法人顧客管理","法人顧客","法人顧客を識別・管理する仮想項目","M_CORP_CUSTOMER"],
+   trace:["企業グループ","ホールセール","法人顧客管理","法人顧客","企業グループ識別","M_CORP_CUSTOMER"],
    grain:"法人顧客 × 有効期間",fresh:"日次 04:00",acc:"参照可",
    evid:[["業務オントロジー","業務プロセス:法人顧客管理 －handlesEntity→ 法人顧客"],
-         ["接続オントロジー","業務属性:法人顧客識別項目 －mappedToColumn→ customer_id"]],
+         ["接続オントロジー","業務属性:企業グループ識別 －mappedToColumn→ group_id（今回の補完箇所）"],
+         ["接続オントロジー","業務属性:業種区分 －mappedToColumn→ industry_code"]],
    detail:{desc:"法人顧客の属性マスターです。業種（JSIC／自行）、売上規模、資本関係に基づく企業グループコードを保持します。group_priority により主グループが識別でき、合弁会社の二重計上を防げます。",
     attrs:[["customer_id","k"],["corp_name",""],["industry_code",""],["industry_name",""],["group_id",""],["group_name",""],["group_priority",""],["sales_tier",""],["effective_from",""],["effective_to",""]],
     joins:[["VDB_WHOLESALE_ANALYTICS.mart.S_CORP_DEPOSIT_DAILY","customer_id","残高への属性付与"],
@@ -857,7 +860,7 @@ const DATA_Q = [
    evid:[["業務オントロジー","全プロセスから usesData で参照される共通資産"],
          ["データオントロジー","parent_organization_id による階層構造"]],
    detail:{desc:"部店・ブロック・本部の階層を保持する共通マスターです。parent_organization_id をたどることで営業ブロック単位の集約ができます。",
-    attrs:[["organization_id","k"],["organization_name",""],["organization_type",""],["parent_organization_id",""],["effective_from",""],["effective_to",""]],
+    attrs:[["organization_id","k"],["organization_name",""],["organization_type",""],["parent_organization_id",""],["open_counter_count",""],["effective_from",""],["effective_to",""]],
     joins:[["VDB_WHOLESALE_ANALYTICS.mart.S_CORP_DEPOSIT_DAILY","organization_id","部店名の付与"]],
     cautions:["店舗統廃合により organization_id が変わります。時系列分析では必ず有効期間で時点結合してください。"],
     sql:"",gov:[["業務領域","全社共通"],["データオーナー","データ管理部"],["データ分類","公開区分（行内）"],["申請手続","不要"],["リードタイム","―"]],
@@ -880,7 +883,7 @@ const DATA_Q = [
   {cap:"② mentionedInProcess ＋ belongsToDomain → 業務領域（BusinessDomain）",nodes:[{l:"ホールセール",s:"Domain",k:"dm"},{l:"リテール",s:"対象外",k:"dm"},{l:"全社共通",s:"参照",k:"dm"}]},
   {cap:"③ 業務領域配下の業務プロセス（BusinessProcess）",nodes:[{l:"法人預金",s:"Process",k:"pr"},{l:"法人顧客管理",s:"Process",k:"pr"},{l:"参照データ管理",s:"共通",k:"pr"},{l:"法人融資",s:"隣接",k:"pr"}]},
   {cap:"④ handlesEntity → 業務対象（BusinessEntity）",nodes:[{l:"法人預金口座",s:"Entity",k:"en"},{l:"法人顧客",s:"Entity",k:"en"},{l:"組織",s:"Entity",k:"en"}]},
-  {cap:"⑤ measuredBy／hasEvent／hasAttribute → 指標・イベント・属性",nodes:[{l:"月中平残",s:"Metric",k:"me"},{l:"入出金",s:"Event",k:"ev"},{l:"法人顧客を識別・管理する仮想項目",s:"Attribute",k:"at"},{l:"部店階層を識別する仮想項目",s:"Attribute",k:"at"}]},
+  {cap:"⑤ measuredBy／hasEvent／hasAttribute → 指標・イベント・属性",nodes:[{l:"月中平残",s:"Metric",k:"me"},{l:"入出金",s:"Event",k:"ev"},{l:"企業グループ識別",s:"Attribute",k:"at"},{l:"部店階層を識別する仮想項目",s:"Attribute",k:"at"}]},
   {cap:"⑥ computedFrom／backedBy／mappedToColumn → 物理データ（Table）",nodes:[{l:"S_CORP_DEPOSIT_DAILY",s:"mart",k:"tb"},{l:"M_CORP_CUSTOMER",s:"master",k:"tb"},{l:"F_CORP_DEPOSIT_EVENT",s:"event",k:"tb"},{l:"T_ORGANIZATION",s:"reference",k:"tb"},{l:"HOST_ACCT.DEPMST",s:"カタログ外",k:"ng"}]}
  ],
  gql:'<span class="r">MATCH</span> (c:<span class="n">BusinessConcept</span> {name:<span class="v">"法人預金"</span>})\n      -[:<span class="r">mentionedInProcess</span>]-&gt;(p:<span class="n">BusinessProcess</span>)\n      -[:<span class="r">belongsToDomain</span>]-&gt;(d:<span class="n">BusinessDomain</span> {name:<span class="v">"ホールセール"</span>})\n<span class="r">MATCH</span> (p)-[:<span class="r">handlesEntity</span>]-&gt;(e)-[:<span class="r">measuredBy</span>]-&gt;(m)-[:<span class="r">computedFrom</span>]-&gt;(t:<span class="n">Table</span>)\n<span class="r">MATCH</span> (:<span class="n">BusinessProcess</span> {name:<span class="v">"法人顧客管理"</span>})-[:<span class="r">usesData</span>]-&gt;(g:<span class="n">Table</span>)\n<span class="r">WHERE</span> g.schema = <span class="v">"master"</span>\n<span class="r">RETURN</span> t.full, g.full   <span class="v">// 名寄せキーは master 層が保持する</span>',
@@ -917,7 +920,7 @@ const DATA_Q = [
   req:[["部店別・月別のアラート件数","rag"],["届出に至った割合（真陽性率）","rag"],["クローズまでの日数","rag"],["検知シナリオ別の内訳","ont"]],
   v:"過去事例（INC-0238771）で案内された <span class='mono'>S_AML_MONITORING_DAILY</span> が、業務指標「アラート件数」「真陽性率」「平均クローズ日数」の<b>3つすべてから computedFrom で接続している</b>ことを確認しました。当局対応の資料であれば集計層で充足する点も、業務領域に紐づく規制上の制約から裏付けています。",
   c:"STEP 1 で残っていた<b>「検知シナリオ別の内訳」</b>を補完しました。シナリオマスター（候補②）が同一プロセス配下で接続していること、隣接プロセスの KYC/CDD（候補④）も必要に応じて足せることを、オントロジー上で確認しています。",
-  path:"業務プロセス:AML取引モニタリング → 業務対象:検知シナリオ → 物理テーブル M_AML_MONITORING（隣接プロセス:KYC/CDD）",
+  path:"業務対象:モニタリング対象取引 → 業務属性:検知シナリオ → 物理カラム scenario_code（M_AML_MONITORING）／隣接プロセス:KYC/CDD",
   s3:"過去事例から<b>3指標の集計データ（候補①）</b>がそのまま確定し、オントロジーで<b>シナリオ別の内訳（候補②）</b>を補完しました。<span class='mono'>S_AML_MONITORING_DAILY</span> に組織マスターを結合すれば、部店別・月別・シナリオ別まで当局資料の形で出せます。個票を含むイベント層は利用目的の範囲外のため、候補⑤として除外しています。"
  },
  cands:[
@@ -930,7 +933,7 @@ const DATA_Q = [
          ["規制制約","集計粒度のため漏えい禁止の制約に適合"],
          ["根拠QA","当局報告・第2線モニタリングで標準的に案内されている"]],
    detail:{desc:"AML取引モニタリングの日次スナップショットです。metric_code でアラート件数・真陽性率・平均クローズ日数を切り替えられます。顧客・取引の識別情報を含まないため、当局提出資料の作成に必要な粒度を満たしつつ漏えいリスクを回避できます。",
-    attrs:[["business_date","k"],["aml_monitoring_id","k"],["metric_code","k"],["organization_id",""],["metric_value",""],["risk_flag",""],["quality_status_code",""],["snapshot_timestamp",""]],
+    attrs:[["business_date","k"],["aml_monitoring_id","k"],["metric_code","k"],["scenario_code",""],["organization_id",""],["metric_value",""],["risk_flag",""],["close_days",""],["quality_status_code",""],["snapshot_timestamp",""]],
     joins:[["VDB_ENTERPRISE_REFERENCE.reference.T_ORGANIZATION","organization_id","部店名"],
            ["VDB_ENTERPRISE_REFERENCE.reference.T_CALENDAR","business_date","月末フラグ・年度"],
            ["VDB_COMPLIANCE_AML.master.M_AML_MONITORING","aml_monitoring_id","検知シナリオの名称・閾値・改定履歴"]],
@@ -945,12 +948,12 @@ const DATA_Q = [
   {name:"AML検知シナリオ マスター",path:"VDB_COMPLIANCE_AML.master.M_AML_MONITORING",sys:"コンプライアンス分析基盤（master層）",
    fl:["ok","併用推奨"],
    why:"シナリオ名称と閾値の改定履歴を保持します。件数の不連続を説明するために必須です。",
-   trace:["取引モニタリング","コンプライアンス・AML","AML取引モニタリング","モニタリング対象取引","モニタリング対象取引を識別・管理する仮想項目","M_AML_MONITORING"],
+   trace:["取引モニタリング","コンプライアンス・AML","AML取引モニタリング","モニタリング対象取引","検知シナリオ","M_AML_MONITORING"],
    grain:"シナリオ × 有効期間",fresh:"随時（改定時）",acc:"参照可",
-   evid:[["接続オントロジー","業務属性:モニタリング対象識別項目 －mappedToColumn→ aml_monitoring_id"],
+   evid:[["接続オントロジー","業務属性:検知シナリオ －mappedToColumn→ scenario_code（今回の補完箇所）"],
          ["データオントロジー","master層。有効期間による改定履歴管理"]],
    detail:{desc:"検知シナリオの名称・閾値・適用開始日・想定リスク類型を保持します。effective_from を見ることで、件数変動が実態か閾値変更かを切り分けられます。",
-    attrs:[["aml_monitoring_id","k"],["scenario_name",""],["threshold_value",""],["risk_type_code",""],["status_code",""],["effective_from",""],["effective_to",""]],
+    attrs:[["aml_monitoring_id","k"],["scenario_code","k"],["scenario_name",""],["threshold_value",""],["risk_type_code",""],["status_code",""],["effective_from",""],["effective_to",""]],
     joins:[["VDB_COMPLIANCE_AML.mart.S_AML_MONITORING_DAILY","aml_monitoring_id","シナリオ名称の付与"]],
     cautions:["同一シナリオで閾値のみ改定されるケースがあります。時点比較では必ず有効期間で結合してください。",
       "<b>閾値情報は行外への持ち出し厳禁</b>です。当局資料には閾値そのものを記載しないでください。"],
@@ -964,7 +967,7 @@ const DATA_Q = [
    grain:"組織 × 有効期間",fresh:"日次 03:00",acc:"参照可（現在の権限のまま）",
    evid:[["業務オントロジー","全プロセスから usesData で参照される共通資産"]],
    detail:{desc:"部店・ブロック・本部の階層を保持する共通マスターです。当局資料では統廃合前後の部店名の扱いを揃える必要があります。",
-    attrs:[["organization_id","k"],["organization_name",""],["organization_type",""],["parent_organization_id",""],["effective_from",""],["effective_to",""]],
+    attrs:[["organization_id","k"],["organization_name",""],["organization_type",""],["parent_organization_id",""],["open_counter_count",""],["effective_from",""],["effective_to",""]],
     joins:[["VDB_COMPLIANCE_AML.mart.S_AML_MONITORING_DAILY","organization_id","部店名の付与"]],
     cautions:["24ヶ月分を並べる場合、期間中に統廃合された部店があると系列が途切れます。当局資料では注記をお願いします。"],
     sql:"",gov:[["業務領域","全社共通"],["データオーナー","データ管理部"],["データ分類","公開区分（行内）"],["申請手続","不要"],["リードタイム","―"]],
@@ -1004,7 +1007,7 @@ const DATA_Q = [
   {cap:"② mentionedInProcess ＋ belongsToDomain → 業務領域（規制が紐づく）",nodes:[{l:"コンプライアンス・AML",s:"漏えい禁止あり",k:"dm"},{l:"リテール",s:"対象外",k:"dm"},{l:"全社共通",s:"参照",k:"dm"}]},
   {cap:"③ 業務領域配下の業務プロセス（BusinessProcess）",nodes:[{l:"AML取引モニタリング",s:"Process",k:"pr"},{l:"KYC/CDD",s:"隣接",k:"pr"},{l:"参照データ管理",s:"共通",k:"pr"}]},
   {cap:"④ handlesEntity → 業務対象（BusinessEntity）",nodes:[{l:"モニタリング対象取引",s:"Entity",k:"en"},{l:"顧客確認記録",s:"Entity",k:"en"},{l:"組織",s:"Entity",k:"en"}]},
-  {cap:"⑤ measuredBy／hasEvent／hasAttribute → 指標・イベント・属性",nodes:[{l:"アラート件数",s:"Metric",k:"me"},{l:"確認完了率",s:"Metric",k:"me"},{l:"アラート検知・調査",s:"Event",k:"ev"},{l:"モニタリング対象取引を識別・管理する仮想項目",s:"Attribute",k:"at"},{l:"部店階層を識別する仮想項目",s:"Attribute",k:"at"}]},
+  {cap:"⑤ measuredBy／hasEvent／hasAttribute → 指標・イベント・属性",nodes:[{l:"アラート件数",s:"Metric",k:"me"},{l:"確認完了率",s:"Metric",k:"me"},{l:"アラート検知・調査",s:"Event",k:"ev"},{l:"検知シナリオ",s:"Attribute",k:"at"},{l:"部店階層を識別する仮想項目",s:"Attribute",k:"at"}]},
   {cap:"⑥ computedFrom／backedBy／mappedToColumn → 物理データ（規制制約を適用）",nodes:[{l:"S_AML_MONITORING_DAILY",s:"mart",k:"tb"},{l:"M_AML_MONITORING",s:"master",k:"tb"},{l:"T_ORGANIZATION",s:"reference",k:"tb"},{l:"S_KYC_CDD_DAILY",s:"mart",k:"tb"},{l:"F_AML_MONITORING_EVENT",s:"規制除外",k:"ng"}]}
  ],
  gql:'<span class="r">MATCH</span> (c:<span class="n">BusinessConcept</span> {name:<span class="v">"アラート"</span>})\n      -[:<span class="r">mentionedInProcess</span>]-&gt;(p:<span class="n">BusinessProcess</span>)\n      -[:<span class="r">belongsToDomain</span>]-&gt;(d:<span class="n">BusinessDomain</span> {name:<span class="v">"コンプライアンス・AML"</span>})\n<span class="r">MATCH</span> (p)-[:<span class="r">handlesEntity</span>]-&gt;(e)-[:<span class="r">measuredBy</span>]-&gt;(m)-[:<span class="r">computedFrom</span>]-&gt;(t:<span class="n">Table</span>)\n<span class="r">WHERE</span> t.schema &lt;&gt; <span class="v">"event"</span>   <span class="v">// 領域に紐づく漏えい禁止の制約により個票層を除外</span>\n<span class="r">RETURN</span> d.regulation, m.name, t.full',
@@ -1041,7 +1044,7 @@ const DATA_Q = [
   req:[["店舗別・時間帯別の混雑","rag"],["手続種類別の所要時間","rag"],["曜日・時間帯の粒度","rag"],["来店増か窓口不足かの要因分解","ont"]],
   v:"「混雑」と「所要時間」は別々の依頼として過去に届いていましたが、<b>いずれも <span class='mono'>S_BRANCH_CONTACT_DAILY</span> で扱える</b>ことを確認しました。業務イベント「発券・呼出」から業務指標「平均待ち時間」へ measuredBy で接続しており、時間帯・手続種類・曜日の粒度も保持されています。",
   c:"Tips（TIP-011）が指摘していた<b>「来店が増えたのか、窓口が足りていないのか」の要因分解</b>を補完しました。過去事例には体制情報が含まれていなかったため、共通参照層の組織マスター（候補④／稼働窓口数）をオントロジーから追加しています。",
-  path:"業務対象:来店・受付 → 業務指標:平均待ち時間 ／ 共通参照層:組織 → 稼働窓口数（T_ORGANIZATION）",
+  path:"業務対象:来店・受付 → 業務属性:手続種類／時間帯 → 物理カラム procedure_type_code・time_slot_code（S_BRANCH_CONTACT_DAILY）／業務対象:組織 → 業務属性:稼働窓口数 → open_counter_count（T_ORGANIZATION）",
   s3:"過去事例から<b>混雑と所要時間の両方（候補①③）</b>が確定し、オントロジーで<b>要因分解に必要な体制情報（候補④）</b>を補完しました。まず日次スナップショットで店舗×時間帯×手続種類の傾向を掴み、粒度が足りない場合のみイベント明細に降りる構成が、過去事例でも定着しています。"
  },
  cands:[
@@ -1054,7 +1057,7 @@ const DATA_Q = [
          ["業務オントロジー","業務プロセス:店頭・コンタクト －usesData→ 本表"],
          ["根拠QA","要員配置の検討依頼で案内されている"]],
    detail:{desc:"発券から呼出までの待ち時間を、部店×時間帯で集計した層です。metric_code で平均待ち時間・最大待ち時間・来店件数・放棄件数・開設窓口数を切り替えられます。",
-    attrs:[["business_date","k"],["branch_contact_id","k"],["metric_code","k"],["organization_id",""],["product_id",""],["metric_value",""],["quality_status_code",""],["snapshot_timestamp",""]],
+    attrs:[["business_date","k"],["branch_contact_id","k"],["metric_code","k"],["time_slot_code",""],["procedure_type_code",""],["organization_id",""],["product_id",""],["metric_value",""],["waiting_minutes",""],["quality_status_code",""],["snapshot_timestamp",""]],
     joins:[["VDB_ENTERPRISE_REFERENCE.reference.T_ORGANIZATION","organization_id","部店名・ブロック"],
            ["VDB_ENTERPRISE_REFERENCE.reference.T_CALENDAR","business_date","曜日・営業日フラグ"],
            ["VDB_RETAIL_ANALYTICS.mart.S_ONBOARDING_DAILY","organization_id + business_date","手続種類別の所要時間"]],
@@ -1099,11 +1102,12 @@ const DATA_Q = [
   {name:"組織マスター（部店）",path:"VDB_ENTERPRISE_REFERENCE.reference.T_ORGANIZATION",sys:"全社共通 参照基盤（reference層）",
    fl:["n","補完"],
    why:"部店の窓口数や体制が分からないと、待ち時間の長さが「来店が多い」のか「窓口が少ない」のか判別できません。",
-   trace:["部店","全社共通","参照データ管理","組織","部店階層を識別する仮想項目","T_ORGANIZATION"],
+   trace:["部店","全社共通","参照データ管理","組織","稼働窓口数","T_ORGANIZATION"],
    grain:"組織 × 有効期間",fresh:"日次 03:00",acc:"参照可（現在の権限のまま）",
-   evid:[["業務オントロジー","全プロセスから usesData で参照される共通資産"]],
+   evid:[["業務オントロジー","全プロセスから usesData で参照される共通資産"],
+         ["接続オントロジー","業務属性:稼働窓口数 －mappedToColumn→ open_counter_count（今回の補完箇所）"]],
    detail:{desc:"部店・ブロック・本部の階層を保持します。organization_type で店格を判別でき、同規模店舗どうしの比較ができます。",
-    attrs:[["organization_id","k"],["organization_name",""],["organization_type",""],["parent_organization_id",""],["effective_from",""],["effective_to",""]],
+    attrs:[["organization_id","k"],["organization_name",""],["organization_type",""],["parent_organization_id",""],["open_counter_count",""],["effective_from",""],["effective_to",""]],
     joins:[["VDB_RETAIL_ANALYTICS.mart.S_BRANCH_CONTACT_DAILY","organization_id","部店名・店格の付与"]],
     cautions:["改装・店舗統合で値が変わります。時系列分析では有効期間で時点結合してください。"],
     sql:"",gov:[["業務領域","全社共通"],["データオーナー","データ管理部"],["データ分類","公開区分（行内）"],["申請手続","不要"],["リードタイム","―"]],
@@ -1127,7 +1131,7 @@ const DATA_Q = [
   {cap:"② mentionedInProcess ＋ belongsToDomain → 業務領域（BusinessDomain）",nodes:[{l:"リテール",s:"Domain",k:"dm"},{l:"全社共通",s:"参照",k:"dm"},{l:"データマネジメント",s:"対象外",k:"dm"}]},
   {cap:"③ 業務領域配下の業務プロセス（2プロセスにまたがる）",nodes:[{l:"店頭・コンタクト",s:"Process",k:"pr"},{l:"口座開設",s:"Process",k:"pr"},{l:"参照データ管理",s:"共通",k:"pr"},{l:"デジタルチャネル",s:"隣接",k:"pr"}]},
   {cap:"④ handlesEntity → 業務対象（BusinessEntity）",nodes:[{l:"来店・受付",s:"Entity",k:"en"},{l:"開設申込",s:"Entity",k:"en"},{l:"組織",s:"Entity",k:"en"}]},
-  {cap:"⑤ measuredBy／hasEvent／hasAttribute → 指標・イベント・属性",nodes:[{l:"平均待ち時間",s:"Metric",k:"me"},{l:"開設完了率",s:"Metric",k:"me"},{l:"発券・呼出",s:"Event",k:"ev"},{l:"申込・審査",s:"Event",k:"ev"},{l:"部店階層を識別する仮想項目",s:"Attribute",k:"at"}]},
+  {cap:"⑤ measuredBy／hasEvent／hasAttribute → 指標・イベント・属性",nodes:[{l:"平均待ち時間",s:"Metric",k:"me"},{l:"開設完了率",s:"Metric",k:"me"},{l:"発券・呼出",s:"Event",k:"ev"},{l:"申込・審査",s:"Event",k:"ev"},{l:"手続種類",s:"Attribute",k:"at"},{l:"稼働窓口数",s:"Attribute",k:"at"}]},
   {cap:"⑥ computedFrom／backedBy／mappedToColumn → 物理データ（Table）",nodes:[{l:"S_BRANCH_CONTACT_DAILY",s:"mart",k:"tb"},{l:"S_ONBOARDING_DAILY",s:"mart",k:"tb"},{l:"F_BRANCH_CONTACT_EVENT",s:"event",k:"tb"},{l:"T_ORGANIZATION",s:"reference",k:"tb"},{l:"BRANCH_TERM.T_TERM_OPLOG",s:"カタログ外",k:"ng"}]}
  ],
  gql:'<span class="r">MATCH</span> (c:<span class="n">BusinessConcept</span>)-[:<span class="r">mentionedInProcess</span>]-&gt;(p:<span class="n">BusinessProcess</span>)\n      -[:<span class="r">belongsToDomain</span>]-&gt;(:<span class="n">BusinessDomain</span> {name:<span class="v">"リテール"</span>})\n<span class="r">WHERE</span> c.name <span class="r">IN</span> [<span class="v">"待ち時間"</span>,<span class="v">"窓口"</span>,<span class="v">"手続き"</span>]\n<span class="r">MATCH</span> (p)-[:<span class="r">handlesEntity</span>]-&gt;(e)-[:<span class="r">measuredBy</span>]-&gt;(m)-[:<span class="r">computedFrom</span>]-&gt;(t:<span class="n">Table</span>)\n<span class="r">RETURN</span> p.name, m.name, m.definition, t.full\n<span class="v">// 待ち時間と所要時間は別プロセスの別指標。合算がお客さまの体感時間</span>',
@@ -2678,14 +2682,18 @@ const DOMSPEC=[
  {id:"card_payment",l:"カード・決済",t:"CARD_PAYMENT",ent:"カード契約",ev:"決済",met:"決済件数",cc:["カード","決済"],role:"決済事業部"},
  {id:"transfer",l:"振込・決済",t:"TRANSFER",ent:"振込取引",ev:"振込実行",met:"振込件数",cc:["振込","手数料"],role:"決済事業部"},
  {id:"digital_channel",l:"デジタルチャネル",t:"DIGITAL_CHANNEL",ent:"アプリ利用",ev:"ログイン・操作",met:"アクティブ利用者数",cc:["アプリ","ログイン"],role:"デジタル戦略部"},
- {id:"branch_contact",l:"店頭・コンタクト",t:"BRANCH_CONTACT",ent:"来店・受付",ev:"発券・呼出",met:"平均待ち時間",cc:["窓口","待ち時間","来店"],role:"チャネル戦略部"},
+ {id:"branch_contact",l:"店頭・コンタクト",t:"BRANCH_CONTACT",ent:"来店・受付",ev:"発券・呼出",met:"平均待ち時間",cc:["窓口","待ち時間","来店","時間帯"],role:"チャネル戦略部",
+  xc:{mart:["time_slot_code","procedure_type_code","waiting_minutes"],event:["procedure_type_code","ticket_issued_at","called_at"]},
+  xa:[["手続種類","procedure_type_code","mart"],["時間帯","time_slot_code","mart"],["待ち時間の実測値","waiting_minutes","mart"]]},
  {id:"campaign",l:"キャンペーン",t:"CAMPAIGN",ent:"キャンペーン対象",ev:"提案・反応",met:"反応率",cc:["キャンペーン","提案"],role:"マーケティング部"},
- {id:"onboarding",l:"口座開設",t:"ONBOARDING",ent:"開設申込",ev:"申込・審査",met:"開設完了率",cc:["口座開設","申込"],role:"事務統括部"},
+ {id:"onboarding",l:"口座開設",t:"ONBOARDING",ent:"開設申込",ev:"申込・審査",met:"開設完了率",cc:["口座開設","申込","手続き"],role:"事務統括部"},
  {id:"consent",l:"同意管理",t:"CONSENT",ent:"同意記録",ev:"同意取得・撤回",met:"同意取得率",cc:["同意","利用目的"],role:"CPO室"},
  {id:"profitability",l:"収益管理",t:"PROFITABILITY",ent:"顧客収益",ev:"収益計上",met:"顧客別収益",cc:["収益","採算"],role:"経営企画部"}
 ]},
 {id:"wholesale",l:"ホールセール",db:"VDB_WHOLESALE_ANALYTICS",owner:"法人データオフィス",procs:[
- {id:"corp_customer",l:"法人顧客管理",t:"CORP_CUSTOMER",ent:"法人顧客",ev:"属性更新",met:"取引先数",cc:["法人顧客","業種","企業グループ"],role:"法人営業部"},
+ {id:"corp_customer",l:"法人顧客管理",t:"CORP_CUSTOMER",ent:"法人顧客",ev:"属性更新",met:"取引先数",cc:["法人顧客","業種","企業グループ"],role:"法人営業部",
+  xc:{master:["group_id","group_name","group_priority","industry_code","industry_name"]},
+  xa:[["企業グループ識別","group_id","master"],["業種区分","industry_code","master"]]},
  {id:"corp_deposit",l:"法人預金",t:"CORP_DEPOSIT",ent:"法人預金口座",ev:"入出金",met:"月中平残",cc:["法人預金","平残"],role:"法人営業部"},
  {id:"corp_loan",l:"法人融資",t:"CORP_LOAN",ent:"融資契約",ev:"実行・返済",met:"貸出残高",cc:["融資","実行"],role:"法人営業部"},
  {id:"credit_review",l:"与信審査",t:"CREDIT_REVIEW",ent:"審査案件",ev:"稟議・決裁",met:"審査所要日数",cc:["審査","稟議"],role:"審査部"},
@@ -2715,7 +2723,9 @@ const DOMSPEC=[
  {id:"stress_test",l:"ストレステスト",t:"STRESS_TEST",ent:"ストレスシナリオ",ev:"シナリオ実行",met:"ストレス後自己資本比率",cc:["ストレステスト","シナリオ"],role:"リスク統括部"}
 ]},
 {id:"compliance",l:"コンプライアンス・AML",db:"VDB_COMPLIANCE_AML",owner:"コンプライアンス統括部",procs:[
- {id:"aml_monitoring",l:"AML取引モニタリング",t:"AML_MONITORING",ent:"モニタリング対象取引",ev:"アラート検知・調査",met:"アラート件数",cc:["マネロン","アラート","取引モニタリング"],role:"金融犯罪対策室"},
+ {id:"aml_monitoring",l:"AML取引モニタリング",t:"AML_MONITORING",ent:"モニタリング対象取引",ev:"アラート検知・調査",met:"アラート件数",cc:["マネロン","アラート","取引モニタリング","検知シナリオ"],role:"金融犯罪対策室",
+  xc:{master:["scenario_code","scenario_name","threshold_value"],mart:["scenario_code","close_days"]},
+  xa:[["検知シナリオ","scenario_code","master"],["クローズ所要日数","close_days","mart"]]},
  {id:"kyc_cdd",l:"KYC/CDD",t:"KYC_CDD",ent:"顧客確認記録",ev:"確認・更新",met:"確認完了率",cc:["KYC","顧客確認"],role:"金融犯罪対策室"},
  {id:"sanctions",l:"制裁スクリーニング",t:"SANCTIONS",ent:"スクリーニング対象",ev:"照合・判定",met:"ヒット件数",cc:["制裁","スクリーニング"],role:"金融犯罪対策室"},
  {id:"privacy",l:"個人情報保護",t:"PRIVACY",ent:"個人データ利用",ev:"利用目的登録",met:"目的外利用件数",cc:["個人情報","利用目的"],role:"CPO室"},
@@ -2736,7 +2746,7 @@ const DOMSPEC=[
 /* ---- 全ドメイン共通の参照データ ---- */
 const REFTBL=[
  {n:"T_CUSTOMER_GOLDEN",d:"統合顧客マスター",cols:["customer_id","party_id","customer_type_code","age_band_code","organization_id","status_code","effective_from","effective_to"]},
- {n:"T_ORGANIZATION",d:"組織マスター（部店）",cols:["organization_id","organization_name","organization_type","parent_organization_id","effective_from","effective_to"]},
+ {n:"T_ORGANIZATION",d:"組織マスター（部店）",cols:["organization_id","organization_name","organization_type","parent_organization_id","open_counter_count","effective_from","effective_to"]},
  {n:"T_PRODUCT",d:"商品マスター",cols:["product_id","product_name","product_category","domain_code","effective_from","effective_to"]},
  {n:"T_CALENDAR",d:"営業日カレンダー",cols:["calendar_date","fiscal_year","fiscal_month","business_day_flag","month_end_flag"]}
 ];
@@ -2745,6 +2755,21 @@ const COLSET={
  mart:  b=>[["business_date",1],[b+"_id",1],["metric_code",1],["customer_id",0],["organization_id",0],["product_id",0],["metric_value",0],["risk_flag",0],["quality_status_code",0],["currency_code",0],["snapshot_timestamp",0]],
  master:b=>[[b+"_id",1],["customer_id",0],["organization_id",0],["product_id",0],["status_code",0],["effective_from",0],["effective_to",0],["source_system_code",0],["record_updated_at",0]]
 };
+
+/* ---- 全社共通の参照データを、業務側（領域→プロセス→業務対象→業務属性）からも辿れるようにする ---- */
+const SHARED={
+ dom:{id:"shared",l:"全社共通",owner:"データ管理部",db:"VDB_ENTERPRISE_REFERENCE"},
+ proc:{id:"reference_data",l:"参照データ管理"},
+ ents:[
+  {id:"customer",l:"顧客",tbl:"T_CUSTOMER_GOLDEN",cc:["顧客属性","名寄せ","年代"],
+   attrs:[["顧客を識別する仮想項目","customer_id"],["年代区分","age_band_code"],["顧客区分","customer_type_code"]]},
+  {id:"organization",l:"組織",tbl:"T_ORGANIZATION",cc:["部店","組織階層"],
+   attrs:[["部店階層を識別する仮想項目","organization_id"],["稼働窓口数","open_counter_count"]]},
+  {id:"product",l:"商品",tbl:"T_PRODUCT",cc:["商品"],
+   attrs:[["商品を識別する仮想項目","product_id"],["商品区分","product_category"]]},
+  {id:"calendar",l:"営業日",tbl:"T_CALENDAR",cc:["営業日","月末"],
+   attrs:[["営業日区分","business_day_flag"],["月末区分","month_end_flag"]]}
+ ]};
 
 /* ---- グラフの構築（仕様からノードとトリプルを生成） ---- */
 const N={}, E=[];
@@ -2766,6 +2791,33 @@ function tri(s,p,o){ E.push({s,p,o}); }
       const cid=tid+"."+c;
       node(cid,"Column",c,{d:"参照系の共通項目",dom:"shared",key:c.endsWith("_id")&&r.cols.indexOf(c)===0});
       tri(cid,"partOf",tid);
+    });
+  });
+  /* 全社共通：業務領域 → 業務プロセス → 業務対象 → 業務属性 → 物理カラム */
+  const sdid=node("res:domain/shared","BusinessDomain",SHARED.dom.l,
+    {d:"全ドメインから共通に参照される参照データを束ねる業務領域。分析用データベース "+SHARED.dom.db+" が対応する。",
+     dom:"shared",owner:SHARED.dom.owner,db:SHARED.dom.db});
+  tri(ROOT,"hasDomain",sdid);
+  const spid=node("res:subdomain/shared/"+SHARED.proc.id,"BusinessProcess",SHARED.proc.l,
+    {d:"全社で一意の顧客・組織・商品・営業日を維持し、各業務領域へ提供する業務活動。",dom:"shared",owner:SHARED.dom.owner});
+  tri(spid,"belongsToDomain",sdid);
+  SHARED.ents.forEach(e=>{
+    const tid="res:table/VDB_ENTERPRISE_REFERENCE.reference."+e.tbl;
+    const eid=node("res:object_type/shared_"+e.id,"BusinessEntity",e.l,
+      {d:"全社共通で維持される業務対象「"+e.l+"」。各領域の分析データはこの業務対象を介して属性を補完する。",dom:"shared",st:"reference"});
+    tri(spid,"handlesEntity",eid);
+    tri(spid,"usesData",tid);
+    e.attrs.forEach((a,i)=>{
+      const aid=node("res:property_type/shared_"+e.id+"_"+i,"BusinessAttribute",a[0],
+        {d:"業務属性。物理カラム "+a[1]+" に対応付けられる。",dom:"shared",ph:a[1]});
+      tri(eid,"hasAttribute",aid);
+      tri(aid,"mappedToColumn",tid+"."+a[1]);
+    });
+    e.cc.forEach((c,i)=>{
+      const cid=node("res:business_concept/shared_"+e.id+"_"+i,"BusinessConcept",c,
+        {d:"過去の問い合わせから抽出された検索語。",dom:"shared"});
+      tri(cid,"mentionedInProcess",spid);
+      tri(cid,"resolvedTo",tid);
     });
   });
 
@@ -2819,6 +2871,12 @@ function tri(s,p,o){ E.push({s,p,o}); }
           node(cid,"Column",c[0],{dom:dm.id,key:!!c[1],d:c[0]+"（"+t.d+"の項目）"});
           tri(cid,"partOf",tid);
         });
+        /* 業務側で名指しされる項目（過去の問い合わせで実際に使われた切り口） */
+        ((p.xc||{})[k]||[]).forEach(c=>{
+          const cid=tid+"."+c;
+          node(cid,"Column",c,{dom:dm.id,key:false,d:c+"（"+t.d+"の項目）"});
+          tri(cid,"partOf",tid);
+        });
       });
       /* 接続オントロジー：業務→物理 */
       tri(vid,"backedBy",tids.event);
@@ -2841,6 +2899,12 @@ function tri(s,p,o){ E.push({s,p,o}); }
         node(aid,"BusinessAttribute",a.l,{d:"業務属性。物理カラム "+a.ph+" に対応付けられる。",dom:dm.id,ph:a.ph,st:"candidate"});
         tri(eid,"hasAttribute",aid);
         tri(aid,"mappedToColumn",a.tb+"."+a.ph);
+      });
+      (p.xa||[]).forEach((a,i)=>{
+        const aid="res:property_type/"+dm.id+"_"+p.id+"_x"+i;
+        node(aid,"BusinessAttribute",a[0],{d:"業務属性。物理カラム "+a[1]+" に対応付けられる。",dom:dm.id,ph:a[1],st:"candidate"});
+        tri(eid,"hasAttribute",aid);
+        tri(aid,"mappedToColumn",tids[a[2]]+"."+a[1]);
       });
 
       /* 業務概念（問い合わせで使われる検索語） */
@@ -3075,12 +3139,11 @@ function focusOn(id,pushPath){
 
 /* ---- 左サイド ---- */
 function renderSide(){
-  $("#kgdoms").innerHTML=DOMSPEC.map(d=>{
-    const id="res:domain/"+d.id;
-    return '<button class="kgrow'+(GV.focus===id?" on":"")+'" data-go="'+encodeURIComponent(id)+'">'+
-      '<span class="kgdot" style="background:#16395c"></span><span class="nm2">'+esc(d.l)+'</span>'+
-      '<span class="ct">'+d.procs.length+'</span></button>';
-  }).join("");
+  const domrow=(id,l,ct)=>'<button class="kgrow'+(GV.focus===id?" on":"")+'" data-go="'+encodeURIComponent(id)+'">'+
+      '<span class="kgdot" style="background:#16395c"></span><span class="nm2">'+esc(l)+'</span>'+
+      '<span class="ct">'+ct+'</span></button>';
+  $("#kgdoms").innerHTML=DOMSPEC.map(d=>domrow("res:domain/"+d.id,d.l,d.procs.length)).join("")+
+    domrow("res:domain/shared","全社共通（参照データ）",SHARED.ents.length);
   const cnt={}; NIDS.forEach(i=>cnt[N[i].t]=(cnt[N[i].t]||0)+1);
   $("#kgtypes").innerHTML=Object.keys(ONT.cls).filter(t=>cnt[t]).map(t=>
     '<div class="kgrow" style="cursor:default"><span class="kgdot" style="background:'+ONT.cls[t].c[2]+'"></span>'+
