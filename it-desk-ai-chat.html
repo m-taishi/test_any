@@ -254,6 +254,26 @@ svg.kg{display:block;width:100%;height:auto}
 .pv.w{background:#fdf3f2;border-color:#eecac6;color:#b91c1c}
 .prole{font-size:11px;color:var(--tx2);background:#f7f9fc;border:1px solid var(--ln2);border-radius:7px;padding:7px 10px;margin:8px 0 0}
 .prole b{color:var(--tx)}
+/* ============ データ照会：最終推奨構成 ============ */
+.recb{border:1px solid #c9e0d1;border-radius:10px;background:var(--pn);margin-bottom:12px;overflow:hidden}
+.rech{display:flex;align-items:center;gap:9px;padding:9px 13px;background:#f1f9f4;border-bottom:1px solid #d8e9de;font-size:12.5px;font-weight:700;color:#136b3c}
+.recbg{font-size:9.5px;font-weight:700;color:#fff;background:var(--ok);border-radius:4px;padding:1px 8px;letter-spacing:.06em}
+.reccnt{margin-left:auto;font-size:10.5px;color:var(--tx3);font-weight:400}
+.recrow{display:flex;gap:11px;width:100%;text-align:left;background:none;border:0;border-bottom:1px solid var(--ln2);padding:11px 13px;align-items:flex-start;transition:.12s}
+.recrow:last-of-type{border-bottom:0}
+button.recrow{cursor:pointer}
+button.recrow:hover{background:#f8fafc}
+.recrole{font-size:10px;font-weight:700;border-radius:4px;padding:1px 8px;border:1px solid;flex:none;margin-top:2px;white-space:nowrap}
+.recrole{background:#eaf4ee;border-color:#bcdcc8;color:#136b3c}
+.recrole.j{background:#f2f5f8;border-color:var(--ln);color:var(--tx2)}
+.recmid{flex:1;min-width:0}
+.recname{display:block;font-size:13px;font-weight:600}
+.recpath{display:block;font-family:var(--mono);font-size:11px;color:var(--tx2);word-break:break-all;margin-top:1px}
+.recuse{display:block;font-size:11.5px;color:var(--tx2);margin-top:4px;line-height:1.7}
+.recuse b{color:var(--tx)}
+.recnote{background:#fdf9f0;border-top:1px solid #eee0c4;padding:9px 13px;font-size:11.5px;line-height:1.8;color:var(--tx2)}
+.recnote b{color:#8a5205}
+
 /* ============ データ照会：要件カバレッジ／補完経路 ============ */
 .reqcov{border:1px solid var(--ln);border-radius:9px;background:#fbfcfd;padding:9px 12px;margin-top:10px}
 .reqcov>b{font-size:10.5px;color:var(--tx3);letter-spacing:.04em;display:block;margin-bottom:7px;font-weight:600}
@@ -536,10 +556,18 @@ const DATA_Q = [
  ],
  flow:{
   req:[["住宅ローンの延滞状況","rag"],["支店別（部店軸）","rag"],["年代別（顧客属性軸）","ont"],["直近1年の月次推移","rag"]],
-  v:"過去事例で案内された <span class='mono'>S_HOUSING_LOAN_DAILY</span> が、業務指標「延滞率」から computedFrom で正しく接続していることを確認しました。指標定義がリテール領域のものであること（リスク領域のバーゼル定義ではないこと）も検証済みです。部店軸は organization_id から組織マスターへ接続しており、<b>支店別はこのまま集計できます</b>。",
-  c:"STEP 1 で唯一残っていた<b>「年代別」</b>を補完しました。業務対象「顧客」→ 業務属性「年代区分」→ 物理カラム <span class='mono'>age_band_code</span> を辿り、共通参照層の <span class='mono'>T_CUSTOMER_GOLDEN</span> を候補④として追加しています。過去の問い合わせ履歴には該当がなく、<b>RAGだけでは落ちていた候補</b>です。",
+  v:"過去事例で案内していた <span class='mono'>S_HOUSING_LOAN_DAILY</span> が、今回も使えるかを確かめました。<b>このテーブルの延滞率は融資部門の定義</b>で、リスク部門が使うバーゼル基準の数値とは別物です。今回は与信方針の検討が目的ですので、この定義で問題ありません。<b>支店別は、このテーブルが持つ店番から組織マスターをつなぐだけで出せます。</b>",
+  c:"STEP 1 で足りなかった<b>「年代別」</b>を補いました。<b>お客さまの年代は、このテーブルには入っていません。</b>「お客さま」という業務のまとまりをたどったところ、全社共通の顧客マスター <span class='mono'>T_CUSTOMER_GOLDEN</span> が<b>年代区分</b>を持っており、<span class='mono'>customer_id</span> でつなげば年代別に分けられることが分かりました。<b>過去の問い合わせ履歴だけでは出てこないテーブル</b>です。",
   path:"業務対象:顧客 → 業務属性:年代区分 → 物理カラム age_band_code（T_CUSTOMER_GOLDEN）",
-  s3:"過去事例から<b>延滞率の本体データ（候補①）と部店軸</b>が確定し、オントロジーで<b>年代別の切り口（候補④）</b>を補完しました。この2つを <span class='mono'>customer_id</span> で結合すれば、ご依頼の「支店別 × 年代別 × 直近1年」がそのまま算出できます。<span class='mono'>age_band_code</span> は基準日時点の年代のため、時点結合を忘れると年代がずれる点だけご注意ください。"
+  s3:"過去事例から<b>延滞率のデータと支店別の出し方</b>が決まり、業務のつながりから<b>年代別の出し方</b>が加わりました。下の構成で、ご依頼の「支店別 × 年代別 × 直近1年」がそのまま出せます。"
+ },
+ rec:{
+  ci:0, filter:"metric_code='DELINQ_RATE_31D'（31日以上の延滞率）",
+  use:"支店別・年代別の延滞率は、この構成だけで算出できます。",
+  joins:[
+   {name:"組織マスター（部店）",path:"VDB_ENTERPRISE_REFERENCE.reference.T_ORGANIZATION",key:"organization_id",use:"支店名・店格を付ける（支店別の集計に使用）"},
+   {ci:3,key:"customer_id",use:"お客さまの年代区分を付ける（年代別の集計に使用）"}],
+  care:"<b>metric_code の指定は必須です。</b>省略すると別の指標が縦に混ざります。また <span class='mono'>risk_flag='R'</span>（条件変更申請中）は分母・分子の双方から除外してください。部店名と年代区分は、どちらも有効期間での時点結合が必要です。"
  },
  cands:[
   {name:"住宅ローン 日次スナップショット",path:"VDB_RETAIL_ANALYTICS.mart.S_HOUSING_LOAN_DAILY",sys:"リテール分析基盤（mart層）",
@@ -667,10 +695,18 @@ const DATA_Q = [
  ],
  flow:{
   req:[["解約したお客さまの特定","rag"],["解約前の提案・接触の履歴","rag"],["顧客セグメント・年代の切り口","ont"],["解約と提案の突き合わせ（結合）","ont"]],
-  v:"解約側の <span class='mono'>S_WEALTH_DAILY</span>、提案側の <span class='mono'>S_CAMPAIGN_DAILY</span> は、いずれも過去事例どおり<b>単独では利用できる</b>ことを確認しました。両者が別の業務プロセス（資産運用／キャンペーン）に属し、それぞれの業務指標が mart 層へ computedFrom で接続している点も検証しています。",
-  c:"STEP 1 で残っていた<b>「解約と提案の突き合わせ」と「年代・顧客セグメント」</b>を補完しました。両マートが共通参照層 <span class='mono'>T_CUSTOMER_GOLDEN</span> と joinsWith で接続していることをオントロジー上で確認し、候補④として追加しています。<b>過去に前例のない結合ですが、経路は成立します。</b>",
+  v:"解約側の <span class='mono'>S_WEALTH_DAILY</span> と提案側の <span class='mono'>S_CAMPAIGN_DAILY</span> は、過去事例のとおり<b>それぞれ単独では問題なく使える</b>ことを確かめました。ただし解約と提案は別々の業務として管理されているため、<b>この2つのデータは直接はつながっていません。</b>",
+  c:"STEP 1 で足りなかった<b>2つのデータの突き合わせ</b>と<b>年代・顧客層の切り口</b>を補いました。どちらのデータも<b>全社共通の顧客マスターとつながっている</b>ため、<span class='mono'>customer_id</span> を間に挟めば「解約されたお客さまが、その前にどんな提案を受けていたか」を追えます。<b>過去に前例のない結合ですが、道すじは通っています。</b>",
   path:"業務プロセス:資産運用／キャンペーン → 業務対象:顧客（全社共通）→ 業務属性:顧客を識別する仮想項目／年代区分 → 物理カラム customer_id・age_band_code（T_CUSTOMER_GOLDEN）",
-  s3:"過去事例から<b>解約側・提案側それぞれのデータ（候補①②）</b>が確定し、オントロジーで<b>両者を結ぶ経路（候補④）</b>を補完しました。<span class='mono'>customer_id</span> を介して3表を結べば、「解約されたお客さまが、その前にどんな提案を受けていたか」を年代・セグメント別に追えます。着手前に、解約の定義（スイッチングを含むか）を依頼元とすり合わせてください。"
+  s3:"解約と提案それぞれのデータは過去事例で決まり、<b>両者をつなぐ経路</b>が業務のつながりから分かりました。下の構成なら、年代・顧客層別に解約の傾向と、その直前の提案を追えます。"
+ },
+ rec:{
+  ci:0, filter:"metric_code='CANCEL_RATE'（スイッチングを除いた解約率）",
+  use:"解約と、その前の提案接触を突き合わせた分析ができます。",
+  joins:[
+   {ci:1,key:"customer_id ＋ business_date",use:"解約前90日の提案接触の有無を付ける"},
+   {ci:3,key:"customer_id",use:"年代・顧客区分を付ける（2つのデータをつなぐ中継点にもなります）"}],
+  care:"<b>着手前に「解約」の定義をご依頼元と揃えてください。</b>乗換（スイッチング）を含める場合は <span class='mono'>metric_code='CANCEL_RATE_INCL_SWITCH'</span> を使います。提案記録の保持は24ヶ月です。デジタル経由の提案は別のデータに計上されます。"
  },
  cands:[
   {name:"資産運用 日次スナップショット",path:"VDB_RETAIL_ANALYTICS.mart.S_WEALTH_DAILY",sys:"リテール分析基盤（mart層）",
@@ -793,10 +829,18 @@ const DATA_Q = [
  ],
  flow:{
   req:[["業種別の預金残高の動き","rag"],["企業グループでの名寄せ","rag"],["部店軸での内訳","ont"],["2点を1つのクエリで集計","ont"]],
-  v:"業種別・グループ名寄せは、過去事例どおり <span class='mono'>S_CORP_DEPOSIT_DAILY</span> と <span class='mono'>M_CORP_CUSTOMER</span> の組み合わせで実現できることを確認しました。業務プロセス「法人預金」と「法人顧客管理」が同一の業務領域に属し、月中平残の定義がホールセール領域のものであることも検証済みです。",
-  c:"STEP 1 では<b>別々の事例だった2点を、1つのクエリにまとめられるか</b>をオントロジーで確認し、成立することを確かめました。あわせて<b>部店軸</b>を補完し、共通参照層の組織マスター（候補④）を追加しています。",
+  v:"業種別・グループ名寄せのどちらも、過去事例のとおり <span class='mono'>S_CORP_DEPOSIT_DAILY</span> と <span class='mono'>M_CORP_CUSTOMER</span> で出せることを確かめました。<b>今回使う「月中平残」は法人向けの定義</b>で、個人預金の残高とは計算方法が異なるため、単純に足し合わせることはできません。",
+  c:"過去事例では<b>業種別とグループ名寄せが別々の依頼</b>でした。今回は<b>この2つを1回の集計でまとめられるか</b>を確かめ、法人顧客マスターが業種コードと企業グループの両方を持っているため<b>まとめて出せる</b>ことが分かりました。あわせて部店ごとの内訳も出せるよう、組織マスターを加えています。",
   path:"業務対象:法人顧客 → 業務属性:企業グループ識別／業種区分 → 物理カラム group_id・industry_code（M_CORP_CUSTOMER）／業務対象:組織 → T_ORGANIZATION",
-  s3:"過去事例から<b>業種別とグループ名寄せの両方（候補①②）</b>が確定し、オントロジーで<b>同時集計の成立と部店軸（候補④）</b>を補完しました。この構成で、業種別×企業グループ単位の残高推移を1つのクエリで出せます。<span class='mono'>group_priority=1</span> の条件は必ず付けてください。落とすと親会社と子会社が二重計上され、過去に「数字が合わない」という問い合わせが繰り返されています。"
+  s3:"業種別・グループ名寄せは過去事例で決まり、<b>1回の集計でまとめられること</b>と<b>部店別の内訳</b>が新たに分かりました。下の構成で、業種別×企業グループ単位の残高推移が出せます。"
+ },
+ rec:{
+  ci:0, filter:"metric_code='AVG_BAL_MTD'（月中平残）",
+  use:"業種別・企業グループ単位の残高推移を、1回の集計で出せます。",
+  joins:[
+   {ci:1,key:"customer_id",use:"業種コードと企業グループを付ける（名寄せに使用）"},
+   {ci:3,key:"organization_id",use:"部店・ブロックを付ける（部店別の内訳に使用）"}],
+  care:"<b><span class='mono'>group_priority=1</span> の条件を必ず付けてください。</b>付け忘れると、複数グループに所属する会社が二重に数えられ、「数字が合わない」という問い合わせにつながります。業種比較は月末残高ではなく月中平残を推奨します（賞与・納税期の季節性を除けます）。"
  },
  cands:[
   {name:"法人預金 日次スナップショット",path:"VDB_WHOLESALE_ANALYTICS.mart.S_CORP_DEPOSIT_DAILY",sys:"ホールセール分析基盤（mart層）",
@@ -918,10 +962,18 @@ const DATA_Q = [
  ],
  flow:{
   req:[["部店別・月別のアラート件数","rag"],["届出に至った割合（真陽性率）","rag"],["クローズまでの日数","rag"],["検知シナリオ別の内訳","ont"]],
-  v:"過去事例（INC-0238771）で案内された <span class='mono'>S_AML_MONITORING_DAILY</span> が、業務指標「アラート件数」「真陽性率」「平均クローズ日数」の<b>3つすべてから computedFrom で接続している</b>ことを確認しました。当局対応の資料であれば集計層で充足する点も、業務領域に紐づく規制上の制約から裏付けています。",
-  c:"STEP 1 で残っていた<b>「検知シナリオ別の内訳」</b>を補完しました。シナリオマスター（候補②）が同一プロセス配下で接続していること、隣接プロセスの KYC/CDD（候補④）も必要に応じて足せることを、オントロジー上で確認しています。",
+  v:"過去事例で案内していた <span class='mono'>S_AML_MONITORING_DAILY</span> に、<b>ご依頼の3つの数値（アラート件数・届出に至った割合・クローズまでの日数）がすべて揃っている</b>ことを確かめました。当局対応の資料であれば<b>このデータで足り、アラートの個票を見る必要はありません。</b>",
+  c:"STEP 1 で足りなかった<b>検知シナリオ別の内訳</b>を補いました。シナリオの名称や閾値は<b>別のマスターが持っている</b>ため、これをつなぐとシナリオごとの内訳まで出せます。KYC/CDD のデータも隣り合う業務として利用できますが、今回のご依頼には不要です。",
   path:"業務対象:モニタリング対象取引 → 業務属性:検知シナリオ → 物理カラム scenario_code（M_AML_MONITORING）／隣接プロセス:KYC/CDD",
-  s3:"過去事例から<b>3指標の集計データ（候補①）</b>がそのまま確定し、オントロジーで<b>シナリオ別の内訳（候補②）</b>を補完しました。<span class='mono'>S_AML_MONITORING_DAILY</span> に組織マスターを結合すれば、部店別・月別・シナリオ別まで当局資料の形で出せます。個票を含むイベント層は利用目的の範囲外のため、候補⑤として除外しています。"
+  s3:"3つの数値は過去事例のデータでそのまま出せ、<b>シナリオ別の内訳</b>が新たに加わりました。下の構成で、部店別・月別・シナリオ別まで当局資料の形に整えられます。"
+ },
+ rec:{
+  ci:0, filter:"metric_code で ALERT_CNT ／ TRUE_POSITIVE_RATE ／ CLOSE_DAYS_MEDIAN を切替",
+  use:"部店別・月別・シナリオ別の運用状況を、集計データだけで作成できます。",
+  joins:[
+   {ci:1,key:"scenario_code",use:"検知シナリオ名と閾値の改定履歴を付ける"},
+   {ci:2,key:"organization_id",use:"部店名を付ける（部店別の集計に使用）"}],
+  care:"<b>閾値そのものは行外持ち出し厳禁です。当局資料には記載しないでください。</b>真陽性率の分母は当月クローズ件数のため、発生月基準で見ると直近月が過小に見えます。閾値改定の前後で件数の水準が不連続になる点も、資料に注記をお願いします。"
  },
  cands:[
   {name:"AML取引モニタリング 日次スナップショット",path:"VDB_COMPLIANCE_AML.mart.S_AML_MONITORING_DAILY",sys:"コンプライアンス分析基盤（mart層）",
@@ -1042,10 +1094,18 @@ const DATA_Q = [
  ],
  flow:{
   req:[["店舗別・時間帯別の混雑","rag"],["手続種類別の所要時間","rag"],["曜日・時間帯の粒度","rag"],["来店増か窓口不足かの要因分解","ont"]],
-  v:"「混雑」と「所要時間」は別々の依頼として過去に届いていましたが、<b>いずれも <span class='mono'>S_BRANCH_CONTACT_DAILY</span> で扱える</b>ことを確認しました。業務イベント「発券・呼出」から業務指標「平均待ち時間」へ measuredBy で接続しており、時間帯・手続種類・曜日の粒度も保持されています。",
-  c:"Tips（TIP-011）が指摘していた<b>「来店が増えたのか、窓口が足りていないのか」の要因分解</b>を補完しました。過去事例には体制情報が含まれていなかったため、共通参照層の組織マスター（候補④／稼働窓口数）をオントロジーから追加しています。",
+  v:"「混雑」と「所要時間」は過去に別々の依頼として届いていましたが、<b>どちらも同じ日次データで扱える</b>ことを確かめました。<b>ご心配の「そもそもデータが取れているか」については、取れています。</b>店舗・時間帯・手続種類・曜日のいずれの切り口も保持されています。",
+  c:"Tips が指摘していた<b>「来店が増えたのか、窓口が足りていないのか」の切り分け</b>を補いました。過去事例では<b>体制の情報が抜けていた</b>ため、組織マスターが持つ<b>稼働窓口数</b>を加えています。待ち時間を窓口数と並べて見ることで、増員で解決する話なのか、事務手順の改善が必要なのかを判断できます。",
   path:"業務対象:来店・受付 → 業務属性:手続種類／時間帯 → 物理カラム procedure_type_code・time_slot_code（S_BRANCH_CONTACT_DAILY）／業務対象:組織 → 業務属性:稼働窓口数 → open_counter_count（T_ORGANIZATION）",
-  s3:"過去事例から<b>混雑と所要時間の両方（候補①③）</b>が確定し、オントロジーで<b>要因分解に必要な体制情報（候補④）</b>を補完しました。まず日次スナップショットで店舗×時間帯×手続種類の傾向を掴み、粒度が足りない場合のみイベント明細に降りる構成が、過去事例でも定着しています。"
+  s3:"混雑と所要時間はどちらも過去事例のデータで出せ、<b>要因の切り分けに必要な窓口数</b>が加わりました。下の構成で、どの店舗のどの時間帯に、どの手続きが滞っているかまで見られます。"
+ },
+ rec:{
+  ci:0, filter:"metric_code で AVG_WAIT_MIN ／ VISIT_CNT を切替",
+  use:"店舗×時間帯×手続種類の混雑と、要因の切り分けまで行えます。",
+  joins:[
+   {ci:1,key:"organization_id ＋ business_date",use:"手続種類別の所要時間（中央値・P90）を付ける"},
+   {ci:3,key:"organization_id",use:"部店名・店格と稼働窓口数を付ける（要因の切り分けに使用）"}],
+  care:"<b>発券機を通さない来店（相談予約・ATMのみ・テレビ窓口）は数に含まれません。</b>実際の来店数はこれより多くなります。「待ち時間（発券→呼出）」と「所要時間（呼出→完了）」は別の指標で、お客さまの体感は両者の合計になります。相続関連は所要時間が突出するため、平均ではなくP90または手続別でご覧ください。"
  },
  cands:[
   {name:"店頭・コンタクト 日次スナップショット",path:"VDB_RETAIL_ANALYTICS.mart.S_BRANCH_CONTACT_DAILY",sys:"リテール分析基盤（mart層）",
@@ -2239,7 +2299,29 @@ function reqCov(q,ph){
       return '<span class="req '+v[0]+'"><i>'+(v[0]==="g"?"…":"✓")+'</i>'+r[0]+'<em>'+v[1]+'</em></span>';}).join("")+
     '</div></div>';
 }
-function dataCandidateList(q){return '<div class="cands">'+q.cands.map((c,i)=>'<button class="cd'+(i===0?' top':'')+'" data-cand="'+i+'"><span class="no">'+(i+1)+'</span><span class="mid"><span class="t1">'+c.name+' <span class="fl '+c.fl[0]+'">'+c.fl[1]+'</span></span><span class="pth">'+c.path+'</span>'+provBlock(c)+'<span class="wy">'+c.why+'</span><span class="tr"><b>探索経路</b>　'+c.trace.join(' › ')+'</span></span><span class="rt"><span class="go">詳細 →</span></span></button>').join('')+'</div>';}
+function recBlock(q){
+  const m=q.cands[q.rec.ci];
+  const row=(role,cls,name,path,use,ci)=>{
+    const inner='<span class="recrole '+cls+'">'+role+'</span><span class="recmid">'+
+      '<span class="recname">'+name+'</span><span class="recpath">'+path+'</span>'+use+'</span>'+
+      (ci!=null?'<span class="rt" style="align-self:center"><span class="go">詳細 →</span></span>':'');
+    return ci!=null?'<button class="recrow" data-cand="'+ci+'">'+inner+'</button>'
+                   :'<div class="recrow">'+inner+'</div>';
+  };
+  return '<div class="recb">'+
+    '<div class="rech"><span class="recbg">推奨</span>この構成でご案内します'+
+      '<span class="reccnt">'+(q.rec.joins.length+1)+' 表</span></div>'+
+    row("主データ","",m.name,m.path,
+        (q.rec.filter?'<span class="recuse">抽出条件　<b class="mono">'+q.rec.filter+'</b></span>':'')+
+        '<span class="recuse">'+q.rec.use+'</span>',q.rec.ci)+
+    q.rec.joins.map(j=>{
+      const c=(j.ci!=null)?q.cands[j.ci]:null;
+      return row("結合","j",c?c.name:j.name,c?c.path:j.path,
+        '<span class="recuse">結合キー　<b class="mono">'+j.key+'</b>　／　'+j.use+'</span>',j.ci);
+    }).join("")+
+    (q.rec.care?'<div class="recnote">'+q.rec.care+'</div>':'')+'</div>';
+}
+function dataCandidateListUnused(q){return '<div class="cands">'+q.cands.map((c,i)=>'<button class="cd'+(i===0?' top':'')+'" data-cand="'+i+'"><span class="no">'+(i+1)+'</span><span class="mid"><span class="t1">'+c.name+' <span class="fl '+c.fl[0]+'">'+c.fl[1]+'</span></span><span class="pth">'+c.path+'</span>'+provBlock(c)+'<span class="wy">'+c.why+'</span><span class="tr"><b>探索経路</b>　'+c.trace.join(' › ')+'</span></span><span class="rt"><span class="go">詳細 →</span></span></button>').join('')+'</div>';}
 function permCandidateList(q){return '<div class="cands">'+q.cands.map((c,i)=>'<button class="cd'+(c.fl[0]==="ng"?' top':'')+'" data-pcand="'+i+'"><span class="no">'+(i+1)+'</span><span class="mid"><span class="t1">'+c.name+' <span class="fl '+c.fl[0]+'">'+c.fl[1]+'</span></span><span class="wy">'+c.why+'</span><span class="tr"><b>適用ルール</b>　<span class="rid">'+(q.candRule[i]||'—')+'</span>　<b>確認元</b>　'+c.src+'</span></span><span class="rt"><span class="go">詳細 →</span></span></button>').join('')+'</div>';}
 function askData(q){
   cur.p1=q;
@@ -2253,17 +2335,16 @@ function askData(q){
     setTimeout(()=>think("STEP 1 で満たせなかった要件を、オントロジーで検証・補完しています…",()=>{
       addAI('<section class="phase"><div class="phase-hd">STEP 2　オントロジーによる検証・補完</div><div class="phase-body">'+
         '<div class="phase-grid">'+
-        '<div class="fact ok"><b>STEP 1 の内容を検証できたこと</b><div>'+q.flow.v+'</div></div>'+
-        '<div class="fact purple"><b>STEP 1 に無かった要件を補完したこと</b><div>'+q.flow.c+'</div></div></div>'+
-        '<div class="ontpath"><b>補完に使った探索経路</b>'+esc(q.flow.path)+'</div>'+
+        '<div class="fact ok"><b>過去事例のデータが今回も使えるか、確かめたこと</b><div>'+q.flow.v+'</div></div>'+
+        '<div class="fact purple"><b>過去事例に無かった部分を、業務のつながりから補ったこと</b><div>'+q.flow.c+'</div></div></div>'+
+        '<div class="ontpath"><b>たどった道すじ（業務の言葉 → 実際の項目）</b>'+esc(q.flow.path)+'</div>'+
         reqCov(q,2)+
         '</div></section>');
       setTimeout(()=>think("STEP 1 と STEP 2 の結果を統合して回答をまとめています…",()=>{
         addAI('<div class="integrated"><b>STEP 3　探索結果の統合</b><br>'+q.flow.s3+'</div>'+
-          '<p>過去事例で確定した分と、オントロジーで補完した分を合わせて候補を <b>'+q.cands.length+'件</b> に整理しました。'+
-          '各候補の出典バッジが、どちらの経路で出てきたかを示します。</p>'+
-          dataCandidateList(q)+
-          fu([["cmp","候補の違いを比べたい"],["perm","私の権限で参照できる？"],["cau","分析上の注意点は？"]]));
+          '<p>以上をふまえた<b>最終的な推奨構成</b>です。各行をクリックすると、項目・注意点・サンプルSQLまで確認できます。</p>'+
+          recBlock(q)+
+          fu([["send","この構成で回答案を作る"],["perm","私の権限で参照できる？"],["cau","分析上の注意点は？"]]));
       },800),300);
     },900),300);
   },900),120);
@@ -2345,28 +2426,22 @@ function candDetail(i){
 }
 function dataFollow(k){
   const q=cur.p1; if(!q) return;
-  const L={cmp:"候補の違いを比べたい",perm:"私の権限で参照できますか？",cau:"分析上の注意点を教えて",send:"この内容で業務部門へ回答する"};
+  const L={perm:"私の権限で参照できますか？",cau:"分析上の注意点を教えて",send:"この構成で回答案を作ってください"};
   addUser(L[k]);
   think("確認しています…",()=>{
     let h="";
-    if(k==="cmp"){
-      h='<p>5件の候補を、実務で選ぶときに効く観点で比較します。</p><div class="cands" style="padding:13px 15px">'+
-        '<table class="tb"><tr><th>#</th><th>データ</th><th>業務領域</th><th>粒度</th><th>更新</th><th>位置づけ</th><th>参照可否</th></tr>'+
-        q.cands.map((c,i)=>'<tr><td>'+(i+1)+'</td><td><b>'+c.name+'</b><br><span class="m" style="font-size:10px">'+c.path+'</span></td>'+
-        '<td>'+candDomain(q,c)+'</td><td>'+c.grain+'</td><td>'+c.fresh+'</td>'+
-        '<td><span class="fl '+c.fl[0]+'">'+c.fl[1]+'</span></td><td>'+c.acc+'</td></tr>').join("")+'</table></div>'+
-        '<p style="font-size:12.5px">'+q.compare+'</p>';
-    }else if(k==="perm"){
+    if(k==="perm"){
       h='<p>'+q.permNote+'</p>'+
         '<p style="font-size:12px;color:var(--tx2)">権限の詳しい診断（どの段階で止まっているか・申請手順）は、上部の <b>「権限照会」</b> タブでご確認いただけます。</p>';
     }else if(k==="cau"){
       h='<p>この分析テーマで、数値の解釈を誤りやすい点をまとめます。</p><ul class="t">'+q.cands[0].detail.cautions.map(x=>'<li>'+x+'</li>').join("")+'</ul>';
     }else{
-      h='<p>回答案を作成しました。担当者の確認後、問い合わせ元へ送信されます。</p>'+
+      h='<p>推奨構成にもとづいて回答案を作成しました。担当者の確認後、問い合わせ元へ送信されます。</p>'+
         '<div class="intent" style="font-size:12.5px;white-space:pre-wrap">'+esc(q.reply)+'</div>'+
         '<p style="font-size:12px;color:var(--tx3)">※ 本モックでは実際の送信は行われません。</p>';
     }
-    addAI(h+fu([["cmp","候補の違いを比べたい"],["cau","分析上の注意点は？"]]));
+    addAI(h+fu(k==="send"?[["cau","分析上の注意点は？"],["perm","私の権限で参照できる？"]]
+                          :[["send","この構成で回答案を作る"],["cau","分析上の注意点は？"]]));
   },700);
 }
 
