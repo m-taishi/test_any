@@ -1,0 +1,437 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ODM汎用データマート候補抽出 — 全体像（1枚版）</title>
+<style>
+:root{
+  --bg:#080e1a; --bg2:#0d1626; --panel:#121e33; --panel2:#17263f;
+  --ink:#e9f0fa; --muted:#8fa3c0; --dim:#64789a;
+  --line:#26374f; --line2:#33486a;
+  --a1:#38bdf8; --a2:#fbbf24; --a3:#34d399; --a4:#f472b6; --bad:#fb7185;
+  --mono:"Cascadia Mono",Consolas,"SF Mono",Menlo,monospace;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{min-height:100%;color:var(--ink);
+  background:
+   radial-gradient(1300px 800px at 10% -10%, #14304d 0%, transparent 58%),
+   radial-gradient(1000px 700px at 102% 108%, #1b2340 0%, transparent 55%),
+   var(--bg) fixed;
+  font-family:"Yu Gothic UI","Yu Gothic","Hiragino Kaku Gothic ProN",Meiryo,"Segoe UI",system-ui,sans-serif;
+  -webkit-font-smoothing:antialiased;}
+body.fit{overflow:hidden}
+#wrap{display:flex;justify-content:center}
+#poster{width:1600px;padding:16px 20px 12px;display:flex;flex-direction:column;gap:8px;
+  transform-origin:0 0;flex:none}
+
+/* ---- header ---- */
+.head{display:flex;align-items:flex-end;justify-content:space-between;gap:22px;
+  border-bottom:1px solid var(--line2);padding-bottom:9px}
+.head .kick{font-size:10px;letter-spacing:.18em;color:var(--a1);font-weight:800;margin-bottom:4px}
+.head h1{font-size:25px;font-weight:900;line-height:1.18;letter-spacing:.01em}
+.head h1 span{background:linear-gradient(90deg,var(--a1),var(--a3));-webkit-background-clip:text;
+  background-clip:text;color:transparent}
+.head p{font-size:11.5px;color:var(--muted);line-height:1.5;margin-top:5px;max-width:1010px}
+.tags{display:flex;gap:5px;flex-wrap:wrap;justify-content:flex-end;max-width:420px}
+.tag{font-size:10px;font-weight:800;letter-spacing:.03em;padding:2px 7px;border-radius:999px;
+  border:1px solid var(--line2);color:var(--muted);background:#0e1a2c;white-space:nowrap}
+.tag.a1{color:var(--a1);border-color:#1d4d6b;background:#07202f}
+.tag.a2{color:var(--a2);border-color:#6b5320;background:#291f06}
+.tag.a3{color:var(--a3);border-color:#1f5f4a;background:#062018}
+.tag.a4{color:var(--a4);border-color:#6b2a4d;background:#2a0a1c}
+
+/* ---- panels ---- */
+.p{background:linear-gradient(180deg,var(--panel) 0%,var(--bg2) 100%);border:1px solid var(--line);
+  border-radius:11px;padding:8px 11px 9px;position:relative;overflow:hidden;display:flex;flex-direction:column}
+.p::before{content:"";position:absolute;left:0;top:0;bottom:0;width:3px;background:transparent}
+.p.a1::before{background:var(--a1)} .p.a2::before{background:var(--a2)}
+.p.a3::before{background:var(--a3)} .p.a4::before{background:var(--a4)}
+.p.bd::before{background:var(--bad)}
+.ph{display:flex;align-items:center;gap:7px;margin-bottom:6px}
+.pn{font-family:var(--mono);font-size:9.5px;font-weight:700;color:var(--a1);border:1px solid #1d4d6b;
+  background:#07202f;border-radius:4px;padding:0 5px;flex:none}
+.pn.y{color:var(--a2);border-color:#6b5320;background:#291f06}
+.pn.g{color:var(--a3);border-color:#1f5f4a;background:#062018}
+.pn.p{color:var(--a4);border-color:#6b2a4d;background:#2a0a1c}
+.pn.r{color:var(--bad);border-color:#6b2233;background:#2a0810}
+.pt{font-size:13px;font-weight:800;letter-spacing:.01em;line-height:1.25}
+.px{font-size:10px;color:var(--dim);margin-left:auto;white-space:nowrap}
+.tx{font-size:11.5px;line-height:1.55;color:var(--muted)}
+.tx b{color:var(--ink)} .tx .hl{color:var(--a2);font-weight:700}
+.tx code,code{font-family:var(--mono);font-size:10.5px;color:var(--a1)}
+
+.rowA{display:grid;grid-template-columns:1fr 1.22fr;gap:8px}
+.rowC{display:grid;grid-template-columns:1.02fr 1.12fr .9fr;gap:8px}
+.rowD{display:grid;grid-template-columns:1fr 1.06fr 1.06fr;gap:8px}
+
+/* ---- flow band ---- */
+.band{display:flex;align-items:stretch;gap:0}
+.band .st{flex:1;background:#101c2e;border:1px solid var(--line);border-radius:8px;padding:6px 8px;
+  margin-right:16px;position:relative}
+.band .st:last-child{margin-right:0}
+.band .st:not(:last-child)::after{content:"";position:absolute;right:-12px;top:50%;width:8px;height:8px;
+  border-top:2px solid var(--line2);border-right:2px solid var(--line2);transform:translateY(-50%) rotate(45deg)}
+.band .sn{font-size:9px;font-weight:800;letter-spacing:.1em;color:var(--a1);margin-bottom:2px}
+.band .stt{font-size:11.5px;font-weight:800;margin-bottom:3px;line-height:1.2}
+.band .sl{font-family:var(--mono);font-size:9px;color:var(--dim);line-height:1.5}
+.band .sl b{color:var(--a2);font-weight:600}
+
+/* ---- bars ---- */
+.brow{display:grid;grid-template-columns:126px 1fr 42px;align-items:center;gap:7px}
+.blab{font-size:9px;font-weight:700;color:var(--muted);text-align:right;font-family:var(--mono);line-height:1.25}
+.btrack{height:18px;background:#0d1727;border:1px solid var(--line);border-radius:5px;overflow:hidden}
+.bfill{height:100%;background:linear-gradient(90deg,#1a5c85,#38bdf8);display:flex;align-items:center;
+  padding-left:7px;font-size:10px;font-weight:800;color:#04212f;font-family:var(--mono);white-space:nowrap}
+.bfill.warn{background:linear-gradient(90deg,#7c3348,#fb7185);color:#2a0810}
+.bmeta{font-size:9.5px;color:var(--dim);font-family:var(--mono)}
+.rrow{display:grid;grid-template-columns:126px 1fr 42px;gap:7px;margin:2px 0}
+.ret{font-size:9.5px;font-weight:800;padding:0 6px;border-radius:5px;background:#062018;color:var(--a3);
+  border:1px solid #1f5f4a;font-family:var(--mono);justify-self:start;margin-left:7px}
+.ret.drop{background:#2a0810;color:var(--bad);border-color:#6b2233}
+
+/* ---- signal chips ---- */
+.sig{display:grid;grid-template-columns:1fr 1fr;gap:4px}
+.sc{background:#101c2e;border:1px solid var(--line);border-radius:6px;padding:4px 7px}
+.sc b{display:block;font-size:10.5px;color:var(--ink);font-weight:800}
+.sc span{font-size:9.5px;color:var(--dim);line-height:1.35;display:block}
+
+/* ---- misc ---- */
+.kv{display:flex;gap:6px;align-items:baseline;font-size:11px;line-height:1.5;color:var(--muted);margin-bottom:3px}
+.kv i{font-style:normal;color:var(--a1);font-family:var(--mono);font-size:9.5px;flex:none;
+  border:1px solid #1d4d6b;background:#07202f;border-radius:4px;padding:0 5px}
+.split{display:grid;grid-template-columns:1fr 1fr;gap:7px}
+.mini{background:#0a1526;border:1px solid #1a2740;border-radius:7px;padding:6px 8px}
+.mini .mt{font-size:10.5px;font-weight:800;margin-bottom:2px}
+.mini .mb{font-size:10px;color:var(--dim);line-height:1.45}
+.mini .mb b{color:var(--ink)}
+.foot{display:flex;gap:8px;align-items:stretch}
+.chain{display:flex;align-items:center;gap:5px;flex-wrap:wrap;font-size:10px;font-family:var(--mono);color:var(--muted)}
+.chain b{color:var(--a2)}
+.chain i{font-style:normal;color:var(--line2)}
+svg text{font-family:"Yu Gothic UI",Meiryo,system-ui,sans-serif}
+.nb{fill:#152340;stroke:#33486a;stroke-width:1}
+.nb2{fill:#07202f;stroke:#1d4d6b;stroke-width:1}
+.nb3{fill:#241b05;stroke:#6b5320;stroke-width:1}
+.nbig{fill:#0d2c3f;stroke:#38bdf8;stroke-width:1.5}
+.st1{fill:#e9f0fa;font-size:10px;font-weight:700}
+.sm{fill:#8fa3c0;font-size:8.5px}
+.sc1{fill:#38bdf8;font-size:9.5px;font-weight:700;font-family:Consolas,monospace}
+.sy{fill:#fbbf24;font-size:9px;font-weight:700}
+.ln{stroke:#2b3f5c;stroke-width:1;fill:none}
+.ln2{stroke:#38bdf8;stroke-width:1.3;fill:none}
+
+/* ---- chrome ---- */
+#modebtn{position:fixed;right:12px;top:10px;z-index:30;background:#13203a;border:1px solid var(--line2);
+  color:var(--muted);border-radius:8px;padding:5px 11px;font-size:11px;cursor:pointer;font-weight:700;
+  font-family:inherit}
+#modebtn:hover{color:var(--ink);border-color:var(--a1)}
+
+@media print{
+  @page{size:1600px 1100px;margin:0}
+  *{-webkit-print-color-adjust:exact !important;print-color-adjust:exact !important}
+  html,body{background:#080e1a !important;overflow:visible}
+  #wrap{display:block}
+  #poster{transform:none !important;position:static !important;
+    background:radial-gradient(1300px 800px at 10% -10%, #14304d 0%, transparent 58%),
+      radial-gradient(1000px 700px at 102% 108%, #1b2340 0%, transparent 55%), #080e1a}
+  #modebtn{display:none !important}
+}
+</style>
+</head>
+<body class="fit">
+<div id="wrap"><div id="poster">
+
+  <!-- ===== HEADER ===== -->
+  <div class="head">
+    <div>
+      <div class="kick">ODM PIPELINE ANALYSIS — 汎用データマート候補抽出の考え方と分析手法</div>
+      <h1>2万件のパイプラインを <span>データ需要の行動ログ</span> として読み解く</h1>
+      <p>約20,000件のODMデータパイプライン（XML）を解析し、繰り返し発生してきたデータ需要と加工パターンを構造として復元する。目的は「2万本を移植すること」ではなく、<b>複数部門・複数用途から再利用できる共通データ資産の候補を、コードの利用実態から発見すること</b>。</p>
+    </div>
+    <div class="tags">
+      <span class="tag a1">Data Usage Graph</span>
+      <span class="tag a2">Connected Table Set</span>
+      <span class="tag a2">第N連結 / Retention</span>
+      <span class="tag a3">Pipeline Fingerprint</span>
+      <span class="tag a4">Generic Mart Candidate</span>
+      <span class="tag">Databricks / Unity Catalog / Delta</span>
+    </div>
+  </div>
+
+  <!-- ===== ROW A : As-Is / To-Be ===== -->
+  <div class="rowA">
+    <div class="p bd">
+      <div class="ph"><span class="pn r">AS-IS</span>
+        <span class="pt">同じ中間データが Pipeline ごとに作り直されている</span></div>
+      <svg viewBox="0 0 640 128" width="100%" style="flex:1">
+        <defs><marker id="am" markerWidth="7" markerHeight="7" refX="6" refY="3.5" orient="auto">
+          <path d="M0,0 L7,3.5 L0,7 z" fill="#2b3f5c"></path></marker>
+          <marker id="ay" markerWidth="7" markerHeight="7" refX="6" refY="3.5" orient="auto">
+          <path d="M0,0 L7,3.5 L0,7 z" fill="#6b5320"></path></marker></defs>
+        <rect x="4" y="8" width="112" height="24" rx="6" class="nb2"></rect><text x="16" y="24" class="sc1">CUSTOMER</text>
+        <rect x="4" y="50" width="112" height="24" rx="6" class="nb2"></rect><text x="16" y="66" class="sc1">ACCOUNT</text>
+        <rect x="4" y="92" width="112" height="24" rx="6" class="nb2"></rect><text x="16" y="108" class="sc1">TRANSACTION</text>
+        <path class="ln" marker-end="url(#am)" d="M116,20 L232,19"></path>
+        <path class="ln" marker-end="url(#am)" d="M116,20 L232,61"></path>
+        <path class="ln" marker-end="url(#am)" d="M116,20 L232,103"></path>
+        <path class="ln" marker-end="url(#am)" d="M116,62 L232,22"></path>
+        <path class="ln" marker-end="url(#am)" d="M116,62 L232,64"></path>
+        <path class="ln" marker-end="url(#am)" d="M116,62 L232,106"></path>
+        <path class="ln" marker-end="url(#am)" d="M116,104 L232,25"></path>
+        <path class="ln" marker-end="url(#am)" d="M116,104 L232,67"></path>
+        <path class="ln" marker-end="url(#am)" d="M116,104 L232,109"></path>
+        <rect x="236" y="6" width="196" height="30" rx="7" class="nb"></rect>
+        <text x="248" y="19" class="st1">Pipeline A</text><text x="248" y="31" class="sm">同じJOINを個別に実行 → 個別加工</text>
+        <rect x="236" y="48" width="196" height="30" rx="7" class="nb"></rect>
+        <text x="248" y="61" class="st1">Pipeline B</text><text x="248" y="73" class="sm">同じJOINを個別に実行 → 個別加工</text>
+        <rect x="236" y="90" width="196" height="30" rx="7" class="nb"></rect>
+        <text x="248" y="103" class="st1">Pipeline C</text><text x="248" y="115" class="sm">同じJOIN + PRODUCT → 個別加工</text>
+        <path class="ln" marker-end="url(#ay)" d="M432,21 L500,21"></path>
+        <path class="ln" marker-end="url(#ay)" d="M432,63 L500,63"></path>
+        <path class="ln" marker-end="url(#ay)" d="M432,105 L500,105"></path>
+        <rect x="506" y="9" width="128" height="24" rx="6" class="nb3"></rect><text x="518" y="25" class="sy">営業用 OUTPUT</text>
+        <rect x="506" y="51" width="128" height="24" rx="6" class="nb3"></rect><text x="518" y="67" class="sy">リスク用 OUTPUT</text>
+        <rect x="506" y="93" width="128" height="24" rx="6" class="nb3"></rect><text x="518" y="109" class="sy">マーケ用 OUTPUT</text>
+      </svg>
+      <div class="tx" style="margin-top:4px">同じ結合結果が Pipeline ごとに別々に生成される。<b>加工の重複・定義のばらつき・計算コストの重複</b>が同時に発生する。</div>
+    </div>
+
+    <div class="p a3">
+      <div class="ph"><span class="pn g">TO-BE</span>
+        <span class="pt">共通中間層を一度だけ作り、後続から再利用する</span>
+        <span class="px">＝ 汎用データマート候補</span></div>
+      <svg viewBox="0 0 780 128" width="100%" style="flex:1">
+        <rect x="4" y="10" width="104" height="22" rx="6" class="nb2"></rect><text x="15" y="25" class="sc1">CUSTOMER</text>
+        <rect x="4" y="44" width="104" height="22" rx="6" class="nb2"></rect><text x="15" y="59" class="sc1">ACCOUNT</text>
+        <rect x="4" y="78" width="104" height="22" rx="6" class="nb2"></rect><text x="15" y="93" class="sc1">TRANSACTION</text>
+        <rect x="4" y="105" width="104" height="22" rx="6" class="nb2"></rect><text x="15" y="120" class="sc1">PRODUCT</text>
+        <path class="ln2" marker-end="url(#am)" d="M108,21 C150,21 150,53 186,55"></path>
+        <path class="ln2" marker-end="url(#am)" d="M108,55 L186,56"></path>
+        <path class="ln2" marker-end="url(#am)" d="M108,89 C150,89 150,59 186,57"></path>
+        <rect x="190" y="20" width="196" height="72" rx="10" class="nbig"></rect>
+        <text x="204" y="37" class="st1" style="fill:#38bdf8;font-size:10.5px">共通中間層（1度だけ生成）</text>
+        <text x="204" y="55" class="sc1">CUSTOMER + ACCOUNT</text>
+        <text x="204" y="70" class="sc1">+ TRANSACTION</text>
+        <text x="204" y="85" class="sm">JOINキー・粒度・定義を標準化</text>
+        <path class="ln2" marker-end="url(#am)" d="M386,56 C430,56 430,20 466,20"></path>
+        <path class="ln2" marker-end="url(#am)" d="M386,56 L466,60"></path>
+        <path class="ln2" marker-end="url(#am)" d="M386,56 C430,56 430,100 466,100"></path>
+        <path class="ln" marker-end="url(#am)" d="M108,116 C300,116 380,110 466,105" stroke-dasharray="4 3"></path>
+        <rect x="470" y="8" width="150" height="26" rx="7" class="nb"></rect>
+        <text x="482" y="20" class="st1">Pipeline A</text><text x="482" y="30" class="sm">営業向け個別加工</text>
+        <rect x="470" y="48" width="150" height="26" rx="7" class="nb"></rect>
+        <text x="482" y="60" class="st1">Pipeline B</text><text x="482" y="70" class="sm">リスク向け個別加工</text>
+        <rect x="470" y="88" width="150" height="26" rx="7" class="nb"></rect>
+        <text x="482" y="100" class="st1">Pipeline C</text><text x="482" y="110" class="sm">+ PRODUCT で個別加工</text>
+        <path class="ln" marker-end="url(#ay)" d="M620,21 L664,21"></path>
+        <path class="ln" marker-end="url(#ay)" d="M620,61 L664,61"></path>
+        <path class="ln" marker-end="url(#ay)" d="M620,101 L664,101"></path>
+        <rect x="670" y="9" width="106" height="24" rx="6" class="nb3"></rect><text x="686" y="25" class="sy">OUTPUT A</text>
+        <rect x="670" y="49" width="106" height="24" rx="6" class="nb3"></rect><text x="686" y="65" class="sy">OUTPUT B</text>
+        <rect x="670" y="89" width="106" height="24" rx="6" class="nb3"></rect><text x="686" y="105" class="sy">OUTPUT C</text>
+      </svg>
+      <div class="tx" style="margin-top:4px">最大の問いは <b class="hl">「どこまでを共通中間層として作り、どこから先を個別Pipelineに任せるか」</b>。この境界をコードの利用実態から定量的に導く。</div>
+    </div>
+  </div>
+
+  <!-- ===== ROW B : analysis flow ===== -->
+  <div class="p a1">
+    <div class="ph"><span class="pn">FLOW</span><span class="pt">分析の流れ — 決定論的に絞り込み、最後だけ意味を足す</span>
+      <span class="px">STAGE 1–5 は Spark / Databricks SQL のみ。LLM は STAGE 6 の意味付けに限定</span></div>
+    <div class="band">
+      <div class="st"><div class="sn">STAGE 1</div><div class="stt">Raw取込</div>
+        <div class="sl">odm_xml_raw / xml_field_mapping</div></div>
+      <div class="st"><div class="sn">STAGE 2</div><div class="stt">構造化</div>
+        <div class="sl">pipeline_master / input / output / transform</div></div>
+      <div class="st"><div class="sn">STAGE 3</div><div class="stt">グラフ化</div>
+        <div class="sl">graph_node / graph_edge / table_usage_metrics</div></div>
+      <div class="st"><div class="sn">STAGE 4</div><div class="stt">連結分析（今回の中心）</div>
+        <div class="sl"><b>join_edge → connected_table_set → stats → parent_child → candidate</b></div></div>
+      <div class="st"><div class="sn">STAGE 5</div><div class="stt">ロジック比較</div>
+        <div class="sl">pipeline_fingerprint / pipeline_cluster</div></div>
+      <div class="st"><div class="sn">STAGE 6</div><div class="stt">候補化・意味付け</div>
+        <div class="sl">pipeline_semantic / generic_mart_candidate</div></div>
+    </div>
+  </div>
+
+  <!-- ===== ROW C ===== -->
+  <div class="rowC">
+    <div class="p a2">
+      <div class="ph"><span class="pn y">01</span><span class="pt">第N連結 — 何をセットで見るか</span></div>
+      <div class="tx" style="margin-bottom:5px">第N連結 ＝ <b>N本のJOIN Edgeで連結される N+1 種類のテーブル集合</b>。単なるPATHではなく、同一Pipeline内でJOINにより接続された <b class="hl">Connected Table Set</b> を対象とする。</div>
+      <svg viewBox="0 0 500 96" width="100%">
+        <rect x="4" y="6" width="54" height="22" rx="6" class="nb2"></rect><text x="27" y="21" class="sc1">A</text>
+        <rect x="94" y="6" width="54" height="22" rx="6" class="nb2"></rect><text x="117" y="21" class="sc1">B</text>
+        <rect x="184" y="6" width="54" height="22" rx="6" class="nb2"></rect><text x="207" y="21" class="sc1">C</text>
+        <rect x="274" y="6" width="54" height="22" rx="6" class="nb2"></rect><text x="297" y="21" class="sc1">D</text>
+        <path class="ln2" d="M58,17 L94,17"></path><path class="ln2" d="M148,17 L184,17"></path><path class="ln2" d="M238,17 L274,17"></path>
+        <path class="ln" d="M4,38 L4,43 M4,43 L148,43 M148,43 L148,38" stroke="#38bdf8"></path>
+        <text x="156" y="47" class="sc1" style="font-size:9px">第1連結 ＝ A + B</text>
+        <path class="ln" d="M4,62 L4,67 M4,67 L238,67 M238,67 L238,62" stroke="#38bdf8"></path>
+        <text x="246" y="71" class="sc1" style="font-size:9px">第2連結 ＝ A + B + C</text>
+        <path class="ln" d="M4,86 L4,91 M4,91 L328,91 M328,91 L328,86" stroke="#38bdf8"></path>
+        <text x="336" y="95" class="sc1" style="font-size:9px">第3連結 ＝ A + B + C + D</text>
+      </svg>
+      <div class="mini" style="margin-top:6px">
+        <div class="mt" style="color:var(--a2)">正規化ルール（必須）</div>
+        <div class="mb"><code>array_sort(table_set)</code> → <code>concat_ws('||', ...)</code> で <code>table_set_key</code> を生成。
+          <code>CUSTOMER||ACCOUNT||TRANSACTION</code> と <code>TRANSACTION||CUSTOMER||ACCOUNT</code> は<b>必ず同一候補</b>として扱う。</div>
+      </div>
+    </div>
+
+    <div class="p a2">
+      <div class="ph"><span class="pn y">02</span><span class="pt">維持率で汎用化境界を見つける</span>
+        <span class="px">※考え方を示す例</span></div>
+      <div style="margin:1px 0 5px">
+        <div class="brow"><div class="blab">第1連結<br>CUSTOMER + ACCOUNT</div>
+          <div class="btrack"><div class="bfill" style="width:100%">1,200 Pipeline</div></div><div class="bmeta">15部門</div></div>
+        <div class="rrow"><div></div><div><span class="ret">▼ 71%</span></div><div></div></div>
+        <div class="brow"><div class="blab">第2連結 + TRANSACTION</div>
+          <div class="btrack"><div class="bfill" style="width:71%">850</div></div><div class="bmeta">13部門</div></div>
+        <div class="rrow"><div></div><div><span class="ret">▼ 85%</span></div><div></div></div>
+        <div class="brow"><div class="blab">第3連結 + PRODUCT</div>
+          <div class="btrack"><div class="bfill" style="width:60%">720</div></div><div class="bmeta">11部門</div></div>
+        <div class="rrow"><div></div><div><span class="ret drop">▼ 17% ← 急落</span></div><div></div></div>
+        <div class="brow"><div class="blab">第4連結 + CAMPAIGN</div>
+          <div class="btrack"><div class="bfill warn" style="width:10%">120</div></div><div class="bmeta">3部門</div></div>
+      </div>
+      <div class="split">
+        <div class="mini"><div class="mt" style="color:var(--a3)">読み取り</div>
+          <div class="mb">第3連結までは多数で共通。第4連結で<b>急激に個別化</b>している。</div></div>
+        <div class="mini"><div class="mt" style="color:var(--a2)">境界候補</div>
+          <div class="mb"><code>CUSTOMER + ACCOUNT + TRANSACTION + PRODUCT</code> までを共通中間層として切り出す。</div></div>
+      </div>
+      <div class="tx" style="margin-top:5px;font-size:10.5px">
+        <code>retention_rate = child / parent</code>　<code>parent_support_retention = child / MAX(parent)</code>　<code>max_child_retention</code> が低いほど境界の可能性が高い
+      </div>
+    </div>
+
+    <div class="p a1">
+      <div class="ph"><span class="pn">03</span><span class="pt">汎用化候補を判断するシグナル</span></div>
+      <div class="sig">
+        <div class="sc"><b>Pipeline数</b><span>何本で同じテーブル群が使われるか</span></div>
+        <div class="sc"><b>部門数</b><span>何部門にまたがるか（件数と独立）</span></div>
+        <div class="sc"><b>継続性</b><span>何年間使われ続けているか</span></div>
+        <div class="sc"><b>Output種類数</b><span>何種類のOutputに再利用されるか</span></div>
+        <div class="sc"><b>Parent Support Retention</b><span>前の連結からどれだけ残るか</span></div>
+        <div class="sc"><b>Child Retention</b><span>足したとき残るか（急落＝境界）</span></div>
+        <div class="sc"><b>加工ロジックの類似性</b><span>Fingerprintが同一・類似か</span></div>
+        <div class="sc"><b>下流利用</b><span>生成結果がさらに参照されるか</span></div>
+      </div>
+      <div class="mini" style="margin-top:6px">
+        <div class="mt" style="color:var(--a1)">暫定の候補判定（すべてパラメータ化）</div>
+        <div class="mb"><code>pipeline_count &gt;= 5</code> AND <code>department_count &gt;= 2</code> AND <code>max_child_retention &lt; 0.5</code>。
+          閾値は業務的な正解ではない。判定から漏れたデータも<b>削除せず保持</b>する。</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== ROW D ===== -->
+  <div class="rowD">
+    <div class="p a3">
+      <div class="ph"><span class="pn g">04</span><span class="pt">2つの軸を混同しない</span></div>
+      <div class="split" style="margin-bottom:5px">
+        <div class="mini" style="border-color:#6b5320">
+          <div class="mt" style="color:var(--a2)">Connected Table Set</div>
+          <div class="mb">どのテーブル群が<b>セットで使われるか</b> ＝ データ構造の共通性<br><span style="color:#fbbf24">今回の最優先</span></div>
+        </div>
+        <div class="mini" style="border-color:#1f5f4a">
+          <div class="mt" style="color:var(--a3)">Pipeline Fingerprint</div>
+          <div class="mb">そのテーブル群を<b>どう加工するか</b> ＝ 加工ロジックの共通性<br><span style="color:#34d399">確度を後から補強</span></div>
+        </div>
+      </div>
+      <div class="tx">
+        <b>STEP 1</b> <code>CUSTOMER + ACCOUNT + TRANSACTION</code> が500 Pipelineでセット利用 → 共通中間層候補<br>
+        <b>STEP 2</b> <code>JOIN=customer_id / AGG=SUM(amount) / GROUP BY=customer_id, year_month</code> まで一致 → <b class="hl">より強い候補</b>
+      </div>
+      <div class="mini" style="margin-top:5px">
+        <div class="mb">Fingerprintは2種類。<b>Exact</b>＝literal含め完全一致。<b>Structural</b>＝literalを <code>&lt;LITERAL&gt;</code> 化し構造一致を見る（カラム名・JOINキー・集約・粒度は保持）。SHA-256でHash化。</div>
+      </div>
+    </div>
+
+    <div class="p a4">
+      <div class="ph"><span class="pn p">05</span><span class="pt">LLMは「構造分析の後の解釈」だけ</span></div>
+      <div class="chain" style="margin-bottom:5px">
+        <b style="color:var(--a1)">Fingerprint</b><i>→</i><b style="color:var(--a1)">pipeline_cluster</b><i>→</i>
+        <b style="color:var(--a4)">pipeline_semantic</b><i>→</i><b style="color:var(--a2)">候補スコアリング</b>
+      </div>
+      <div class="tx" style="margin-bottom:5px">
+        Hashが違っても業務的には同じものを作っている場合がある（例：<code>+TRUST</code> の有無だけ違う「顧客金融資産」）。そのため段階的に束ねてから意味を与える。
+      </div>
+      <div class="split">
+        <div class="mini" style="border-color:#6b2a4d"><div class="mt" style="color:var(--a4)">LLMへ送るもの</div>
+          <div class="mb">input/output tables、JOIN・集計・粒度の概要、pipeline_count、department_count、active_year_count、downstream数<b>のみ</b></div></div>
+        <div class="mini" style="border-color:#6b2233"><div class="mt" style="color:var(--bad)">送らないもの</div>
+          <div class="mb">Raw XML本文、業務データそのもの。20,000件全件も送らない（<code>MAX_LLM_CANDIDATES</code> で上限管理）</div></div>
+      </div>
+      <div class="tx" style="font-size:10.5px;margin-top:5px">根拠のない業務意味は <code>UNKNOWN</code>。<b>LLM confidence は定量スコアに混ぜず別管理</b>。endpoint未設定でも構造分析は完走させ、LLM PhaseのみSKIPPEDとして記録する。</div>
+    </div>
+
+    <div class="p bd">
+      <div class="ph"><span class="pn r">06</span><span class="pt">実装と非交渉のガードレール</span></div>
+      <div class="kv"><i>P0-3</i><span>環境確認 → XML 30件のサンプル観察でマッピング確定 → Raw取込 → 構造化 → テーブル名正規化</span></div>
+      <div class="kv"><i>P4-7</i><span>Data Usage Graph → Fan-in / Fan-out・部門横断・継続性 → Fingerprint → 候補Feature</span></div>
+      <div class="kv"><i>P8-11</i><span>（任意）LLM意味付け → スコアリング → 品質検証 → analysis_run_summary（PASS / WARN / FAIL）</span></div>
+      <div class="mini" style="margin-top:4px">
+        <div class="mt" style="color:var(--bad)">守るべき制約</div>
+        <div class="mb">
+          既存テーブルへの DROP / TRUNCATE / 破壊的OVERWRITE は<b>禁止</b>（書き込みは専用Schemaのみ）／
+          XMLにない業務定義を<b>推測で補完しない</b>（不明はNULL・UNKNOWN）／
+          20,000×20,000 の直積を<b>作らない</b>（連結生成はPipeline内で完結）／
+          <code>MAX_CONNECTION_DEPTH</code> を必ず設ける（初回は第4連結まで）／
+          Secretを平文で書かない／各フェーズで検証SQLを実行し行数・NULL率・重複・エラーを表示
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== FOOTER ===== -->
+  <div class="foot">
+    <div class="p bd" style="flex:1.2">
+      <div class="ph"><span class="pn r">注意</span>
+        <span class="pt" style="font-size:12.5px">コード上で頻出していることは、業務定義として正しいことを意味しない</span></div>
+      <div class="tx">Connected Table Setが頻出していても、JOINキー・JOIN Type・Filter条件・粒度・対象範囲が異なる可能性がある。
+        <b style="color:#fecdd3">コード解析結果は「共通データ需要を発見するための証拠」であり、そのまま正解データ定義としない。</b></div>
+    </div>
+    <div class="p a2" style="flex:1">
+      <div class="ph"><span class="pn y">進め方</span><span class="pt" style="font-size:12.5px">候補から正式な資産まで</span></div>
+      <div class="chain">
+        コード分析<i>→</i>Connected Table Setの発見<i>→</i>汎用化境界候補の抽出<i>→</i>Fingerprintによるロジック確認<i>→</i>
+        <b>業務定義の確認・統一</b><i>→</i><b>粒度・更新頻度・SLA・アクセス権の合意</b><i>→</i>正式な汎用データマート
+      </div>
+    </div>
+  </div>
+
+</div></div>
+
+<button id="modebtn">原寸で見る</button>
+
+<script>
+(function(){
+  var poster=document.getElementById('poster'), btn=document.getElementById('modebtn'), fit=true;
+  var W=1600;
+  function apply(){
+    if(fit){
+      poster.style.position='static'; poster.style.transform='none';
+      var H=poster.offsetHeight;
+      document.body.classList.add('fit');
+      var s=Math.min(window.innerWidth/W,(window.innerHeight-6)/H);
+      var x=Math.max(0,(window.innerWidth-W*s)/2), y=Math.max(0,(window.innerHeight-H*s)/2);
+      poster.style.position='absolute'; poster.style.left='0'; poster.style.top='0';
+      poster.style.transform='translate('+x+'px,'+y+'px) scale('+s+')';
+      btn.textContent='原寸で見る (F)';
+    }else{
+      document.body.classList.remove('fit');
+      poster.style.transform='none'; poster.style.position='static';
+      btn.textContent='画面に合わせる (F)';
+    }
+  }
+  btn.onclick=function(){fit=!fit;apply();};
+  window.addEventListener('resize',apply);
+  document.addEventListener('keydown',function(e){if(e.key==='f'||e.key==='F'){fit=!fit;apply();}});
+  apply();
+})();
+</script>
+</body>
+</html>
