@@ -1,0 +1,1094 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ODMパイプライン解析による汎用データマート候補抽出</title>
+<style>
+:root{
+  --bg:#080e1a; --bg2:#0d1626; --panel:#121e33; --panel2:#17263f;
+  --ink:#e9f0fa; --muted:#8fa3c0; --dim:#64789a;
+  --line:#26374f; --line2:#33486a;
+  --a1:#38bdf8; --a2:#fbbf24; --a3:#34d399; --a4:#f472b6; --bad:#fb7185;
+  --mono:"Cascadia Mono",Consolas,"SF Mono",Menlo,monospace;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%;overflow:hidden;color:var(--ink);
+  background:
+   radial-gradient(1200px 700px at 12% -12%, #14304d 0%, transparent 58%),
+   radial-gradient(900px 620px at 102% 112%, #1b2340 0%, transparent 55%),
+   var(--bg);
+  font-family:"Yu Gothic UI","Yu Gothic","Hiragino Kaku Gothic ProN",Meiryo,"Segoe UI",system-ui,sans-serif;
+  -webkit-font-smoothing:antialiased;}
+#viewport{position:fixed;inset:0;overflow:hidden}
+#stage{width:1280px;height:720px;position:absolute;top:0;left:0;transform-origin:0 0}
+.slide{position:absolute;inset:0;padding:44px 58px 60px;display:none;flex-direction:column}
+.slide.active{display:flex;animation:fadein .32s ease both}
+@keyframes fadein{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+
+.kicker{display:inline-flex;align-items:center;gap:9px;font-size:11.5px;letter-spacing:.16em;
+  color:var(--a1);font-weight:800}
+.kicker::before{content:"";width:22px;height:2px;background:var(--a1);border-radius:2px}
+h2{font-size:32px;line-height:1.26;font-weight:800;letter-spacing:.01em;margin:9px 0 6px}
+h2 em{font-style:normal;color:var(--a2)}
+.sub{color:var(--muted);font-size:14.5px;line-height:1.65;margin-bottom:16px;max-width:1060px}
+.body{flex:1;min-height:0;display:flex;flex-direction:column;justify-content:center}
+
+.card{background:linear-gradient(180deg,var(--panel) 0%,var(--bg2) 100%);
+  border:1px solid var(--line);border-radius:14px;padding:15px 17px;position:relative;overflow:hidden}
+.card::before{content:"";position:absolute;left:0;top:0;bottom:0;width:3px;background:transparent}
+.card.acc::before{background:var(--a1)}
+.card.acc2::before{background:var(--a2)}
+.card.acc3::before{background:var(--a3)}
+.card.acc4::before{background:var(--a4)}
+.card.bad::before{background:var(--bad)}
+.ct{font-size:14.5px;font-weight:800;margin-bottom:7px;letter-spacing:.02em;display:flex;align-items:center;gap:8px}
+.ct .no{font-family:var(--mono);font-size:12px;color:var(--a1);border:1px solid #1d4d6b;background:#07202f;
+  border-radius:5px;padding:1px 6px;flex:none}
+.cb{font-size:13.5px;line-height:1.72;color:var(--muted)}
+.cb b{color:var(--ink);font-weight:700}
+.cb .hl{color:var(--a2);font-weight:700}
+.cb code{color:var(--a1);font-family:var(--mono);font-size:12.5px}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:13px}
+.grid4{display:grid;grid-template-columns:repeat(4,1fr);gap:11px}
+.stack{display:flex;flex-direction:column;gap:13px}
+ul.bul{list-style:none;font-size:14px;line-height:1.85;color:var(--muted)}
+ul.bul li{padding-left:17px;position:relative}
+ul.bul li::before{content:"";position:absolute;left:2px;top:11px;width:6px;height:6px;border-radius:50%;background:var(--a1)}
+ul.bul li b{color:var(--ink)}
+.tag{display:inline-block;font-size:11px;font-weight:800;letter-spacing:.05em;padding:3px 9px;
+  border-radius:999px;border:1px solid var(--line2);color:var(--muted);background:#0e1a2c}
+.tag.a1{color:var(--a1);border-color:#1d4d6b;background:#07202f}
+.tag.a2{color:var(--a2);border-color:#6b5320;background:#291f06}
+.tag.a3{color:var(--a3);border-color:#1f5f4a;background:#062018}
+.tag.a4{color:var(--a4);border-color:#6b2a4d;background:#2a0a1c}
+.tag.bd{color:var(--bad);border-color:#6b2233;background:#2a0810}
+.quote{border-left:3px solid var(--a2);background:#1c1806;padding:14px 18px;border-radius:0 10px 10px 0;
+  font-size:15.5px;line-height:1.78;font-weight:600;color:#fdf3dc}
+table.t{width:100%;border-collapse:collapse;font-size:12.5px}
+table.t th{text-align:left;color:var(--a1);font-weight:800;padding:7px 9px;border-bottom:1px solid var(--line2);
+  font-size:11.5px;letter-spacing:.06em}
+table.t td{padding:6px 9px;border-bottom:1px solid #1a2740;color:var(--muted);vertical-align:top;line-height:1.5}
+table.t td:first-child{color:var(--ink);font-family:var(--mono);font-size:12px;white-space:nowrap}
+table.t tr:last-child td{border-bottom:none}
+
+.band{display:flex;align-items:stretch}
+.band .st{flex:1;background:linear-gradient(180deg,var(--panel),var(--bg2));border:1px solid var(--line);
+  border-radius:12px;padding:11px 12px;margin-right:22px;position:relative}
+.band .st:last-child{margin-right:0}
+.band .st:not(:last-child)::after{content:"";position:absolute;right:-16px;top:50%;width:11px;height:11px;
+  border-top:2px solid var(--line2);border-right:2px solid var(--line2);transform:translateY(-50%) rotate(45deg)}
+.band .stn{font-size:10.5px;font-weight:800;letter-spacing:.12em;color:var(--a1);margin-bottom:5px}
+.band .stt{font-size:13px;font-weight:800;margin-bottom:6px;line-height:1.35}
+.band .sl{font-family:var(--mono);font-size:10.5px;color:var(--dim);line-height:1.7}
+.band .sl b{color:var(--a3);font-weight:600}
+
+.barrow{display:grid;grid-template-columns:210px 1fr 74px;align-items:center;gap:12px}
+.barlab{font-size:11.5px;font-weight:700;color:var(--muted);text-align:right;font-family:var(--mono);line-height:1.35}
+.bartrack{height:32px;background:#0d1727;border:1px solid var(--line);border-radius:7px;overflow:hidden}
+.barfill{height:100%;background:linear-gradient(90deg,#1a5c85,#38bdf8);display:flex;align-items:center;
+  padding-left:12px;font-size:12.5px;font-weight:800;color:#04212f;font-family:var(--mono);white-space:nowrap}
+.barfill.warn{background:linear-gradient(90deg,#7c3348,#fb7185);color:#2a0810}
+.barmeta{font-size:11.5px;color:var(--dim);font-family:var(--mono)}
+.retrow{display:grid;grid-template-columns:210px 1fr 74px;gap:12px;margin:5px 0}
+.ret{font-size:11.5px;font-weight:800;padding:2px 9px;border-radius:6px;background:#062018;color:var(--a3);
+  border:1px solid #1f5f4a;font-family:var(--mono);justify-self:start;margin-left:12px}
+.ret.drop{background:#2a0810;color:var(--bad);border-color:#6b2233}
+
+.title-slide{justify-content:center;padding-left:76px}
+.title-slide h1{font-size:50px;line-height:1.24;font-weight:900;letter-spacing:.01em;margin:14px 0 18px}
+.title-slide h1 span{background:linear-gradient(90deg,var(--a1),var(--a3));-webkit-background-clip:text;
+  background-clip:text;color:transparent}
+.title-slide .lead{font-size:16px;color:var(--muted);line-height:1.85;max-width:830px}
+.metastrip{display:flex;gap:9px;margin-top:26px;flex-wrap:wrap}
+
+svg text{font-family:"Yu Gothic UI",Meiryo,system-ui,sans-serif}
+.nb{fill:#152340;stroke:#33486a;stroke-width:1}
+.nb2{fill:#07202f;stroke:#1d4d6b;stroke-width:1}
+.nb3{fill:#241b05;stroke:#6b5320;stroke-width:1}
+.nbig{fill:#0d2c3f;stroke:#38bdf8;stroke-width:1.5}
+.tx{fill:#e9f0fa;font-size:12.5px;font-weight:700}
+.txm{fill:#8fa3c0;font-size:11px}
+.txc{fill:#38bdf8;font-size:12px;font-weight:700;font-family:Consolas,monospace}
+.txy{fill:#fbbf24;font-size:12px;font-weight:700}
+.ln{stroke:#2b3f5c;stroke-width:1.2;fill:none}
+.ln2{stroke:#38bdf8;stroke-width:1.6;fill:none}
+
+#bar{position:fixed;left:0;right:0;bottom:0;height:3px;background:#101a2c;z-index:20}
+#barin{height:100%;width:0;background:linear-gradient(90deg,var(--a1),var(--a3));transition:width .3s ease}
+#num{position:fixed;right:18px;bottom:13px;font-size:11.5px;color:var(--dim);z-index:20;
+  font-family:var(--mono);letter-spacing:.06em}
+#brand{position:fixed;left:18px;bottom:12px;font-size:11px;color:var(--dim);z-index:20;letter-spacing:.09em}
+#hint{position:fixed;left:50%;transform:translateX(-50%);bottom:12px;font-size:11px;color:#3f5470;z-index:20}
+#tocbtn{position:fixed;right:16px;top:14px;z-index:30;background:#13203a;border:1px solid var(--line2);
+  color:var(--muted);border-radius:8px;padding:6px 12px;font-size:11.5px;cursor:pointer;font-weight:700}
+#tocbtn:hover{color:var(--ink);border-color:var(--a1)}
+#toc{position:fixed;inset:0;background:rgba(6,11,20,.97);z-index:40;display:none;padding:40px 52px;overflow:auto}
+#toc.open{display:block}
+#toc h3{font-size:19px;margin-bottom:6px;font-weight:800}
+#toc p{font-size:12px;color:var(--dim);margin-bottom:18px}
+.tocgrid{display:grid;grid-template-columns:repeat(4,1fr);gap:6px 20px}
+.tocch{grid-column:1/-1;font-size:11px;letter-spacing:.16em;color:var(--a2);font-weight:800;margin-top:13px;
+  padding-bottom:4px;border-bottom:1px solid #22314a}
+.tocit{font-size:12.5px;color:var(--muted);cursor:pointer;padding:5px 8px;border-radius:6px;border:1px solid transparent;
+  display:flex;gap:8px;line-height:1.4}
+.tocit:hover{background:#13203a;color:var(--ink);border-color:var(--line2)}
+.tocit.cur{color:var(--a1)}
+.tocit i{font-style:normal;color:var(--dim);font-family:var(--mono);flex:none}
+</style>
+</head>
+<body>
+<div id="viewport"><div id="stage">
+
+<!-- ============ 1 ============ -->
+<section class="slide title-slide" data-title="タイトル" data-chap="EXECUTIVE SUMMARY">
+  <div class="kicker">ODM Pipeline Analysis / Databricks</div>
+  <h1>2万件のパイプラインを<br><span>データ需要の行動ログ</span>として読み解く</h1>
+  <p class="lead">
+    ODMに存在する約20,000件のデータパイプライン（XML）を解析し、銀行内で繰り返し発生してきたデータ需要と加工パターンを構造として復元する。<br>
+    目的は「2万本を移植すること」ではなく、<b style="color:#e9f0fa">複数部門・複数用途から再利用できる共通データ資産の候補を、コードの利用実態から発見すること</b>である。
+  </p>
+  <div class="metastrip">
+    <span class="tag a1">Data Usage Graph</span>
+    <span class="tag a2">Connected Table Set / 第N連結</span>
+    <span class="tag a3">Pipeline Fingerprint</span>
+    <span class="tag a4">Generic Mart Candidate</span>
+    <span class="tag">Databricks / Unity Catalog / Delta</span>
+  </div>
+</section>
+
+<!-- ============ 2 ============ -->
+<section class="slide" data-title="なぜ2万件を解析するのか" data-chap="1. 背景と定義">
+  <div class="kicker">Why</div>
+  <h2>2万件のパイプラインは、<em>移行対象ではなく需要の記録</em>である</h2>
+  <p class="sub">同じ資産を「何を移すか」で見るか「何が求められてきたか」で見るかで、得られる結論が変わる。</p>
+  <div class="body">
+    <div class="grid2" style="align-items:stretch">
+      <div class="card bad">
+        <div class="ct">従来の見方：移行対象の山</div>
+        <div class="cb">
+          パイプライン1本ずつを個別資産として数え、移植可否・工数・依存関係を積み上げる。<br><br>
+          結果として得られるのは<b>「2万本の作業リスト」</b>であり、重複した加工や重複した中間データはそのまま新環境へ持ち込まれる。
+        </div>
+        <div style="margin-top:12px"><span class="tag bd">重複が温存される</span></div>
+      </div>
+      <div class="card acc3">
+        <div class="ct">今回の見方：データ需要の行動ログ</div>
+        <div class="cb">
+          1本のパイプラインを<b>「誰が・どのデータを組み合わせ・どう加工し・何を作ろうとしたか」の記録</b>として読む。<br><br>
+          2万本を横断して集計すれば、<span class="hl">繰り返し発生している共通のデータ需要</span>が統計的に浮かび上がる。
+        </div>
+        <div style="margin-top:12px"><span class="tag a3">共通資産として集約できる</span></div>
+      </div>
+    </div>
+    <div class="quote" style="margin-top:16px">
+      個別ユーザー・個別部門で重複して作られている中間データと加工ロジックを発見し、複数ユースケースから再利用可能な<b>汎用データマート候補</b>を抽出する。
+    </div>
+  </div>
+</section>
+
+<!-- ============ 3 ============ -->
+<section class="slide" data-title="汎用データマートの定義">
+  <div class="kicker">Definition</div>
+  <h2>「汎用データマート」をどう定義するか</h2>
+  <div class="body">
+    <div class="quote">
+      複数の既存データパイプラインで共通して利用・生成されているデータ、加工ロジック、業務定義を標準化し、<br>
+      特定の帳票・分析・ユーザーに依存せず、複数の分析・AI・業務ユースケースから再利用可能にしたデータセット。
+    </div>
+    <div class="grid3" style="margin-top:18px">
+      <div class="card acc">
+        <div class="ct">依存しない</div>
+        <div class="cb">特定の帳票、特定の分析、特定の作成者に紐づかない。用途が消えても価値が残る単位で切る。</div>
+      </div>
+      <div class="card acc2">
+        <div class="ct">再利用される</div>
+        <div class="cb">複数部門・複数Output・複数年にわたって参照される。単発需要と恒常需要を明確に分ける。</div>
+      </div>
+      <div class="card acc3">
+        <div class="ct">標準化されている</div>
+        <div class="cb">データ構造だけでなく、JOINキー・粒度・集計定義まで揃っていて初めて共通資産になる。</div>
+      </div>
+    </div>
+    <div class="card bad" style="margin-top:16px">
+      <div class="ct">重要：「よく使われる既存テーブル」をそのまま汎用化することではない</div>
+      <div class="cb">
+        今回重視するのは、<b>InputからOutputへ至る途中で、複数Pipelineが繰り返し同じテーブル群をJOIN・加工して作っている「共通中間層」</b>を見つけることである。
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ 4 ============ -->
+<section class="slide" data-title="従来の発想と今回の発想">
+  <div class="kicker">Shift</div>
+  <h2>単一テーブルの人気度から、<em>連結テーブル群の共通性</em>へ</h2>
+  <div class="body">
+    <div class="grid2">
+      <div class="card">
+        <div class="ct">従来の単純な考え方</div>
+        <div style="font-family:var(--mono);font-size:13px;line-height:2.1;color:var(--muted);margin-top:6px">
+          よく使われるテーブル<br>
+          <span style="color:#33486a">↓</span><br>
+          汎用化候補
+        </div>
+        <div class="cb" style="margin-top:12px;border-top:1px solid #1a2740;padding-top:11px">
+          <code>CUSTOMER が 1,500 Pipeline で使われる</code> という事実だけでは、<b>何を作るべきか</b>までは決まらない。CUSTOMERは既に存在しており、作り直す対象ではない。
+        </div>
+      </div>
+      <div class="card acc3">
+        <div class="ct">今回の考え方</div>
+        <div style="font-family:var(--mono);font-size:12.5px;line-height:1.95;color:var(--muted);margin-top:6px">
+          複数Pipelineで同じテーブル群が繰り返し連結される<br>
+          <span style="color:#33486a">↓</span> 第N連結ごとに共通性を見る<br>
+          <span style="color:#33486a">↓</span> どこまで共通利用が維持されるかを見る<br>
+          <span style="color:#33486a">↓</span> 次の連結で利用数が急落する境界を見る<br>
+          <span style="color:#33486a">↓</span> <b style="color:#34d399">共通中間層候補</b><br>
+          <span style="color:#33486a">↓</span> Fingerprintで加工ロジックも比較<br>
+          <span style="color:#33486a">↓</span> <b style="color:#fbbf24">汎用データマート候補</b>
+        </div>
+      </div>
+    </div>
+    <div class="card acc2" style="margin-top:15px">
+      <div class="cb">
+        探すのは点（単一テーブル）ではなく、<b>面（セットで連結されたテーブル群）</b>。<br>
+        「よく読まれるテーブル」ではなく、<span class="hl">「毎回同じように組み立て直されている中間結果」</span>こそが、一度作って共有すべき資産である。
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ 5 ============ -->
+<section class="slide" data-title="現状：中間データの再生産" data-chap="2. 汎用化の考え方">
+  <div class="kicker">As-Is</div>
+  <h2>現状：同じ中間データが Pipeline ごとに<em>作り直されている</em></h2>
+  <p class="sub">複数の部門が、それぞれのOutputのために、毎回ゼロから同じテーブル群をJOINしている。</p>
+  <div class="body">
+  <svg viewBox="0 0 1160 320" width="100%" style="max-height:330px">
+    <defs><marker id="ar" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto">
+      <path d="M0,0 L8,4 L0,8 z" fill="#2b3f5c"></path></marker>
+      <marker id="ar1" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto">
+      <path d="M0,0 L8,4 L0,8 z" fill="#2b3f5c"></path></marker>
+      <marker id="ar2" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto">
+      <path d="M0,0 L8,4 L0,8 z" fill="#6b5320"></path></marker>
+    </defs>
+    <text x="8" y="16" class="txm">共通Input群</text>
+    <rect x="8" y="28" width="168" height="38" rx="8" class="nb2"></rect><text x="24" y="52" class="txc">CUSTOMER</text>
+    <rect x="8" y="92" width="168" height="38" rx="8" class="nb2"></rect><text x="24" y="116" class="txc">ACCOUNT</text>
+    <rect x="8" y="156" width="168" height="38" rx="8" class="nb2"></rect><text x="24" y="180" class="txc">TRANSACTION</text>
+    <rect x="8" y="220" width="168" height="38" rx="8" class="nb2"></rect><text x="24" y="244" class="txc">PRODUCT</text>
+
+    <path class="ln" marker-end="url(#ar1)" d="M176,47 L414,54"></path>
+    <path class="ln" marker-end="url(#ar1)" d="M176,47 L414,155"></path>
+    <path class="ln" marker-end="url(#ar1)" d="M176,47 L414,256"></path>
+    <path class="ln" marker-end="url(#ar1)" d="M176,111 L414,58"></path>
+    <path class="ln" marker-end="url(#ar1)" d="M176,111 L414,159"></path>
+    <path class="ln" marker-end="url(#ar1)" d="M176,111 L414,260"></path>
+    <path class="ln" marker-end="url(#ar1)" d="M176,175 L414,62"></path>
+    <path class="ln" marker-end="url(#ar1)" d="M176,175 L414,163"></path>
+    <path class="ln" marker-end="url(#ar1)" d="M176,175 L414,264"></path>
+    <path class="ln" marker-end="url(#ar1)" d="M176,239 L414,268"></path>
+
+    <rect x="418" y="24" width="330" height="72" rx="10" class="nb"></rect>
+    <text x="436" y="48" class="tx">Pipeline A</text>
+    <text x="436" y="68" class="txm" style="font-family:Consolas,monospace">CUSTOMER + ACCOUNT + TRANSACTION</text>
+    <text x="436" y="85" class="txm">→ 個別JOIN・個別加工</text>
+
+    <rect x="418" y="125" width="330" height="72" rx="10" class="nb"></rect>
+    <text x="436" y="149" class="tx">Pipeline B</text>
+    <text x="436" y="169" class="txm" style="font-family:Consolas,monospace">CUSTOMER + ACCOUNT + TRANSACTION</text>
+    <text x="436" y="186" class="txm">→ 個別JOIN・個別加工</text>
+
+    <rect x="418" y="226" width="330" height="72" rx="10" class="nb"></rect>
+    <text x="436" y="250" class="tx">Pipeline C</text>
+    <text x="436" y="270" class="txm" style="font-family:Consolas,monospace">CUSTOMER + ACCOUNT + TRANSACTION + PRODUCT</text>
+    <text x="436" y="287" class="txm">→ 個別JOIN・個別加工</text>
+
+    <path class="ln" marker-end="url(#ar2)" d="M748,60 L888,60"></path>
+    <path class="ln" marker-end="url(#ar2)" d="M748,161 L888,161"></path>
+    <path class="ln" marker-end="url(#ar2)" d="M748,262 L888,262"></path>
+
+    <rect x="896" y="41" width="200" height="38" rx="8" class="nb3"></rect><text x="914" y="65" class="txy">営業用 OUTPUT A</text>
+    <rect x="896" y="142" width="200" height="38" rx="8" class="nb3"></rect><text x="914" y="166" class="txy">リスク用 OUTPUT B</text>
+    <rect x="896" y="243" width="200" height="38" rx="8" class="nb3"></rect><text x="914" y="267" class="txy">マーケ用 OUTPUT C</text>
+  </svg>
+  <div class="card bad" style="margin-top:8px">
+    <div class="cb">同じ <code>CUSTOMER + ACCOUNT + TRANSACTION</code> の結合結果が、Pipelineごとに別々に生成・保持されている。<b>加工の重複、定義のばらつき、計算コストの重複</b>が同時に発生する。</div>
+  </div>
+  </div>
+</section>
+
+<!-- ============ 6 ============ -->
+<section class="slide" data-title="目指す姿：共通中間層">
+  <div class="kicker">To-Be</div>
+  <h2>目指す姿：<em>共通中間層を一度だけ作り</em>、後続から再利用する</h2>
+  <p class="sub">複数Pipelineに共通する連結部分を切り出す。その共通中間層そのものが汎用データマート候補になる。</p>
+  <div class="body">
+  <svg viewBox="0 0 1160 320" width="100%" style="max-height:330px">
+    <rect x="8" y="34" width="150" height="34" rx="8" class="nb2"></rect><text x="22" y="56" class="txc">CUSTOMER</text>
+    <rect x="8" y="90" width="150" height="34" rx="8" class="nb2"></rect><text x="22" y="112" class="txc">ACCOUNT</text>
+    <rect x="8" y="146" width="150" height="34" rx="8" class="nb2"></rect><text x="22" y="168" class="txc">TRANSACTION</text>
+    <rect x="8" y="234" width="150" height="34" rx="8" class="nb2"></rect><text x="22" y="256" class="txc">PRODUCT</text>
+
+    <path class="ln2" marker-end="url(#ar1)" d="M158,51 C240,51 240,105 296,107"></path>
+    <path class="ln2" marker-end="url(#ar1)" d="M158,107 L296,107"></path>
+    <path class="ln2" marker-end="url(#ar1)" d="M158,163 C240,163 240,110 296,108"></path>
+
+    <rect x="300" y="46" width="286" height="124" rx="12" class="nbig"></rect>
+    <text x="320" y="76" class="tx" style="font-size:14px;fill:#38bdf8">共通中間層（汎用データマート候補）</text>
+    <text x="320" y="104" class="txc" style="font-size:13px">CUSTOMER</text>
+    <text x="320" y="124" class="txc" style="font-size:13px">+ ACCOUNT</text>
+    <text x="320" y="144" class="txc" style="font-size:13px">+ TRANSACTION</text>
+    <text x="320" y="161" class="txm">JOINキー・粒度・定義を標準化して1度だけ生成</text>
+
+    <path class="ln2" marker-end="url(#ar1)" d="M586,108 C650,108 650,52 700,52"></path>
+    <path class="ln2" marker-end="url(#ar1)" d="M586,108 L700,153"></path>
+    <path class="ln2" marker-end="url(#ar1)" d="M586,108 C650,108 650,254 700,254"></path>
+    <path class="ln" marker-end="url(#ar1)" d="M158,251 L700,258" stroke-dasharray="5 4"></path>
+    <text x="330" y="285" class="txm">PRODUCT は Pipeline C 固有 → 個別加工側に残す</text>
+
+    <rect x="704" y="30" width="188" height="46" rx="9" class="nb"></rect>
+    <text x="722" y="52" class="tx">Pipeline A</text><text x="722" y="68" class="txm">営業向け個別加工</text>
+    <rect x="704" y="131" width="188" height="46" rx="9" class="nb"></rect>
+    <text x="722" y="153" class="tx">Pipeline B</text><text x="722" y="169" class="txm">リスク向け個別加工</text>
+    <rect x="704" y="232" width="188" height="46" rx="9" class="nb"></rect>
+    <text x="722" y="254" class="tx">Pipeline C</text><text x="722" y="270" class="txm">+ PRODUCT で個別加工</text>
+
+    <path class="ln" marker-end="url(#ar2)" d="M892,53 L946,53"></path>
+    <path class="ln" marker-end="url(#ar2)" d="M892,154 L946,154"></path>
+    <path class="ln" marker-end="url(#ar2)" d="M892,255 L946,255"></path>
+    <rect x="954" y="34" width="180" height="38" rx="8" class="nb3"></rect><text x="972" y="58" class="txy">OUTPUT A</text>
+    <rect x="954" y="135" width="180" height="38" rx="8" class="nb3"></rect><text x="972" y="159" class="txy">OUTPUT B</text>
+    <rect x="954" y="236" width="180" height="38" rx="8" class="nb3"></rect><text x="972" y="260" class="txy">OUTPUT C</text>
+  </svg>
+  <div class="card acc3" style="margin-top:8px">
+    <div class="cb">最大の問いは <b>「どこまでを共通中間層として作り、どこから先を個別Pipelineに任せるか」</b>。この境界を、コードの利用実態から定量的に導く。</div>
+  </div>
+  </div>
+</section>
+
+<!-- ============ 7 ============ -->
+<section class="slide" data-title="全体アプローチ（10ステップ）" data-chap="3. 分析アプローチ">
+  <div class="kicker">Approach</div>
+  <h2>全体アプローチ：構造化 → グラフ化 → 連結分析 → 意味付け</h2>
+  <p class="sub">最初から全件に詳細解析やLLM解析をかけない。安価で決定論的な処理で範囲を絞り、最後だけ解釈を足す。</p>
+  <div class="body">
+    <div class="grid4">
+      <div class="card acc"><div class="ct"><span class="no">01</span>構造化</div><div class="cb">ODM XML 約20,000件を Pipeline / Input / Output / Transform へ分解する</div></div>
+      <div class="card acc"><div class="ct"><span class="no">02</span>グラフ化</div><div class="cb"><code>Table → Pipeline → Table</code> の Data Usage Graph を Delta 上に構築</div></div>
+      <div class="card acc"><div class="ct"><span class="no">03</span>JOIN抽出</div><div class="cb">Pipeline内の直接JOIN関係を <code>pipeline_join_edge</code> として復元</div></div>
+      <div class="card acc2"><div class="ct"><span class="no">04</span>連結集合生成</div><div class="cb">第1〜第N連結の Connected Table Set を Pipeline 単位で生成</div></div>
+      <div class="card acc2"><div class="ct"><span class="no">05</span>横断集計</div><div class="cb">Pipeline数・部門数・Output種類数・継続年数を集合ごとに集計</div></div>
+      <div class="card acc2"><div class="ct"><span class="no">06</span>維持率分析</div><div class="cb">第N→第N+1で共通性がどれだけ残るかを計算し、汎用化境界を探す</div></div>
+      <div class="card acc3"><div class="ct"><span class="no">07</span>Fingerprint</div><div class="cb">JOIN / Filter / 集計 / 粒度を正規化してHash化し、加工ロジックを比較</div></div>
+      <div class="card acc3"><div class="ct"><span class="no">08</span>Cluster化</div><div class="cb">完全一致でない類似Pipelineを束ねる（近似類似は候補絞り込み後に限定）</div></div>
+      <div class="card acc4"><div class="ct"><span class="no">09</span>意味付け</div><div class="cb">必要な場合のみ LLM で業務概念・粒度・候補名を解釈（構造分析の後段のみ）</div></div>
+      <div class="card acc4"><div class="ct"><span class="no">10</span>候補評価</div><div class="cb">汎用データマート候補をスコアリングし、人がレビューできる形で提示</div></div>
+      <div class="card" style="border-style:dashed"><div class="ct" style="color:var(--muted)">検証段階の範囲</div><div class="cb">まずは<b>第1〜第4連結</b>まで。複雑な総合スコアとLLM意味付けは結果を見てから追加する。</div></div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ 8 ============ -->
+<section class="slide" data-title="データモデル全体像">
+  <div class="kicker">Data Model</div>
+  <h2>データモデル全体像：XML原本から候補一覧まで一気通貫</h2>
+  <p class="sub">すべて Unity Catalog 上の Delta テーブルとして持つ。Graph DB を先に導入せず、SQL で分析できる形を正とする。</p>
+  <div class="body">
+    <div class="band">
+      <div class="st"><div class="stn">STAGE 1</div><div class="stt">Raw取込</div>
+        <div class="sl">odm_xml_raw<br>xml_field_mapping<br>pipeline_parse_error</div></div>
+      <div class="st"><div class="stn">STAGE 2</div><div class="stt">構造化</div>
+        <div class="sl">pipeline_master<br>pipeline_input<br>pipeline_output<br>pipeline_transform<br>table_name_mapping</div></div>
+      <div class="st"><div class="stn">STAGE 3</div><div class="stt">グラフ化</div>
+        <div class="sl">graph_node<br>graph_edge<br>table_usage_metrics</div></div>
+      <div class="st"><div class="stn">STAGE 4</div><div class="stt">連結分析</div>
+        <div class="sl"><b>pipeline_join_edge</b><br><b>pipeline_connected_table_set</b><br><b>connected_table_set_stats</b><br><b>..._parent_child</b><br><b>..._candidate</b></div></div>
+      <div class="st"><div class="stn">STAGE 5</div><div class="stt">ロジック比較</div>
+        <div class="sl">pipeline_fingerprint<br>pipeline_cluster</div></div>
+      <div class="st"><div class="stn">STAGE 6</div><div class="stt">候補化</div>
+        <div class="sl">pipeline_semantic<br>generic_mart_candidate_feature<br>generic_mart_candidate<br>analysis_run_summary</div></div>
+    </div>
+    <div class="grid3" style="margin-top:18px">
+      <div class="card acc"><div class="ct">決定論的に処理する範囲</div><div class="cb">STAGE 1〜5。Spark / Databricks SQL のみ。再現性・コスト・監査性を確保する。</div></div>
+      <div class="card acc2"><div class="ct">今回の追加分</div><div class="cb">STAGE 4 の5テーブル。既存Notebook・既存テーブルは削除・再作成せず<b>後続セルとして追加</b>する。</div></div>
+      <div class="card acc4"><div class="ct">LLMを使う範囲</div><div class="cb">STAGE 6 の意味付けのみ。XML本文・業務データは送らず、承認済みメタデータに限定する。</div></div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ 9 ============ -->
+<section class="slide" data-title="主要テーブルと役割 ①">
+  <div class="kicker">Tables 1/2</div>
+  <h2>各テーブルの役割と汎用化への寄与 ①</h2>
+  <div class="body">
+    <table class="t">
+      <tr><th style="width:270px">テーブル・情報</th><th style="width:400px">保持する内容</th><th>汎用化への役割</th></tr>
+      <tr><td>odm_xml_raw</td><td>XML原本、file_hash、取込日時</td><td>再解析と証跡の起点。file_path + file_hash で冪等に取り込む</td></tr>
+      <tr><td>xml_field_mapping</td><td>XMLパス → 論理項目のマッピング定義</td><td>タグ構造を決め打ちせず、サンプル30件の観察結果を明文化する</td></tr>
+      <tr><td>pipeline_master</td><td>Pipeline、作成者、所属部門、作成日時</td><td>部門横断性と需要の継続性を評価する土台</td></tr>
+      <tr><td>pipeline_input</td><td>Pipelineが参照する Input Table</td><td>よく使われるInputを把握する</td></tr>
+      <tr><td>pipeline_output</td><td>Pipelineが生成する Output Table</td><td>繰り返し生成されているデータを把握する</td></tr>
+      <tr><td>pipeline_transform</td><td>JOIN / FILTER / AGGREGATION / GROUP_BY / CALCULATION</td><td>JOIN構造と加工内容を復元する。連結分析とFingerprintの原料</td></tr>
+      <tr><td>table_name_mapping</td><td>raw / normalized / canonical 名と根拠</td><td>表記ゆれの正規化と「意味的に別名の同一視」を明確に分離する</td></tr>
+      <tr><td>graph_node</td><td>Table / Pipeline の Node</td><td>データ利用構造の「点」</td></tr>
+      <tr><td>graph_edge</td><td>Table→Pipeline→Table の READS / WRITES</td><td>Fan-in、Fan-out、部門横断度、下流利用を分析する</td></tr>
+    </table>
+  </div>
+</section>
+
+<!-- ============ 10 ============ -->
+<section class="slide" data-title="主要テーブルと役割 ②">
+  <div class="kicker">Tables 2/2</div>
+  <h2>各テーブルの役割と汎用化への寄与 ②</h2>
+  <div class="body">
+    <table class="t">
+      <tr><th style="width:290px">テーブル・情報</th><th style="width:390px">保持する内容</th><th>汎用化への役割</th></tr>
+      <tr><td style="color:#fbbf24">pipeline_join_edge</td><td>Pipeline内の直接JOIN関係、table_pair_key</td><td>どの2テーブルが直接つながるかを把握する</td></tr>
+      <tr><td style="color:#fbbf24">pipeline_connected_table_set</td><td>Pipeline内の第N連結テーブル集合、table_set_key</td><td>よくセットでJOINされるテーブル群を抽出する</td></tr>
+      <tr><td style="color:#fbbf24">connected_table_set_stats</td><td>集合ごとのPipeline数、部門数、Output数、継続年数</td><td>テーブル群の共通性を評価する</td></tr>
+      <tr><td style="color:#fbbf24">connected_table_set_parent_child</td><td>第N→第N+1の親子関係、retention_rate</td><td>連結を増やしたときの共通性の減衰を評価する</td></tr>
+      <tr><td style="color:#fbbf24">connected_table_set_candidate</td><td>共通中間層候補と評価指標、candidate_reason</td><td>汎用化境界の候補を提示する</td></tr>
+      <tr><td>table_usage_metrics</td><td>Fan-in / Fan-out / 部門数 / 継続年数</td><td>テーブル単位の利用実態を定量化する</td></tr>
+      <tr><td>pipeline_fingerprint</td><td>exact / structural の logic hash と各signature</td><td>名前が違っても同じ加工をしているPipelineを発見する</td></tr>
+      <tr><td>pipeline_cluster</td><td>類似Pipeline群</td><td>完全一致ではない類似処理を束ねる</td></tr>
+      <tr><td>pipeline_semantic</td><td>業務概念・粒度・目的（LLM解釈）</td><td>技術的に似た処理へ業務的な意味を付与する</td></tr>
+      <tr><td>generic_mart_candidate</td><td>候補・スコア・推奨Tier・根拠</td><td>最終的な汎用データマート候補を整理する</td></tr>
+    </table>
+  </div>
+</section>
+
+<!-- ============ 11 ============ -->
+<section class="slide" data-title="Data Usage Graph">
+  <div class="kicker">Graph</div>
+  <h2>Data Usage Graph：<em>Table → Pipeline → Table</em> で利用実態を持つ</h2>
+  <p class="sub">「どのデータが、どこで、どれだけ利用・生成されているか」を見るための基本構造。Node/Edge を Delta テーブルとして保持する。</p>
+  <div class="body">
+    <svg viewBox="0 0 1160 200" width="100%" style="max-height:200px">
+      <rect x="10" y="14" width="180" height="36" rx="8" class="nb2"></rect><text x="28" y="37" class="txc">CUSTOMER</text>
+      <rect x="10" y="72" width="180" height="36" rx="8" class="nb2"></rect><text x="28" y="95" class="txc">DEPOSIT</text>
+      <rect x="10" y="130" width="180" height="36" rx="8" class="nb2"></rect><text x="28" y="153" class="txc">INVESTMENT</text>
+      <path class="ln2" marker-end="url(#ar1)" d="M190,32 C300,32 320,88 420,90"></path>
+      <path class="ln2" marker-end="url(#ar1)" d="M190,90 L420,90"></path>
+      <path class="ln2" marker-end="url(#ar1)" d="M190,148 C300,148 320,92 420,90"></path>
+      <text x="250" y="24" class="txm">READS</text>
+      <rect x="424" y="58" width="200" height="64" rx="10" class="nb"></rect>
+      <text x="446" y="86" class="tx">PIPELINE : P001</text>
+      <text x="446" y="106" class="txm">JOIN / AGG / GROUP BY</text>
+      <path class="ln2" marker-end="url(#ar1)" d="M624,90 L756,90"></path>
+      <text x="660" y="80" class="txm">WRITES</text>
+      <rect x="760" y="70" width="330" height="40" rx="8" class="nb3"></rect>
+      <text x="780" y="95" class="txy" style="font-family:Consolas,monospace">CUSTOMER_ASSET_MONTHLY</text>
+      <path class="ln" d="M925,110 L925,140" marker-end="url(#ar1)" stroke-dasharray="4 4"></path>
+      <text x="820" y="162" class="txm">→ さらに下流Pipelineから参照される（downstream利用）</text>
+    </svg>
+    <div class="grid4" style="margin-top:14px">
+      <div class="card acc"><div class="ct">Fan-out</div><div class="cb">READS側。そのテーブルを読む distinct Pipeline数・部門数。<b>需要の広がり</b>を示す。</div></div>
+      <div class="card acc"><div class="ct">Fan-in</div><div class="cb">WRITES側。同じ出力テーブルを作る Pipeline数。<b>重複生成</b>のシグナル。</div></div>
+      <div class="card acc2"><div class="ct">部門横断度</div><div class="cb">同一部門100本より、<b>複数部門30本</b>の方が汎用化価値が高い可能性がある。独立指標として保持。</div></div>
+      <div class="card acc3"><div class="ct">継続性</div><div class="cb">created_at から年を抽出し、単発の一時需要と<b>恒常需要</b>を分ける。</div></div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ 12 ============ -->
+<section class="slide" data-title="単一テーブルでは足りない理由" data-chap="4. Connected Table Set">
+  <div class="kicker">Core Idea</div>
+  <h2>単一テーブルの頻度だけでは、<em>何を作るべきか</em>が決まらない</h2>
+  <div class="body">
+    <div class="grid2">
+      <div class="card bad">
+        <div class="ct">分かること</div>
+        <div class="cb" style="margin-bottom:10px">Fan-out / Fan-in を見れば頻出テーブルは分かる。</div>
+        <div style="font-family:var(--mono);font-size:13px;color:var(--a1);background:#0a1526;border:1px solid #1a2740;border-radius:8px;padding:12px">
+          CUSTOMER が 1,500 Pipeline で使われる
+        </div>
+        <div class="cb" style="margin-top:10px">しかし CUSTOMER は既にある。これは<b>作るべき新しい資産の姿を教えてくれない</b>。</div>
+      </div>
+      <div class="card acc3">
+        <div class="ct">本当に知りたいこと</div>
+        <div class="cb" style="margin-bottom:10px">複数Pipelineで繰り返し<b>セット利用</b>されるテーブル群。</div>
+        <div style="font-family:var(--mono);font-size:12.5px;color:var(--a3);background:#08190f;border:1px solid #1f5f4a;border-radius:8px;padding:12px;line-height:1.9">
+          CUSTOMER + ACCOUNT<br>
+          CUSTOMER + ACCOUNT + TRANSACTION<br>
+          CUSTOMER + ACCOUNT + TRANSACTION + PRODUCT
+        </div>
+        <div class="cb" style="margin-top:10px">これを本資料では <b class="hl">Connected Table Set</b> と呼ぶ。</div>
+      </div>
+    </div>
+    <div class="card acc" style="margin-top:16px">
+      <div class="ct">なぜ「セット」が重要か</div>
+      <div class="cb">
+        個々のテーブルは既に存在しているため、汎用化の対象は<b>それらを結合した結果</b>である。<br>
+        繰り返し同じ組み合わせが結合されているということは、<span class="hl">その結合結果自体に恒常的な需要がある</span>ことの証拠になる。
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ 13 ============ -->
+<section class="slide" data-title="第N連結の定義">
+  <div class="kicker">Definition</div>
+  <h2>第N連結 ＝ <em>N本のJOIN Edgeで連結される N+1 種類のテーブル集合</em></h2>
+  <p class="sub">分析対象は単なるPATHではなく、同一Pipeline内でJOINにより接続された Connected Table Set である。</p>
+  <div class="body">
+    <div class="grid2" style="align-items:start">
+      <div class="card acc">
+        <div class="ct">① 一直線のJOIN</div>
+        <svg viewBox="0 0 620 176" width="100%" style="max-height:190px">
+          <rect x="6" y="18" width="62" height="30" rx="7" class="nb2"></rect><text x="31" y="38" class="txc">A</text>
+          <rect x="112" y="18" width="62" height="30" rx="7" class="nb2"></rect><text x="137" y="38" class="txc">B</text>
+          <rect x="218" y="18" width="62" height="30" rx="7" class="nb2"></rect><text x="243" y="38" class="txc">C</text>
+          <rect x="324" y="18" width="62" height="30" rx="7" class="nb2"></rect><text x="349" y="38" class="txc">D</text>
+          <path class="ln2" d="M68,33 L112,33"></path><text x="76" y="14" class="txm">JOIN</text>
+          <path class="ln2" d="M174,33 L218,33"></path><text x="182" y="14" class="txm">JOIN</text>
+          <path class="ln2" d="M280,33 L324,33"></path><text x="288" y="14" class="txm">JOIN</text>
+          <path class="ln" d="M6,64 L6,70 M6,70 L174,70 M174,70 L174,64" stroke="#38bdf8"></path>
+          <text x="186" y="75" class="txc" style="font-size:11.5px">第1連結 ＝ A + B</text>
+          <path class="ln" d="M6,102 L6,108 M6,108 L280,108 M280,108 L280,102" stroke="#38bdf8"></path>
+          <text x="292" y="113" class="txc" style="font-size:11.5px">第2連結 ＝ A + B + C</text>
+          <path class="ln" d="M6,140 L6,146 M6,146 L386,146 M386,146 L386,140" stroke="#38bdf8"></path>
+          <text x="398" y="151" class="txc" style="font-size:11.5px">第3連結 ＝ A + B + C + D</text>
+        </svg>
+      </div>
+      <div class="card acc2">
+        <div class="ct">② 一直線でない構造も対象</div>
+        <svg viewBox="0 0 520 200" width="100%" style="max-height:190px">
+          <rect x="222" y="80" width="76" height="34" rx="7" class="nb2"></rect><text x="252" y="102" class="txc">A</text>
+          <rect x="222" y="14" width="76" height="34" rx="7" class="nb2"></rect><text x="252" y="36" class="txc">B</text>
+          <rect x="60" y="80" width="76" height="34" rx="7" class="nb2"></rect><text x="90" y="102" class="txc">C</text>
+          <rect x="384" y="80" width="76" height="34" rx="7" class="nb2"></rect><text x="414" y="102" class="txc">D</text>
+          <path class="ln2" d="M260,80 L260,48"></path>
+          <path class="ln2" d="M136,97 L222,97"></path>
+          <path class="ln2" d="M298,97 L384,97"></path>
+          <text x="150" y="150" class="txy" style="font-size:13px">A + B + C は 2本のJOINで連結 → 第2連結</text>
+          <text x="150" y="174" class="txm">PATHではなく「連結された集合」として扱う</text>
+        </svg>
+      </div>
+    </div>
+    <div class="card acc3" style="margin-top:14px">
+      <div class="ct">正規化ルール（必須）</div>
+      <div class="cb">
+        テーブル集合の並び順で別候補にならないよう、<code>array_sort(table_set)</code> → <code>concat_ws('||', ...)</code> で <code>table_set_key</code> を生成する。<br>
+        <code>CUSTOMER||ACCOUNT||TRANSACTION</code> と <code>TRANSACTION||CUSTOMER||ACCOUNT</code> は<b>必ず同一候補</b>として扱う。JOIN Edge も <code>table_pair_key</code> をソートして生成する。
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ 14 ============ -->
+<section class="slide" data-title="Connected Table Setの生成手順">
+  <div class="kicker">How</div>
+  <h2>Connected Table Set の生成：Pipeline内で1本ずつEdgeを足す</h2>
+  <p class="sub">外部Graphライブラリは導入せず、Spark SQL / PySpark の反復処理で実装する。Pipeline間のCross Joinは行わない。</p>
+  <div class="body">
+    <div class="band" style="margin-bottom:16px">
+      <div class="st"><div class="stn">STEP 1</div><div class="stt">直接JOIN Edge</div>
+        <div class="sl">A-B<br>B-C<br>C-D</div>
+        <div class="cb" style="font-size:12px;margin-top:8px">depth=1 / table_count=2</div></div>
+      <div class="st"><div class="stn">STEP 2</div><div class="stt">第2連結</div>
+        <div class="sl">A-B-C<br>B-C-D</div>
+        <div class="cb" style="font-size:12px;margin-top:8px">depth=2 / table_count=3</div></div>
+      <div class="st"><div class="stn">STEP 3</div><div class="stt">第3連結</div>
+        <div class="sl">A-B-C-D</div>
+        <div class="cb" style="font-size:12px;margin-top:8px">depth=3 / table_count=4</div></div>
+      <div class="st"><div class="stn">STEP 4</div><div class="stt">Pipeline横断集計</div>
+        <div class="sl">table_set_key ごとに<br>pipeline_count<br>department_count<br>output_table_count</div></div>
+    </div>
+    <div class="grid2">
+      <div class="card acc">
+        <div class="ct">各反復でやること</div>
+        <ul class="bul" style="font-size:13.5px">
+          <li>同じ <code>pipeline_id</code> 内に限定する</li>
+          <li>現在の table set に接続する Edge を1本選ぶ</li>
+          <li>まだ含まれていないテーブルを1つ追加する</li>
+          <li><code>array_sort</code> で table set を正規化する</li>
+          <li>同一 <code>pipeline_id + table_set_key</code> を重複排除する</li>
+        </ul>
+      </div>
+      <div class="card acc2">
+        <div class="ct">パフォーマンス・ガードレール</div>
+        <ul class="bul" style="font-size:13.5px">
+          <li>20,000 × 20,000 の Cross Join は<b>禁止</b></li>
+          <li>連結生成は<b>Pipeline内で完結</b>させる</li>
+          <li><code>MAX_CONNECTION_DEPTH = 4</code> を必ず設ける</li>
+          <li>利用Pipeline数が少ないSetは次Depthへ展開しない選択肢を持つ</li>
+          <li>外部Graphライブラリの新規導入・LLM利用はこの段階では行わない</li>
+        </ul>
+      </div>
+    </div>
+    <div class="card bad" style="margin-top:13px">
+      <div class="cb"><b>JOIN復元の原則：</b> <code>source_tables</code> に3テーブル以上あり、どのテーブル同士が直接JOINされているか判断できない場合、<b>全組み合わせを勝手にEdge化しない</b>。未解決として件数を記録する。</div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ 15 ============ -->
+<section class="slide" data-title="連結深度と共通性の減衰">
+  <div class="kicker">Analysis</div>
+  <h2>連結を深めると、共通性はどこで<em>急落</em>するか</h2>
+  <p class="sub">テーブルを1つ足すたびに利用Pipeline数は減る。減り方の「形」を見ることで、共通化すべき範囲が見える。（下図は考え方を示す例）</p>
+  <div class="body">
+    <div class="card" style="padding:20px 22px">
+      <div class="barrow">
+        <div class="barlab">第1連結<br>CUSTOMER + ACCOUNT</div>
+        <div class="bartrack"><div class="barfill" style="width:100%">1,200 Pipeline</div></div>
+        <div class="barmeta">15部門</div>
+      </div>
+      <div class="retrow"><div></div><div><span class="ret">▼ 維持率 71%</span></div><div></div></div>
+      <div class="barrow">
+        <div class="barlab">第2連結<br>+ TRANSACTION</div>
+        <div class="bartrack"><div class="barfill" style="width:71%">850 Pipeline</div></div>
+        <div class="barmeta">13部門</div>
+      </div>
+      <div class="retrow"><div></div><div><span class="ret">▼ 維持率 85%</span></div><div></div></div>
+      <div class="barrow">
+        <div class="barlab">第3連結<br>+ PRODUCT</div>
+        <div class="bartrack"><div class="barfill" style="width:60%">720 Pipeline</div></div>
+        <div class="barmeta">11部門</div>
+      </div>
+      <div class="retrow"><div></div><div><span class="ret drop">▼ 維持率 17% ← 急落</span></div><div></div></div>
+      <div class="barrow">
+        <div class="barlab">第4連結<br>+ CAMPAIGN</div>
+        <div class="bartrack"><div class="barfill warn" style="width:10%">120</div></div>
+        <div class="barmeta">3部門</div>
+      </div>
+    </div>
+    <div class="grid2" style="margin-top:15px">
+      <div class="card acc3"><div class="ct">読み取り</div><div class="cb">第1〜第3連結までは多数のPipelineで共通。第4連結で<b>急激に個別化</b>している。</div></div>
+      <div class="card acc2"><div class="ct">結論</div><div class="cb"><code>CUSTOMER + ACCOUNT + TRANSACTION + PRODUCT</code> までを<b class="hl">共通中間層として切り出す境界候補</b>と考える。</div></div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ 16 ============ -->
+<section class="slide" data-title="維持率と汎用化境界">
+  <div class="kicker">Metric</div>
+  <h2>維持率（Retention）で <em>汎用化境界</em> を定量的に捉える</h2>
+  <div class="body">
+    <div class="grid3" style="margin-bottom:15px">
+      <div class="card acc">
+        <div class="ct">retention_rate</div>
+        <div style="font-family:var(--mono);font-size:12.5px;color:var(--a1);background:#0a1526;border:1px solid #1a2740;border-radius:8px;padding:10px;line-height:1.7">child_pipeline_count<br>/ parent_pipeline_count</div>
+        <div class="cb" style="margin-top:9px">親子1組ごとの維持率。<code>720 / 850 = 84.7%</code></div>
+      </div>
+      <div class="card acc2">
+        <div class="ct">parent_support_retention</div>
+        <div style="font-family:var(--mono);font-size:12.5px;color:var(--a2);background:#1a1405;border:1px solid #4a3a12;border-radius:8px;padding:10px;line-height:1.7">child_pipeline_count<br>/ MAX(parent_pipeline_count)</div>
+        <div class="cb" style="margin-top:9px">Parent候補が複数ある場合、<b>最もPipeline数が多いParent</b>を基準にした維持率。</div>
+      </div>
+      <div class="card acc3">
+        <div class="ct">max_child_retention</div>
+        <div style="font-family:var(--mono);font-size:12.5px;color:var(--a3);background:#08190f;border:1px solid #1f5f4a;border-radius:8px;padding:10px;line-height:1.7">MAX(すべての子の<br>retention_rate)</div>
+        <div class="cb" style="margin-top:9px">これが<b>低い</b>ほど、その集合から先は個別化が進んでいる＝境界の可能性が高い。</div>
+      </div>
+    </div>
+    <div class="grid2">
+      <div class="card">
+        <div class="ct">Parent / Child の定義</div>
+        <div class="cb">Childのtable setから1テーブル除いた集合がParentに存在すれば親子候補。<br>
+          <code>Parent [A,B,C] → Child [A,B,C,D]</code> なら <code>added_table = D</code>。<br>
+          <code>[A,B,C]</code> には <code>[A,B] [A,C] [B,C]</code> という複数Parentがあり得るため、<b>すべての親子関係を保存</b>する。</div>
+      </div>
+      <div class="card acc2">
+        <div class="ct">汎用化境界候補の特徴</div>
+        <ul class="bul" style="font-size:13.5px">
+          <li>自身の <b>Pipeline利用数が多い</b></li>
+          <li><b>複数部門</b>から利用されている</li>
+          <li><b>複数Output</b>に利用されている</li>
+          <li>ここまでは<b>高い共通性を維持</b>している</li>
+          <li>さらにテーブルを足すと<b>利用Pipeline数が急減</b>する</li>
+        </ul>
+      </div>
+    </div>
+    <div class="card bad" style="margin-top:13px">
+      <div class="cb"><b>暫定の候補判定ルール（パラメータ化して後から変更可能にする）：</b>
+        <code>pipeline_count &gt;= 5</code> AND <code>department_count &gt;= 2</code> AND <code>max_child_retention &lt; 0.5</code> → <code>candidate_flag = true</code>。この閾値は業務的な正解ではない。判定から漏れたデータも削除せず保持する。</div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ 17 ============ -->
+<section class="slide" data-title="評価指標">
+  <div class="kicker">Signals</div>
+  <h2>汎用化候補を判断する主なシグナル</h2>
+  <p class="sub">検証段階では、複雑な総合スコアより「人が判断できる事実」を並べることを優先する。</p>
+  <div class="body">
+    <div class="grid4">
+      <div class="card acc"><div class="ct"><span class="no">01</span>Pipeline数</div><div class="cb">何本のPipelineで同じテーブル群が使われているか。需要のボリューム。</div></div>
+      <div class="card acc"><div class="ct"><span class="no">02</span>部門数</div><div class="cb">何部門にまたがるか。部門横断性は件数と独立に評価する。</div></div>
+      <div class="card acc"><div class="ct"><span class="no">03</span>継続性</div><div class="cb">何年間同じ組み合わせが使われているか。単発需要と恒常需要を分ける。</div></div>
+      <div class="card acc"><div class="ct"><span class="no">04</span>Output種類数</div><div class="cb">同じ中間層から何種類のOutputが作られているか。再利用の広がり。</div></div>
+      <div class="card acc2"><div class="ct"><span class="no">05</span>Parent Support Retention</div><div class="cb">1つ前の連結状態から、どの程度共通利用が維持されているか。</div></div>
+      <div class="card acc2"><div class="ct"><span class="no">06</span>Child Retention</div><div class="cb">テーブルを追加した場合にどの程度残るか。急低下＝境界のシグナル。</div></div>
+      <div class="card acc3"><div class="ct"><span class="no">07</span>加工ロジックの類似性</div><div class="cb">Fingerprintが同一・類似か。構造だけでなくロジックも共通か。</div></div>
+      <div class="card acc3"><div class="ct"><span class="no">08</span>下流利用</div><div class="cb">生成結果がさらに多くのPipelineから参照されているか。</div></div>
+    </div>
+    <div class="card acc4" style="margin-top:15px">
+      <div class="ct">最終スコアリング（Generic Mart Score）の初期重み ※パラメータ化して変更可能にする</div>
+      <div class="cb" style="font-family:var(--mono);font-size:12.5px;color:var(--a1);line-height:1.9">
+        0.30 × usage_frequency ＋ 0.25 × department_breadth ＋ 0.15 × continuity ＋ 0.15 × duplication ＋ 0.10 × downstream ＋ 0.05 × stability
+      </div>
+      <div class="cb" style="margin-top:8px">各スコアは <code>percent_rank()</code> 等の順位ベースで0-100に正規化する。<b>LLM confidence はスコアに混ぜず、意味付けの信頼度として別管理する。</b></div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ 18 ============ -->
+<section class="slide" data-title="Connected Table Set と Fingerprint" data-chap="5. Fingerprint と意味付け">
+  <div class="kicker">Two Axes</div>
+  <h2>「何をセットで使うか」と「どう加工するか」は<em>別の軸</em></h2>
+  <div class="body">
+    <div class="grid2" style="margin-bottom:16px">
+      <div class="card acc2">
+        <div class="ct">Connected Table Set</div>
+        <div class="cb" style="font-size:15px;color:var(--ink);font-weight:700;margin-bottom:8px">どのテーブル群がセットで使われているか</div>
+        <div class="cb">構造（データの組み合わせ）の共通性を見る。<br>今回の分析で<b>最優先で正しく抽出する</b>対象。</div>
+      </div>
+      <div class="card acc3">
+        <div class="ct">Pipeline Fingerprint</div>
+        <div class="cb" style="font-size:15px;color:var(--ink);font-weight:700;margin-bottom:8px">そのテーブル群をどう加工しているか</div>
+        <div class="cb">JOINキー・FILTER・集計・粒度の共通性を見る。<br>Connected Table Set の確度を<b>後から補強する</b>役割。</div>
+      </div>
+    </div>
+    <div class="card acc">
+      <div class="ct">2段階で確度を上げる</div>
+      <div class="grid3" style="margin-top:10px">
+        <div style="background:#0a1526;border:1px solid #1a2740;border-radius:9px;padding:12px">
+          <div class="tag a2" style="margin-bottom:8px">STEP 1</div>
+          <div style="font-family:var(--mono);font-size:12px;color:var(--a2);line-height:1.7">CUSTOMER<br>+ ACCOUNT<br>+ TRANSACTION</div>
+          <div class="cb" style="margin-top:8px;font-size:12.5px">が 500 Pipeline でセット利用される<br>→ <b>共通中間層候補</b></div>
+        </div>
+        <div style="background:#0a1526;border:1px solid #1a2740;border-radius:9px;padding:12px">
+          <div class="tag a3" style="margin-bottom:8px">STEP 2</div>
+          <div style="font-family:var(--mono);font-size:12px;color:var(--a3);line-height:1.7">JOIN KEY = customer_id<br>AGG = SUM(amount)<br>GROUP BY = customer_id,<br>&nbsp;&nbsp;year_month</div>
+          <div class="cb" style="margin-top:8px;font-size:12.5px">まで多数で一致 → <b>より強い候補</b></div>
+        </div>
+        <div style="background:#0d2013;border:1px solid #1f5f4a;border-radius:9px;padding:12px;display:flex;flex-direction:column;justify-content:center">
+          <div class="cb" style="font-size:13.5px;color:#a7f3d0">共通するデータ構造の発見<br>＋<br>共通する加工ロジックの発見<br>＝<br><b style="color:#34d399;font-size:15px">汎用化候補の確度向上</b></div>
+        </div>
+      </div>
+    </div>
+    <div class="card" style="margin-top:13px;border-style:dashed">
+      <div class="cb">今回のスコープでは Fingerprint との<b>統合スコアリングは実装対象外</b>。ただし後から結合できるよう <code>pipeline_id</code> と <code>table_set_key</code> は必ず保持する。</div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ 19 ============ -->
+<section class="slide" data-title="Pipeline Fingerprint">
+  <div class="kicker">Fingerprint</div>
+  <h2>Pipeline Fingerprint：名前ではなく<em>処理構造</em>で比較する</h2>
+  <div class="body">
+    <div class="quote" style="font-size:14.5px;margin-bottom:15px">
+      Pipelineが「何を入力し、どのように加工し、どの粒度で出力するか」という処理の特徴を、比較可能な形式で表したもの。
+    </div>
+    <div class="grid2">
+      <div class="card acc">
+        <div class="ct">正規化してHash化する</div>
+        <div style="font-family:var(--mono);font-size:11.5px;color:var(--a1);background:#0a1526;border:1px solid #1a2740;border-radius:8px;padding:11px;line-height:1.8">
+          INPUT=CUSTOMER,DEPOSIT,INVESTMENT<br>|JOIN=customer_id<br>|AGG=SUM(balance)<br>|GROUPBY=customer_id,year_month
+        </div>
+        <div class="cb" style="margin-top:9px">表記順・大文字小文字・空白・alias差・関数名表記を正規化した上で SHA-256 でHash化する。</div>
+        <div style="font-family:var(--mono);font-size:12px;color:var(--a3);margin-top:9px;line-height:1.8">
+          P001 → 8AF3897C...<br>P032 → 8AF3897C...<br>P182 → 8AF3897C...
+        </div>
+        <div class="cb" style="margin-top:7px">同じHash＝実質的に同一の処理をしている可能性が高い。</div>
+      </div>
+      <div class="stack">
+        <div class="card acc2">
+          <div class="ct">A. Exact Fingerprint</div>
+          <div class="cb">literal値・条件値も含めて完全一致を見る。<b>実質的に同一ロジックの検出</b>用。</div>
+        </div>
+        <div class="card acc3">
+          <div class="ct">B. Structural Fingerprint</div>
+          <div class="cb">日付・数値・文字列などの literal を <code>&lt;LITERAL&gt;</code> にパラメータ化する。<b>条件値だけ違うテンプレート処理の検出</b>用。<br>
+            ただし <b>カラム名・JOINキー・集約関数・GROUP BY粒度</b>など業務ロジックに影響する情報は保持する。</div>
+        </div>
+        <div class="card bad">
+          <div class="ct">近似類似の扱い</div>
+          <div class="cb">20,000 × 20,000 の直積は禁止。input table数・共通input・output数・structural hash prefix 等で<b>bucketしてから</b> Jaccard 類似度を計算する。大規模化する場合は MinHashLSH を検討する。</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ 20 ============ -->
+<section class="slide" data-title="Cluster と Semantic、LLMの適用範囲">
+  <div class="kicker">Interpretation</div>
+  <h2>Fingerprint → Cluster → Semantic：<em>LLMは最後の解釈だけ</em></h2>
+  <p class="sub">Fingerprintの完全一致だけでは、少し処理が異なる類似Pipelineを捉えられない。段階的に束ねてから意味を与える。</p>
+  <div class="body">
+    <div class="card bad" style="margin-bottom:14px">
+      <div class="cb" style="font-family:var(--mono);font-size:12.5px;line-height:1.9;color:var(--muted)">
+        P001: CUSTOMER + DEPOSIT + INVESTMENT → SUM(balance)<br>
+        P002: CUSTOMER + DEPOSIT + INVESTMENT + TRUST → SUM(balance)
+      </div>
+      <div class="cb" style="margin-top:8px">Hashは異なるが、業務的にはどちらも<b>「顧客金融資産」</b>を作っている可能性がある。</div>
+    </div>
+    <div class="band" style="margin-bottom:15px">
+      <div class="st" style="border-color:#1d4d6b"><div class="stn">決定論的</div><div class="stt">Fingerprint</div>
+        <div class="cb" style="font-size:12.5px">exact / structural hash による完全・構造一致</div></div>
+      <div class="st" style="border-color:#1d4d6b"><div class="stn">決定論的</div><div class="stt">pipeline_cluster</div>
+        <div class="cb" style="font-size:12.5px">bucket＋類似度で、完全一致でない類似処理を束ねる</div></div>
+      <div class="st" style="border-color:#6b2a4d;background:linear-gradient(180deg,#22132a,#0d1626)">
+        <div class="stn" style="color:#f472b6">LLM適用範囲</div><div class="stt">pipeline_semantic</div>
+        <div class="cb" style="font-size:12.5px">業務概念・粒度・目的・候補名を解釈し UNKNOWN を許容</div></div>
+      <div class="st" style="border-color:#6b5320"><div class="stn">決定論的</div><div class="stt">候補スコアリング</div>
+        <div class="cb" style="font-size:12.5px">コード利用実態に基づく定量スコア。LLM confidence とは分離</div></div>
+    </div>
+    <div class="grid3">
+      <div class="card acc4"><div class="ct">LLMに送るもの</div><div class="cb">candidate_id、input/output tables、JOIN/filter/集計/粒度の概要、pipeline_count、department_count、active_year_count、downstream数<b>のみ</b>。</div></div>
+      <div class="card bad"><div class="ct">LLMに送らないもの</div><div class="cb"><b>Raw XML本文、業務データそのもの</b>。20,000件全件も送らない（<code>MAX_LLM_CANDIDATES</code> で上限管理）。</div></div>
+      <div class="card acc3"><div class="ct">出力の扱い</div><div class="cb">指定JSONのみ返させ、根拠がない業務意味は <code>UNKNOWN</code>。JSON parse失敗は記録し、自動再試行は最大2回。エンドポイント未設定でも構造分析は完走させ、LLM PhaseのみSKIPPEDとして記録する。</div></div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ 21 ============ -->
+<section class="slide" data-title="実装フェーズ（Phase 0-11）" data-chap="6. 実装と品質">
+  <div class="kicker">Implementation</div>
+  <h2>Databricks上の実装フェーズ（Phase 0 – 11）</h2>
+  <p class="sub">Genie Code の Agent mode に対し、コード生成だけでなく<b>セル実行・エラー修正・品質検証まで</b>を指示する構成をとる。</p>
+  <div class="body">
+    <div class="grid4">
+      <div class="card acc"><div class="ct"><span class="no">P0</span>環境確認・サンプル調査</div><div class="cb">権限・Volume確認。XMLを30件だけ読み、tag構造を観察して <code>xml_field_mapping</code> を確定する</div></div>
+      <div class="card acc"><div class="ct"><span class="no">P1</span>XML Raw Ingestion</div><div class="cb"><code>binaryFile</code>で読み、file_hash付きで <code>odm_xml_raw</code> にMERGE</div></div>
+      <div class="card acc"><div class="ct"><span class="no">P2</span>Pipeline Metadata Parse</div><div class="cb">master / input / output / transform / parse_error に構造化</div></div>
+      <div class="card acc"><div class="ct"><span class="no">P3</span>Table名正規化</div><div class="cb">表記ゆれ正規化と意味的統合を分離。<code>table_name_mapping</code></div></div>
+      <div class="card acc2"><div class="ct"><span class="no">P4</span>Data Usage Graph</div><div class="cb"><code>graph_node</code> / <code>graph_edge</code> をMERGEで構築し整合性を検証</div></div>
+      <div class="card acc2"><div class="ct"><span class="no">P5</span>Graph分析指標</div><div class="cb">Fan-in / Fan-out / 部門横断 / 継続性 / 再帰Lineage</div></div>
+      <div class="card acc2"><div class="ct"><span class="no">P6</span>Pipeline Fingerprint</div><div class="cb">exact / structural hash と重複クラスタ集計</div></div>
+      <div class="card acc2"><div class="ct"><span class="no">P7</span>候補Feature作成</div><div class="cb">OUTPUT_TABLE型 と LOGIC_CLUSTER型 の2種類で候補化</div></div>
+      <div class="card acc3"><div class="ct"><span class="no">+</span>Connected Table Set分析</div><div class="cb"><b>今回の追加分。</b>join_edge → connected_table_set → stats → parent_child → candidate</div></div>
+      <div class="card acc4"><div class="ct"><span class="no">P8</span>LLMによる意味付け</div><div class="cb">承認済み経路が利用可能な場合のみ。候補絞り込み後に限定</div></div>
+      <div class="card acc4"><div class="ct"><span class="no">P9</span>候補スコアリング</div><div class="cb"><code>generic_mart_candidate</code> と recommendation_tier</div></div>
+      <div class="card"><div class="ct"><span class="no">P10/11</span>品質検証・実行サマリ</div><div class="cb">Acceptance Tests と <code>analysis_run_summary</code>（PASS / WARN / FAIL）</div></div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ 22 ============ -->
+<section class="slide" data-title="非交渉の実装ルール">
+  <div class="kicker">Guardrails</div>
+  <h2>非交渉の実装ルール（ガードレール）</h2>
+  <p class="sub">再現性・監査性・安全性を守るための前提。実装者・AIエージェントのどちらに対しても同じ制約をかける。</p>
+  <div class="body">
+    <div class="grid2">
+      <div class="stack">
+        <div class="card bad"><div class="ct">既存資産を壊さない</div><div class="cb">既存テーブルへの DROP / TRUNCATE / DELETE / 破壊的 OVERWRITE は禁止。書き込みは専用の <code>TARGET_CATALOG.TARGET_SCHEMA</code> に限定する。同名テーブルがある場合はスキーマと行数を確認してから MERGE する。</div></div>
+        <div class="card bad"><div class="ct">推測で補完しない</div><div class="cb">XMLに存在しない業務定義・部門・テーブルの意味を推測しない。不明値は NULL または UNKNOWN として保持する。pipeline_id が欠落しても業務IDを生成せず <code>TECH:&lt;file_hash&gt;</code> とする。</div></div>
+        <div class="card bad"><div class="ct">仕様不明のまま全量Parseしない</div><div class="cb">必ずサンプル観察とマッピング確定を先に行う。XML構造が複数パターンある場合は <code>parser_version</code> / <code>xml_pattern</code> を記録し、パターン別に処理する。</div></div>
+      </div>
+      <div class="stack">
+        <div class="card acc2"><div class="ct">計算量を爆発させない</div><div class="cb">Pipeline間の 20,000 × 20,000 直積を作らない。まず Hash / Bucket / 入力集合で候補を絞る。連結生成は Pipeline 内で完結させ、各Depthで重複排除する。</div></div>
+        <div class="card acc4"><div class="ct">LLMは最小限・後段のみ</div><div class="cb">構文・構造解析は Spark / Python で決定論的に行う。20,000件全件を LLM へ送らない。Raw XML本文や業務データを外部へ送らない。APIキー・Secretをノートブックへ平文で書かない。</div></div>
+        <div class="card acc3"><div class="ct">冪等性と検証を必須にする</div><div class="cb">同一ファイルを再実行しても重複行が増えないよう <code>file_path + file_hash</code> や <code>pipeline_id</code> をキーにする。各フェーズ終了時に検証SQLを実行し、行数・NULL率・重複・エラー件数を表示する。エラーは握りつぶさず原因と修正内容を残す。</div></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ 23 ============ -->
+<section class="slide" data-title="実行パラメータ">
+  <div class="kicker">Parameters</div>
+  <h2>実行前に決めるパラメータ</h2>
+  <p class="sub">プレースホルダが未置換の場合、既存本番スキーマへ書き込まない。閾値はすべてNotebook上で変更できるようにする。</p>
+  <div class="body">
+    <div class="grid2">
+      <div class="card acc">
+        <div class="ct">環境パラメータ</div>
+        <table class="t" style="margin-top:4px">
+          <tr><th style="width:220px">パラメータ</th><th>意味・既定値</th></tr>
+          <tr><td>TARGET_CATALOG</td><td>解析用テーブルを作成する Unity Catalog Catalog <span class="tag bd">必須</span></td></tr>
+          <tr><td>TARGET_SCHEMA</td><td>既定 <code>odm_analysis</code>。専用Schemaを推奨 <span class="tag bd">必須</span></td></tr>
+          <tr><td>XML_VOLUME_PATH</td><td>20,000件のODM XMLが存在するVolumeパス <span class="tag bd">必須</span></td></tr>
+          <tr><td>SOURCE_SYSTEM</td><td>既定 <code>ODM</code>。原則そのまま</td></tr>
+          <tr><td>AZURE_OPENAI_ENDPOINT</td><td>承認済み Model Serving / External Model endpoint 名。未設定ならLLM PhaseのみSKIP</td></tr>
+          <tr><td>MAX_LLM_CANDIDATES</td><td>LLMへ送る候補上限。既定 1,000</td></tr>
+          <tr><td>SAMPLE_XML_COUNT</td><td>構造観察用サンプル件数。既定 30</td></tr>
+        </table>
+      </div>
+      <div class="card acc2">
+        <div class="ct">連結分析パラメータ</div>
+        <table class="t" style="margin-top:4px">
+          <tr><th style="width:250px">パラメータ</th><th>意味・既定値</th></tr>
+          <tr><td>MAX_CONNECTION_DEPTH</td><td>探索する最大連結深度。初回検証は <code>4</code></td></tr>
+          <tr><td>MIN_PIPELINE_COUNT</td><td>次Depthへ展開する最小Pipeline数。既定 <code>2</code></td></tr>
+          <tr><td>MIN_DEPARTMENT_COUNT</td><td>集計対象の最小部門数。既定 <code>1</code></td></tr>
+          <tr><td>MIN_CANDIDATE_PIPELINES</td><td>候補判定の最小Pipeline数。既定 <code>5</code></td></tr>
+          <tr><td>MIN_CANDIDATE_DEPARTMENTS</td><td>候補判定の最小部門数。既定 <code>2</code></td></tr>
+          <tr><td>MAX_CHILD_RETENTION_THRESHOLD</td><td>この値未満なら境界候補。既定 <code>0.5</code></td></tr>
+        </table>
+        <div class="cb" style="margin-top:10px;border-top:1px solid #1a2740;padding-top:9px">
+          初回検証は<b>第1〜第4連結まで</b>。実データ件数・処理時間・候補数を確認してから拡張できる設計にする。候補判定から漏れたデータも<b>削除せず保持</b>する。
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ 24 ============ -->
+<section class="slide" data-title="品質検証">
+  <div class="kicker">Quality</div>
+  <h2>品質検証：実装後に必ず確認すること</h2>
+  <div class="body">
+    <div class="grid4" style="margin-bottom:14px">
+      <div class="card acc"><div class="ct">A. Raw</div><div class="cb">XML発見件数 / distinct file_path / 空ファイル件数 / hash重複件数</div></div>
+      <div class="card acc"><div class="ct">B. Parse</div><div class="cb">distinct pipeline_id / success・error件数と率 / department取得率 / created_at取得率 / input・output取得率</div></div>
+      <div class="card acc"><div class="ct">C. Graph</div><div class="cb">node重複 = 0 / edge重複 = 0 / orphan edge = 0 / READSはTABLE→PIPELINEのみ / WRITESはPIPELINE→TABLEのみ</div></div>
+      <div class="card acc"><div class="ct">D. サンプル照合</div><div class="cb">XML 30件を原文とParse結果で突合し、一致 / 不一致 / 確認不能を集計する</div></div>
+    </div>
+    <div class="grid2">
+      <div class="card acc2">
+        <div class="ct">JOIN・Connected Set の品質確認</div>
+        <ul class="bul" style="font-size:13.5px">
+          <li>JOIN Transform総数 / Edgeへ変換できた件数 / できなかった件数</li>
+          <li><b>変換不能理由 Top10</b> を必ず提示する</li>
+          <li>第1〜第4連結ごとの候補数を表示し、<b>候補数が異常に爆発していないか</b>確認する</li>
+          <li>Pipelineを最低5件抽出し、<code>元のJOIN → pipeline_join_edge → connected_table_set</code> が一致することを目視で確認する</li>
+        </ul>
+      </div>
+      <div class="card acc3">
+        <div class="ct">最終提示物（Notebookに日本語で出力）</div>
+        <ul class="bul" style="font-size:13.5px">
+          <li>JOIN解析結果（Transform数 / 抽出成功 / 失敗）</li>
+          <li>第N連結別の候補数</li>
+          <li>各DepthのTop20（table_set / pipeline_count / department_count / active_year_count / output_table_count）</li>
+          <li>維持率の具体例を3〜5件、連結の流れが見える形で</li>
+          <li>汎用化境界候補 Top20（parent_support_retention / max_child_retention / candidate_reason 付き）</li>
+          <li>品質上の懸念と、次に人間がレビューすべき論点</li>
+        </ul>
+      </div>
+    </div>
+    <div class="card" style="margin-top:13px;border-style:dashed">
+      <div class="cb"><code>analysis_run_summary.quality_status</code> の目安：<b>orphan edge &gt; 0</b> または <b>node/edge重複 &gt; 0</b> → FAIL。parse error率が閾値以上 → WARN（閾値と実値をnotesに記録）。サンプル照合に重大不一致 → WARN / FAIL。</div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ 25 ============ -->
+<section class="slide" data-title="この分析で答えたい問い" data-chap="7. まとめ">
+  <div class="kicker">Questions</div>
+  <h2>この分析で答えたい問い</h2>
+  <p class="sub">実行結果を使って、最終的に以下へ回答できる状態にする。</p>
+  <div class="body">
+    <div class="grid2">
+      <div class="stack">
+        <div class="card acc"><div class="ct"><span class="no">Q1</span>複数Pipelineで頻繁にセット利用されるテーブル群は何か</div></div>
+        <div class="card acc"><div class="ct"><span class="no">Q2</span>第1〜第4連結で、それぞれどのテーブル群が多いか</div></div>
+        <div class="card acc"><div class="ct"><span class="no">Q3</span>連結数を増やしても高い共通利用率を維持するテーブル群は何か</div></div>
+        <div class="card acc"><div class="ct"><span class="no">Q4</span>どの連結段階からPipeline利用数・部門数が大きく低下するか</div></div>
+      </div>
+      <div class="stack">
+        <div class="card acc2"><div class="ct"><span class="no">Q5</span>「ここまでを共通中間層として持ち、それ以降を個別Pipelineで加工する」境界候補はどこか</div></div>
+        <div class="card acc2"><div class="ct"><span class="no">Q6</span>同じテーブル群が複数部門・複数Output用途に利用されている例は何か</div></div>
+        <div class="card acc3"><div class="ct"><span class="no">Q7</span>そのテーブル群に対する JOIN・Aggregation・粒度まで共通しているか</div></div>
+        <div class="card acc4" style="border-style:dashed">
+          <div class="cb">ゴールは「最もよく使われるテーブル」を探すことではない。<br>
+            <b>複数の既存Pipelineで繰り返し構築されている“連結済みの中間データ構造”を発見し、共通中間層・汎用データマート候補として検討できる状態にすること。</b></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ 26 ============ -->
+<section class="slide" data-title="まとめと注意事項">
+  <div class="kicker">Summary</div>
+  <h2>まとめ：6つの視点と、超えてはいけない一線</h2>
+  <div class="body">
+    <div class="grid3" style="margin-bottom:14px">
+      <div class="card acc"><div class="ct">Graph</div><div class="cb">どこで・どれだけ使われているか</div></div>
+      <div class="card acc2"><div class="ct">Connected Table Set</div><div class="cb">どのテーブル群がセットで使われているか</div></div>
+      <div class="card acc2"><div class="ct">第N連結 / Retention</div><div class="cb">どこまでを共通中間層にすべきか</div></div>
+      <div class="card acc3"><div class="ct">Fingerprint</div><div class="cb">そのテーブル群をどのように加工しているか</div></div>
+      <div class="card acc3"><div class="ct">Cluster</div><div class="cb">どのPipeline同士が似ているか</div></div>
+      <div class="card acc4"><div class="ct">Semantic</div><div class="cb">業務的に何を作ろうとしているか</div></div>
+    </div>
+    <div class="card acc3" style="margin-bottom:13px">
+      <div class="cb">
+        <b>よくセットでJOINされる</b> ＋ <b>複数Pipelineで使われる</b> ＋ <b>複数部門で使われる</b> ＋ <b>複数Outputに再利用される</b> ＋
+        <b>第N連結まで共通性が維持される</b> ＋ <b>それ以上の連結で個別化が進む</b> ＋ <b>加工ロジックも共通・類似している</b><br>
+        <span class="hl">— そのような中間データほど、個別Pipeline内で毎回作るのではなく、共通データ資産として一度整備し再利用する価値が高い。</span>
+      </div>
+    </div>
+    <div class="card bad">
+      <div class="ct">注意事項：コード上の頻出は、業務定義として正しいことを意味しない</div>
+      <div class="cb">
+        Connected Table Set が頻出していても、JOINキー・JOIN Type・Filter条件・粒度・対象商品/顧客範囲が異なる可能性がある。<br>
+        <span style="font-family:var(--mono);font-size:12px;color:var(--a1);display:inline-block;margin-top:8px;line-height:1.8">
+        コード分析 → Connected Table Setの発見 → 汎用化境界候補の抽出 → Fingerprintによるロジック確認 → <b style="color:#fbbf24">業務定義の確認・統一</b> → 正式な汎用データマート</span><br>
+        <b style="color:#fecdd3;display:inline-block;margin-top:8px">コード解析結果は「共通データ需要を発見するための証拠」であり、そのまま正解データ定義としないことが重要である。</b>
+      </div>
+    </div>
+  </div>
+</section>
+
+</div></div>
+
+<button id="tocbtn">目次 (M)</button>
+<div id="toc"><h3>目次</h3><p>クリックで移動 / ← → Space PageUp PageDown Home End / M で目次</p><div class="tocgrid" id="tocgrid"></div></div>
+<div id="brand">ODM Pipeline Analysis</div>
+<div id="num"></div>
+<div id="bar"><div id="barin"></div></div>
+
+<script>
+(function(){
+  var stage=document.getElementById('stage');
+  var slides=[].slice.call(document.querySelectorAll('.slide'));
+  var i=0;
+
+  function fit(){
+    var w=window.innerWidth, h=window.innerHeight-4;
+    var s=Math.min(w/1280,h/720);
+    stage.style.transform='translate('+((w-1280*s)/2)+'px,'+((h-720*s)/2)+'px) scale('+s+')';
+  }
+  window.addEventListener('resize',fit); fit();
+
+  function show(n){
+    i=Math.max(0,Math.min(slides.length-1,n));
+    slides.forEach(function(s,k){s.classList.toggle('active',k===i);});
+    document.getElementById('num').textContent=String(i+1).padStart(2,'0')+' / '+slides.length;
+    document.getElementById('barin').style.width=((i)/(slides.length-1)*100)+'%';
+    [].forEach.call(document.querySelectorAll('.tocit'),function(e,k){e.classList.toggle('cur',k===i);});
+    try{location.hash='s'+(i+1);}catch(e){}
+  }
+
+  // build TOC
+  var g=document.getElementById('tocgrid');
+  slides.forEach(function(s,k){
+    if(s.dataset.chap){var h=document.createElement('div');h.className='tocch';h.textContent=s.dataset.chap;g.appendChild(h);}
+    var d=document.createElement('div');d.className='tocit';
+    d.innerHTML='<i>'+String(k+1).padStart(2,'0')+'</i><span>'+(s.dataset.title||'')+'</span>';
+    d.onclick=function(){show(k);toc(false);};
+    g.appendChild(d);
+  });
+
+  var tocEl=document.getElementById('toc');
+  function toc(open){tocEl.classList.toggle('open',open===undefined?!tocEl.classList.contains('open'):open);}
+  document.getElementById('tocbtn').onclick=function(){toc();};
+  tocEl.onclick=function(e){if(e.target===tocEl)toc(false);};
+
+  document.addEventListener('keydown',function(e){
+    var k=e.key;
+    if(k==='Escape'){toc(false);return;}
+    if(k==='m'||k==='M'){toc();return;}
+    if(k==='ArrowRight'||k==='PageDown'||k===' '||k==='Enter'){show(i+1);e.preventDefault();}
+    else if(k==='ArrowLeft'||k==='PageUp'||k==='Backspace'){show(i-1);e.preventDefault();}
+    else if(k==='Home'){show(0);}
+    else if(k==='End'){show(slides.length-1);}
+  });
+  document.getElementById('viewport').addEventListener('click',function(e){
+    if(tocEl.classList.contains('open'))return;
+    show(e.clientX < window.innerWidth*0.28 ? i-1 : i+1);
+  });
+
+  var m=/^#s(\d+)$/.exec(location.hash||'');
+  show(m?parseInt(m[1],10)-1:0);
+})();
+</script>
+</body>
+</html>
